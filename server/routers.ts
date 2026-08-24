@@ -24,7 +24,7 @@ import {
   verificationSignals,
   webPushSubscriptions,
 } from "../drizzle/schema";
-import { assertRedemptionEligibility, createSecretCode, getTaskSessionAccess, hashSecretCode, isMatchingSecretCode, resolveVerification } from "./domain";
+import { assertRedemptionEligibility, createSecretCode, evaluateWebSignals, getTaskSessionAccess, getTaskStartEligibility, hashSecretCode, isMatchingSecretCode, resolveVerification } from "./domain";
 import { getDb } from "./db";
 import { assertWebPushConfigured, getWebPushStatus } from "./webpush";
 import { COOKIE_NAME } from "@shared/const";
@@ -175,18 +175,21 @@ export const appRouter = router({
         if (reused) return { session: reused, reused: true };
 
         const [task] = await tx.select().from(tasks).where(eq(tasks.id, input.taskId)).limit(1);
-        const now = new Date();
-        if (!task || task.status !== "active" || (task.startsAt && task.startsAt > now) || (task.endsAt && task.endsAt < now)) {
+        if (!task) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev şu anda başlatılamıyor." });
         }
         let [assignment] = await tx.select().from(taskAssignments).where(and(eq(taskAssignments.taskId, task.id), eq(taskAssignments.userId, ctx.user.id))).limit(1);
+        const eligibility = getTaskStartEligibility({ status: task.status, startsAt: task.startsAt, endsAt: task.endsAt, claimedQuota: task.claimedQuota, totalQuota: task.totalQuota, existingAssignmentStatus: assignment?.status });
+        if (!eligibility.allowed) {
+          const isQuota = eligibility.code === "TASK_QUOTA_REACHED";
+          throw new TRPCError({ code: isQuota ? "CONFLICT" : "BAD_REQUEST", message: isQuota ? "Bu görevin kotası doldu." : "Bu görev şu anda başlatılamıyor." });
+        }
         if (!assignment) {
-          if (task.claimedQuota >= task.totalQuota) throw new TRPCError({ code: "CONFLICT", message: "Bu görevin kotası doldu." });
           await tx.update(tasks).set({ claimedQuota: task.claimedQuota + 1 }).where(eq(tasks.id, task.id));
           const created = await tx.insert(taskAssignments).values({ taskId: task.id, userId: ctx.user.id, expiresAt: task.endsAt });
           [assignment] = await tx.select().from(taskAssignments).where(eq(taskAssignments.id, Number(created[0].insertId))).limit(1);
         }
-        if (!assignment || assignment.status === "completed" || assignment.status === "expired" || assignment.status === "cancelled") {
+        if (!assignment) {
           throw new TRPCError({ code: "CONFLICT", message: "Bu görev size yeniden atanamaz." });
         }
         const publicId = nanoid(24);
@@ -212,7 +215,7 @@ export const appRouter = router({
       if (!session || !access?.allowed) throw new TRPCError({ code: "NOT_FOUND", message: "Geçerli görev oturumu bulunamadı." });
       const [task] = await db.select().from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
       if (!task || task.verificationMethod !== "secret_code") throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev Secret Code kullanmıyor." });
-      const decision = resolveVerification({ method: "web_signals", webSignals: { ...input.signals, requiredSeconds: task.estimatedDurationSeconds } });
+      const decision = evaluateWebSignals({ ...input.signals, requiredSeconds: task.estimatedDurationSeconds });
       if (decision.status !== "pass") throw new TRPCError({ code: "BAD_REQUEST", message: decision.reason });
       const code = createSecretCode();
       const expiresAt = new Date(Math.min(session.expiresAt.getTime(), Date.now() + 5 * 60 * 1000));

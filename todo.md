@@ -18,8 +18,10 @@
 - [x] Yönetici doğrulama merkezi, risk merkezi, ödül yönetimi, yorum havuzu ve audit görünümünü geliştirmek.
 - [x] Web uygulamasının kurulabilir PWA manifesti, service worker, çevrimdışı kabuğu ve bildirim yönlendirmelerini hazırlamak.
 - [x] Periyodik görev ataması, süresi dolan oturum temizliği, doğrulama tekrar denemeleri ve bildirim gönderimi için güvenli arka plan iş tasarımını hazırlamak.
-- [ ] Yetkisiz erişim, IDOR, tekrar oynatma, çift puan, çift redemption, kota ve secret code testlerini yazmak.
-- [ ] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
+- [x] Yetkisiz erişim, IDOR, tekrar oynatma, çift puan, çift redemption, kota ve secret code testlerini yazmak.
+- [x] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
+- [ ] Gerçek veritabanı durumu üzerinde tasks.start → tasks.verify → rewards.redeem zincirinin ledger, bakiye, ödül talebi ve oturum yan etkilerini doğrulayan entegrasyon testi eklemek.
+- [ ] GitHub yedeklemesi öncesinde secret/log/build dışlama kurallarını doğrulamak, uzak depoyu bağlamak ve test edilmiş kaynak kodunu Vercel hazırlık dokümanlarıyla göndermek.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
 - [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
 - [x] GitHub yedekleme/aktarımı için https://github.com/socialtradeturkey/6lory.git deposunun mevcut içeriğini incelemek ve güvenli entegrasyon yolunu belgelemek.
@@ -28,9 +30,18 @@
 - [x] Mimari belgesinde kullanıcı ve yönetici rotalarını, her rota grubu için erişim ve yetki kuralını açık biçimde doğrulamak.
 - [x] Mimari belgesinde kullanıcı ve yönetici rotalarını, her rota grubu için erişim ve yetki kuralını açık biçimde doğrulamak.
 - [x] Yönetici rollerini ayrık izin kayıtlarıyla genişletmek ve yönetici prosedürlerinde rol/izin kontrollerini doğrulamak.
-- [ ] İdempotent task reward, bakiye projeksiyonu ve çift puan korumasını entegrasyon odaklı testlerle doğrulamak.
-- [ ] Ödül redemption için stok, kullanıcı limiti, risk ve puan düşümü kontrollerini entegrasyon odaklı testlerle doğrulamak.
-- [ ] Task Session, görev uygunluğu/kota/süre penceresi ve Verification Engine akışlarını sunucu sözleşmeleri üzerinden doğrulamak.
+- [x] İdempotent task reward, bakiye projeksiyonu ve çift puan korumasını entegrasyon odaklı testlerle doğrulamak.
+- [x] Ödül redemption için stok, kullanıcı limiti, risk ve puan düşümü kontrollerini entegrasyon odaklı testlerle doğrulamak.
+- [x] Task Session, görev uygunluğu/kota/süre penceresi ve Verification Engine akışlarını sunucu sözleşmeleri üzerinden doğrulamak.
+- [x] tasks.start, tasks.issueSecretCode ve tasks.verify prosedürlerini createCaller tabanlı senaryolarla; IDOR, süre sonu, kota, replay ve Secret Code akışlarında doğrulamak.
+- [x] rewards.redeem prosedürünü transaction seviyesinde; stok, kullanıcı limiti, risk, yetersiz puan, idempotent tekrar ve başarılı puan düşümü etkileriyle doğrulamak.
+- [x] writeTaskReward korumasını doğrulama prosedürü/transaction akışı üzerinden aynı idempotency anahtarında ikinci puan yazılmadığını kanıtlamak.
+- [x] tasks.issueSecretCode ve tasks.verify için süre sonu, geçerli/geçersiz Secret Code, sahiplik ve replay senaryolarını createCaller testleriyle tamamlamak.
+- [x] rewards.redeem için stok, kullanıcı limiti, restricted/suspended risk ve yetersiz puan reddini prosedür/transaction düzeyinde doğrulamak.
+- [x] Başarılı tasks.verify akışında ledger yazımı ve bakiye güncellemesini; tekrar istekte ikinci pointLedger kaydı oluşmadığını transaction testiyle kanıtlamak.
+- [x] tasks.verify için geçersiz Secret Code ile foreign/süresi geçmiş oturum reddini createCaller senaryolarında doğrulamak.
+- [x] rewards.redeem için suspended risk durumunda işlem reddi ve sıfır write etkisini prosedür seviyesinde doğrulamak.
+- [x] Başarılı bir tasks.verify işleminden sonra aynı idempotency anahtarı tekrarlandığında ikinci pointLedger insert’i yapılmadığını aynı transaction senaryosunda kanıtlamak.
 - [x] Resmî API kimlik bilgisi olmayan sosyal görevler için UNAVAILABLE veya manuel inceleme fallback adapter davranışını açık bir modül olarak doğrulamak.
 - [x] PWA uygulama kabuğu için route fallback ve ilk çevrimiçi kullanımdan sonra JavaScript/CSS varlıklarını kalıcı runtime cache ile desteklemek.
 - [x] Yönetici merkezine kullanıcı güven skorlarını, risk durumlarını ve inceleme bağlamını gösteren ayrı bir risk görünümü eklemek.

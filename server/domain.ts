@@ -63,6 +63,24 @@ export function getTaskSessionAccess(input: { sessionUserId: number; requesterUs
   return { allowed: true, code: "OK" as const };
 }
 
+export function getTaskStartEligibility(input: {
+  status: string;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  claimedQuota: number;
+  totalQuota: number;
+  existingAssignmentStatus?: string | null;
+  now?: Date;
+}) {
+  const now = input.now ?? new Date();
+  if (input.status !== "active") return { allowed: false, code: "TASK_NOT_ACTIVE" as const };
+  if (input.startsAt && input.startsAt > now) return { allowed: false, code: "TASK_NOT_STARTED" as const };
+  if (input.endsAt && input.endsAt <= now) return { allowed: false, code: "TASK_EXPIRED" as const };
+  if (input.claimedQuota >= input.totalQuota) return { allowed: false, code: "TASK_QUOTA_REACHED" as const };
+  if (["completed", "expired", "cancelled"].includes(input.existingAssignmentStatus ?? "")) return { allowed: false, code: "TASK_ALREADY_FINALIZED" as const };
+  return { allowed: true, code: "OK" as const };
+}
+
 export function resolveVerification(input: {
   method: "web_signals" | "secret_code" | "manual_review" | "platform_api" | "platform_api_manual_fallback";
   webSignals: WebSignals;
@@ -82,6 +100,9 @@ export function resolveVerification(input: {
   if (webDecision.status !== "pass") return webDecision;
   if (input.method === "secret_code" && !input.secretCodeValid) {
     return { status: "fail", score: webDecision.score, reason: "Secret Code geçersiz, süresi dolmuş veya bu oturuma ait değil.", signals: webDecision.signals };
+  }
+  if (input.method === "secret_code" && input.secretCodeValid) {
+    return { status: "pass", score: webDecision.score, reason: "Görev sinyalleri ve Secret Code doğrulama eşiğini geçti.", signals: webDecision.signals };
   }
   return {
     status: "manual_review",
