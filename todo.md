@@ -75,3 +75,5 @@
 - [ ] Ertelendi: YouTube ve TikTok için resmî OAuth başlangıç/callback, güvenli token saklama/yenileme ve profil bağlantı akışını; geçerli sağlayıcı kimlik bilgileri sağlandığında uygulamak. Instagram, profesyonel hesap gereksinimleri tamamlanınca ikinci aşamadadır.
 - [x] Bildirim merkezine okunmamış bildirim filtresini ekleyip mevcut tümünü okundu işaretleme akışını görünür biçimde doğrulamak.
 - [x] Yönetici paneline bildirim teslimatı ve kullanıcı etkileşimi odaklı operasyon analitiği eklemek.
+- [ ] Bildirim filtresi ve operasyon analitiği güncellemelerini hassas dosya dışlamalarını doğrulayarak GitHub main dalına aktarmak.
+- [ ] Canlı yönetilen dağıtımın yeni sürümü kullandığını doğrulamak ve Vercel’e gerçek full-stack geçiş için kalan teknik engelleri açıkça belgelemek.
