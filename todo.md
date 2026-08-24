@@ -30,6 +30,8 @@
 - [x] Görev oluşturma formunda platform, eylem, doğrulama/fallback, kullanıcı limiti, oturum süresi, zaman penceresi, uygunluk ve kampanya alanlarını görünür/doğrulanabilir hale getirmek.
 - [ ] Aktif yönetici hesabı için güvenli giriş akışını ve /admin operasyon merkezinin canlı erişimini doğrulamak.
 - [ ] Canlı /api/oauth/callback akışında görülen invalid oauth state hatasını giderip güvenli giriş dönüşünü doğrulamak.
+- [ ] OAuth başlangıç origin’i, callback redirect URI’si ve host-only nonce çerezinin canlı akışta aynı domain üzerinde eşleştiğini teşhis edip doğrulamak.
+- [ ] Servis worker’ın eski uygulama kabuğunu cache-first sunarak OAuth düzeltmesini gölgelemesini önlemek için navigasyon güncelleme stratejisini düzeltmek.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
 - [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
 - [x] GitHub yedekleme/aktarımı için https://github.com/socialtradeturkey/6lory.git deposunun mevcut içeriğini incelemek ve güvenli entegrasyon yolunu belgelemek.
