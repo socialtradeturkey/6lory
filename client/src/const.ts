@@ -26,7 +26,21 @@ export const startLogin = () => {
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
 
   const nonce = crypto.randomUUID();
-  document.cookie = `${OAUTH_STATE_COOKIE}=${nonce}; Path=/; Max-Age=600; SameSite=None; Secure`;
+  // The provider returns with a top-level GET navigation. Lax preserves this
+  // host-only CSRF binding in privacy-restrictive browsers without making the
+  // nonce available to third-party subrequests.
+  document.cookie = `${OAUTH_STATE_COOKIE}=${nonce}; Path=/; Max-Age=600; SameSite=Lax; Secure`;
+  if (
+    !document.cookie
+      .split(";")
+      .some(cookie => cookie.trim().startsWith(`${OAUTH_STATE_COOKIE}=`))
+  ) {
+    loginNavigationStarted = false;
+    window.alert(
+      "Güvenli giriş başlatılamadı. Tarayıcınızda bu site için çerezlere izin verip yeniden deneyin."
+    );
+    return;
+  }
   const state = encodeOAuthState({ redirectUri, nonce });
 
   const url = new URL(`${oauthPortalUrl}/app-auth`);
