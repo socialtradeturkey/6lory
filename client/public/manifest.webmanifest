@@ -1,0 +1,19 @@
+{
+  "name": "6lory — Doğrulanmış Kazanım",
+  "short_name": "6lory",
+  "description": "Doğrulanmış görev, puan ve ödül platformu.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#172438",
+  "theme_color": "#172438",
+  "icons": [
+    {
+      "src": "/manus-storage/6lory-app-icon_b69505cd.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

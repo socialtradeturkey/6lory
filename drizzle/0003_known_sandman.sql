@@ -1,0 +1,2 @@
+ALTER TABLE `task_sessions` ADD `start_idempotency_key` varchar(96) NOT NULL;--> statement-breakpoint
+ALTER TABLE `task_sessions` ADD CONSTRAINT `task_sessions_start_idempotency_key_unique` UNIQUE(`start_idempotency_key`);

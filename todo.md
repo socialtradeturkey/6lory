@@ -1,0 +1,45 @@
+# Project TODO
+
+- [x] Kullanıcı uygulaması ile yönetici panelinin ayrık rotalarını, erişim kurallarını ve ortak tasarım ilkelerini belgelemek.
+- [x] Mobil öncelikli, açık/koyu tema destekli ve premium görsel dil için tasarım token’larını ve tipografiyi tanımlamak.
+- [x] Kullanıcı, profil, sosyal hesap, rol/izin, kampanya, görev, görev ataması ve görev oturumu tablolarını oluşturmak.
+- [x] Doğrulama denemeleri, sinyaller, manuel inceleme kuyruğu, risk olayları, güven skoru ve audit log veri modelini oluşturmak.
+- [x] Immutable point ledger, bakiye projeksiyonu, idempotency anahtarları ve çift puan korumasını uygulamak.
+- [x] Ödül, stok, kullanıcı limiti, redemption ve teslimat durumları için güvenli iş kurallarını uygulamak.
+- [x] Uygulama içi bildirim, teslimat kaydı ve Web Push aboneliği veri modelini oluşturmak.
+- [x] Kimlik doğrulama, güvenli oturum, yetkilendirme, rol tabanlı erişim ve yönetici korumalarını yapılandırmak.
+- [x] Görev uygunluğu, kota, zaman penceresi ve sunucu zamanı kontrollerini sunucu tarafında uygulamak.
+- [x] Başlatılan görevler için imzalı, süresi dolan ve yeniden oynatma korumalı Task Session akışını kurmak.
+- [x] Web sinyalleri, secret code, manuel inceleme ve açık UNAVAILABLE/fallback sonuçları veren modüler Verification Engine’i oluşturmak.
+- [x] Sosyal platform adapter’larını resmi API kimlik bilgileri olmadan başarı simüle etmeyecek şekilde hazırlamak.
+- [x] Ana sayfa, görev listesi/detayı, ödüller, liderlik, profil ve bildirim merkezi içeren mobil PWA deneyimini geliştirmek.
+- [x] Görev ilerleme, geri sayım, başarı/hata durumları ve erişilebilir geri bildirim bileşenlerini geliştirmek.
+- [x] Yönetici dashboard’u, görev/kampanya oluşturma sihirbazı, uygunluk/limit/zamanlama ayarlarını geliştirmek.
+- [x] Yönetici doğrulama merkezi, risk merkezi, ödül yönetimi, yorum havuzu ve audit görünümünü geliştirmek.
+- [x] Web uygulamasının kurulabilir PWA manifesti, service worker, çevrimdışı kabuğu ve bildirim yönlendirmelerini hazırlamak.
+- [ ] Periyodik görev ataması, süresi dolan oturum temizliği, doğrulama tekrar denemeleri ve bildirim gönderimi için güvenli arka plan iş tasarımını hazırlamak.
+- [ ] Yetkisiz erişim, IDOR, tekrar oynatma, çift puan, çift redemption, kota ve secret code testlerini yazmak.
+- [ ] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
+- [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
+- [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
+- [x] GitHub yedekleme/aktarımı için https://github.com/socialtradeturkey/6lory.git deposunun mevcut içeriğini incelemek ve güvenli entegrasyon yolunu belgelemek.
+- [x] Kullanıcı uygulaması ve yönetici paneli rotaları, erişim kuralları ile ortak tasarım ilkeleri için kalıcı uygulama temel belgesini doğrulamak.
+- [x] GitHub deposunun boş/public durumunu, secret dışlama ilkesini ve kullanıcı onayı gerektiren güvenli aktarım akışını kalıcı olarak belgelemek.
+- [x] Mimari belgesinde kullanıcı ve yönetici rotalarını, her rota grubu için erişim ve yetki kuralını açık biçimde doğrulamak.
+- [x] Mimari belgesinde kullanıcı ve yönetici rotalarını, her rota grubu için erişim ve yetki kuralını açık biçimde doğrulamak.
+- [x] Yönetici rollerini ayrık izin kayıtlarıyla genişletmek ve yönetici prosedürlerinde rol/izin kontrollerini doğrulamak.
+- [ ] İdempotent task reward, bakiye projeksiyonu ve çift puan korumasını entegrasyon odaklı testlerle doğrulamak.
+- [ ] Ödül redemption için stok, kullanıcı limiti, risk ve puan düşümü kontrollerini entegrasyon odaklı testlerle doğrulamak.
+- [ ] Task Session, görev uygunluğu/kota/süre penceresi ve Verification Engine akışlarını sunucu sözleşmeleri üzerinden doğrulamak.
+- [ ] Resmî API kimlik bilgisi olmayan sosyal görevler için UNAVAILABLE veya manuel inceleme fallback adapter davranışını açık bir modül olarak doğrulamak.
+- [x] PWA uygulama kabuğu için route fallback ve ilk çevrimiçi kullanımdan sonra JavaScript/CSS varlıklarını kalıcı runtime cache ile desteklemek.
+- [x] Yönetici merkezine kullanıcı güven skorlarını, risk durumlarını ve inceleme bağlamını gösteren ayrı bir risk görünümü eklemek.
+- [ ] Kampanya ve görev yapılandırmasını aynı yönetici akışında açık, doğrulanabilir form alanlarıyla sunmak.
+- [x] role_permissions kayıtlarını her kritik yönetici prosedüründe sunucu tarafında kontrol ederek ayrık izin modelini etkinleştirmek.
+- [x] moderator, verification_reviewer ve reward_manager rollerinin role_permissions kayıtlarıyla sınırlandırılmış yönetici erişimini etkinleştirmek ve test etmek.
+- [x] moderator ve reward_manager rollerinin izinli ile yasaklı prosedür erişimlerini ayrı test senaryolarıyla doğrulamak.
+- [ ] VAPID anahtarları sağlandığında gerçek Web Push aboneliği, teslimat ve hata kaydını etkinleştirmek.
+- [x] Geçici Vercel dağıtımı için API giriş noktası, build komutu, ortam değişkenleri, OAuth dönüş URL’si ve geri dönüş prosedürünü belgelemek.
+- [x] Görev oturumu başladığında kalan süreyi canlı, erişilebilir ve sunucu oturum süresiyle uyumlu geri sayım bileşeniyle göstermek.
+- [x] README’de temel tRPC sözleşmelerini, ortam değişkeni sınıflarını ve doğrulama sınırlamalarını açık başlıklarla tamamlamak.
+- [x] Klavye erişimi, görünür focus, tema kontrastı ve mobil ekran kontrollerini kalite güvence belgesinde somutlaştırmak.
