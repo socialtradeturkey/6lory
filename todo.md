@@ -72,3 +72,6 @@
 - [x] Klavye erişimi, görünür focus, tema kontrastı ve mobil ekran kontrollerini kalite güvence belgesinde somutlaştırmak.
 - [x] Yönetilen önizleme proxy’sinde desteklenmeyen Vite HMR WebSocket denemesini devre dışı bırakmak; localhost:5173 hata döngüsü olmadan kararlı önizleme yüklemesi sağlamak.
 - [x] WSS/443 Vite HMR kanalının proxy tarafından desteklenmediğini doğrulamak; taze önizleme yüklemesinde WebSocket hatası oluşturmayan normal yenileme akışına geçmek.
+- [ ] Ertelendi: YouTube ve TikTok için resmî OAuth başlangıç/callback, güvenli token saklama/yenileme ve profil bağlantı akışını; geçerli sağlayıcı kimlik bilgileri sağlandığında uygulamak. Instagram, profesyonel hesap gereksinimleri tamamlanınca ikinci aşamadadır.
+- [x] Bildirim merkezine okunmamış bildirim filtresini ekleyip mevcut tümünü okundu işaretleme akışını görünür biçimde doğrulamak.
+- [x] Yönetici paneline bildirim teslimatı ve kullanıcı etkileşimi odaklı operasyon analitiği eklemek.

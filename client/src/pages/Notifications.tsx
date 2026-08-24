@@ -3,11 +3,17 @@ import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
+import {
+  filterNotifications,
+  type NotificationFilter,
+} from "@/lib/notificationFilters";
 import { trpc } from "@/lib/trpc";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 export default function Notifications() {
   const { isAuthenticated } = useAuth();
+  const [filter, setFilter] = useState<NotificationFilter>("all");
   const query = trpc.notifications.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -30,6 +36,7 @@ export default function Notifications() {
     notification => notification.status === "unread"
   ).length;
   const readCount = notifications.length - unreadCount;
+  const visibleNotifications = filterNotifications(notifications, filter);
   const busy =
     markRead.isPending || markAllRead.isPending || clearRead.isPending;
 
@@ -59,6 +66,22 @@ export default function Notifications() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filter === "all" ? "secondary" : "outline"}
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setFilter("all")}
+            >
+              Tümü ({notifications.length})
+            </Button>
+            <Button
+              variant={filter === "unread" ? "secondary" : "outline"}
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setFilter("unread")}
+            >
+              Okunmamış ({unreadCount})
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -99,9 +122,18 @@ export default function Notifications() {
             description="Yeni görevler ve işlem durumları burada zaman sırasıyla görünür."
           />
         </div>
+      ) : !visibleNotifications.length ? (
+        <div className="mt-4">
+          <EmptyState
+            icon={CheckCheck}
+            title="Okunmamış bildiriminiz yok"
+            description="Tüm bildirimlerinizi görüntülemek için “Tümü” filtresine geçebilirsiniz."
+            action={{ label: "Tümünü göster", onClick: () => setFilter("all") }}
+          />
+        </div>
       ) : (
         <div className="mt-4 space-y-3">
-          {notifications.map(notification => (
+          {visibleNotifications.map(notification => (
             <article
               key={notification.id}
               className={`rounded-2xl border p-4 shadow-sm ${notification.status === "unread" ? "border-teal-500/25 bg-teal-500/[0.05]" : "border-border/80 bg-card/70"}`}

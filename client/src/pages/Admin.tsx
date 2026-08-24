@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import {
   AlertTriangle,
   BadgeCheck,
+  Bell,
   Boxes,
   ClipboardCheck,
   FileClock,
@@ -23,6 +24,7 @@ import {
 
 type AdminTab =
   | "overview"
+  | "analytics"
   | "tasks"
   | "rewards"
   | "verification"
@@ -39,6 +41,12 @@ const tabs: {
     id: "overview",
     label: "Genel bakış",
     icon: Layers3,
+    requiredPermission: "operations.read",
+  },
+  {
+    id: "analytics",
+    label: "Analitik",
+    icon: UsersRound,
     requiredPermission: "operations.read",
   },
   {
@@ -121,6 +129,10 @@ export default function Admin() {
   const overview = trpc.admin.overview.useQuery(undefined, {
     enabled: can("operations.read"),
   });
+  const analytics = trpc.admin.analytics.useQuery(
+    { days: 7 },
+    { enabled: can("operations.read") }
+  );
   const campaigns = trpc.admin.listCampaigns.useQuery(undefined, {
     enabled: can("tasks.write"),
   });
@@ -144,6 +156,7 @@ export default function Admin() {
   });
   const invalidateOperations = () => {
     overview.refetch();
+    analytics.refetch();
     campaigns.refetch();
     taskList.refetch();
     rewards.refetch();
@@ -308,6 +321,125 @@ export default function Admin() {
                       </p>
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+        {tab === "analytics" && (
+          <section>
+            <div className="mb-5 rounded-3xl border border-teal-500/25 bg-teal-500/[0.05] p-5">
+              <h2 className="font-display text-xl font-bold">
+                Operasyon analitiği
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Son 7 gündeki uygulama içi bildirim etkileşimi, görev ilerlemesi
+                ve doğrulama sonuçları toplulaştırılmış olarak gösterilir.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Metric
+                icon={Bell}
+                label="Oluşturulan bildirim"
+                value={analytics.data?.notifications.created ?? 0}
+              />
+              <Metric
+                icon={Bell}
+                label="Okunma oranı"
+                value={analytics.data?.notifications.readRatePercent ?? 0}
+              />
+              <Metric
+                icon={Target}
+                label="Başlatılan oturum"
+                value={analytics.data?.engagement.sessionsStarted ?? 0}
+                tone="violet"
+              />
+              <Metric
+                icon={ClipboardCheck}
+                label="Tamamlanma oranı"
+                value={analytics.data?.engagement.completionRatePercent ?? 0}
+                tone="amber"
+              />
+            </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
+                <h3 className="font-display text-lg font-bold">
+                  Bildirim etkileşimi
+                </h3>
+                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.notifications.unread ?? 0}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Okunmamış
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.notifications.read ?? 0}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Okundu</p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.notifications.readRatePercent ?? 0}%
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Etkileşim
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {(analytics.data?.notifications.topTypes ?? []).map(item => (
+                    <div
+                      key={item.type}
+                      className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2 text-sm"
+                    >
+                      <span>{item.type}</span>
+                      <span className="font-bold">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
+                <h3 className="font-display text-lg font-bold">
+                  Görev ve doğrulama
+                </h3>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.engagement.sessionsVerified ?? 0}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Doğrulanmış oturum
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.engagement.redemptionsRequested ?? 0}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Ödül talebi
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.engagement.verifications.passed ?? 0}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Başarılı doğrulama
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-muted/60 p-3">
+                    <p className="text-xl font-bold">
+                      {analytics.data?.engagement.verifications.manualReview ??
+                        0}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Manuel inceleme
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

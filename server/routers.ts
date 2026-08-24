@@ -33,6 +33,7 @@ import {
   isMatchingSecretCode,
   resolveVerification,
 } from "./domain";
+import { buildOperationsAnalytics } from "./operationsAnalytics";
 import { getDb } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -898,6 +899,54 @@ export const appRouter = router({
         riskUsers: allRiskEvents.length,
       };
     }),
+    analytics: adminProcedure
+      .input(
+        z.object({ days: z.union([z.literal(7), z.literal(30)]).default(7) })
+      )
+      .query(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "operations.read");
+        const db = await databaseOrThrow();
+        const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+        const [
+          notificationRows,
+          sessionRows,
+          verificationRows,
+          assignmentRows,
+          redemptionRows,
+        ] = await Promise.all([
+          db
+            .select()
+            .from(notifications)
+            .where(gte(notifications.createdAt, since)),
+          db
+            .select()
+            .from(taskSessions)
+            .where(gte(taskSessions.createdAt, since)),
+          db
+            .select()
+            .from(verificationAttempts)
+            .where(gte(verificationAttempts.createdAt, since)),
+          db
+            .select()
+            .from(taskAssignments)
+            .where(gte(taskAssignments.assignedAt, since)),
+          db
+            .select()
+            .from(rewardRedemptions)
+            .where(gte(rewardRedemptions.createdAt, since)),
+        ]);
+        return buildOperationsAnalytics({
+          days: input.days,
+          notifications: notificationRows,
+          sessions: sessionRows,
+          verifications: verificationRows,
+          assignments: assignmentRows.map(assignment => ({
+            ...assignment,
+            createdAt: assignment.assignedAt,
+          })),
+          redemptions: redemptionRows,
+        });
+      }),
     listCampaigns: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "tasks.write");
       const db = await databaseOrThrow();
