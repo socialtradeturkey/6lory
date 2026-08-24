@@ -1,6 +1,5 @@
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
@@ -150,7 +149,7 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
   plugins,
@@ -164,16 +163,24 @@ export default defineConfig({
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
     host: true,
-    // The managed preview proxy does not provide a Vite WebSocket upgrade
-    // channel. Disable HMR to prevent the browser from retrying localhost:5173.
-    // The preview remains usable with ordinary browser refreshes.
-    hmr: false,
+    // The managed preview is served through HTTPS; keep the Vite client on
+    // the proxy's public WSS/443 endpoint rather than falling back to the
+    // sandbox-only localhost:5173 address.
+    hmr: {
+      protocol: "wss",
+      clientPort: 443,
+      overlay: false,
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",

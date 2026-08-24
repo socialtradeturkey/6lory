@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertRedemptionEligibility, evaluateWebSignals, hashSecretCode, isMatchingSecretCode, resolveVerification } from "./domain";
+import { assertRedemptionEligibility, evaluateWebSignals, getTaskSessionAccess, hashSecretCode, isMatchingSecretCode, resolveVerification } from "./domain";
 
 describe("6lory doğrulama kuralları", () => {
   it("gerekli süre tamamlanmadığında görevi onaylamaz", () => {
@@ -27,6 +27,15 @@ describe("6lory doğrulama kuralları", () => {
     const hash = hashSecretCode("739241");
     expect(isMatchingSecretCode("739241", hash)).toBe(true);
     expect(isMatchingSecretCode("739242", hash)).toBe(false);
+  });
+
+  it("oturum sahipliği, süre sonu ve terminal durumlarda doğrulamayı engeller", () => {
+    const future = new Date("2026-08-25T00:00:00.000Z");
+    const now = new Date("2026-08-24T00:00:00.000Z");
+    expect(getTaskSessionAccess({ sessionUserId: 1, requesterUserId: 2, expiresAt: future, status: "active", now })).toEqual({ allowed: false, code: "SESSION_NOT_OWNED" });
+    expect(getTaskSessionAccess({ sessionUserId: 1, requesterUserId: 1, expiresAt: now, status: "active", now })).toEqual({ allowed: false, code: "SESSION_EXPIRED" });
+    expect(getTaskSessionAccess({ sessionUserId: 1, requesterUserId: 1, expiresAt: future, status: "verified", now })).toEqual({ allowed: false, code: "SESSION_NOT_ACTIVE" });
+    expect(getTaskSessionAccess({ sessionUserId: 1, requesterUserId: 1, expiresAt: future, status: "active", now })).toEqual({ allowed: true, code: "OK" });
   });
 
   it("yetersiz puanla ödül talebini engeller", () => {

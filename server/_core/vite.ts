@@ -7,6 +7,13 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, _server: Server) {
+  // A prior PWA service worker may cache Vite modules in the proxy-backed
+  // preview. Clear only browser storage/cache in development; auth cookies
+  // are intentionally untouched.
+  app.use((_req, res, next) => {
+    res.setHeader("Clear-Site-Data", '"cache", "storage"');
+    next();
+  });
   const serverOptions = {
     ...viteConfig.server,
     middlewareMode: true,
@@ -18,6 +25,25 @@ export async function setupVite(app: Express, _server: Server) {
     configFile: false,
     server: serverOptions,
     appType: "custom",
+  });
+
+  // The managed preview proxy does not keep Vite's WebSocket channel open.
+  // Vite-transformed modules still import a small set of helpers from
+  // /@vite/client, so provide compatible no-op HMR and CSS helpers without
+  // starting a browser WebSocket connection. Production never uses setupVite.
+  app.get("/@vite/client", (_req, res) => {
+    res.type("application/javascript").send(`
+const styles = new Map();
+export function createHotContext() {
+  return { data: {}, accept() {}, dispose() {}, prune() {}, decline() {}, invalidate() {}, on() {}, off() {}, send() {} };
+}
+export function updateStyle(id, css) {
+  let style = styles.get(id);
+  if (!style) { style = document.createElement("style"); style.setAttribute("data-vite-dev-id", id); document.head.appendChild(style); styles.set(id, style); }
+  style.textContent = css;
+}
+export function removeStyle(id) { const style = styles.get(id); style?.remove(); styles.delete(id); }
+`);
   });
 
   app.use(vite.middlewares);

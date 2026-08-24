@@ -22,9 +22,11 @@ import {
   userProfiles,
   verificationAttempts,
   verificationSignals,
+  webPushSubscriptions,
 } from "../drizzle/schema";
-import { assertRedemptionEligibility, createSecretCode, hashSecretCode, isMatchingSecretCode, resolveVerification } from "./domain";
+import { assertRedemptionEligibility, createSecretCode, getTaskSessionAccess, hashSecretCode, isMatchingSecretCode, resolveVerification } from "./domain";
 import { getDb } from "./db";
+import { assertWebPushConfigured, getWebPushStatus } from "./webpush";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -70,7 +72,7 @@ function productError(error: unknown): never {
   throw new TRPCError({ code: "BAD_REQUEST", message: messages[code] ?? "İşlem şu anda tamamlanamadı." });
 }
 
-async function writeTaskReward(tx: any, input: { userId: number; taskId: number; verificationAttemptId: number; points: number }) {
+export async function writeTaskReward(tx: any, input: { userId: number; taskId: number; verificationAttemptId: number; points: number }) {
   const ledgerKey = `task:${input.verificationAttemptId}`;
   const [existing] = await tx.select().from(pointLedger).where(eq(pointLedger.idempotencyKey, ledgerKey)).limit(1);
   if (existing) return existing;
@@ -205,8 +207,9 @@ export const appRouter = router({
     }),
     issueSecretCode: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12), signals: taskSessionInput })).mutation(async ({ ctx, input }) => {
       const db = await databaseOrThrow();
-      const [session] = await db.select().from(taskSessions).where(and(eq(taskSessions.publicId, input.sessionPublicId), eq(taskSessions.userId, ctx.user.id))).limit(1);
-      if (!session || session.expiresAt < new Date()) throw new TRPCError({ code: "NOT_FOUND", message: "Geçerli görev oturumu bulunamadı." });
+      const [session] = await db.select().from(taskSessions).where(eq(taskSessions.publicId, input.sessionPublicId)).limit(1);
+      const access = session ? getTaskSessionAccess({ sessionUserId: session.userId, requesterUserId: ctx.user.id, expiresAt: session.expiresAt, status: session.status }) : null;
+      if (!session || !access?.allowed) throw new TRPCError({ code: "NOT_FOUND", message: "Geçerli görev oturumu bulunamadı." });
       const [task] = await db.select().from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
       if (!task || task.verificationMethod !== "secret_code") throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev Secret Code kullanmıyor." });
       const decision = resolveVerification({ method: "web_signals", webSignals: { ...input.signals, requiredSeconds: task.estimatedDurationSeconds } });
@@ -221,8 +224,9 @@ export const appRouter = router({
       return db.transaction(async tx => {
         const [prior] = await tx.select().from(verificationAttempts).where(eq(verificationAttempts.idempotencyKey, input.idempotencyKey)).limit(1);
         if (prior) return { verification: prior, idempotent: true };
-        const [session] = await tx.select().from(taskSessions).where(and(eq(taskSessions.publicId, input.sessionPublicId), eq(taskSessions.userId, ctx.user.id))).limit(1);
-        if (!session || session.expiresAt < new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz veya süresi dolmuş." });
+        const [session] = await tx.select().from(taskSessions).where(eq(taskSessions.publicId, input.sessionPublicId)).limit(1);
+        const access = session ? getTaskSessionAccess({ sessionUserId: session.userId, requesterUserId: ctx.user.id, expiresAt: session.expiresAt, status: session.status }) : null;
+        if (!session || !access?.allowed) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz veya süresi dolmuş." });
         const [task] = await tx.select().from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
         if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
         const secretCodeValid = Boolean(input.secretCode && session.secretCodeExpiresAt && session.secretCodeExpiresAt >= new Date() && !session.secretCodeUsedAt && isMatchingSecretCode(input.secretCode, session.secretCodeHash));
@@ -287,6 +291,19 @@ export const appRouter = router({
   }),
 
   notifications: router({
+    pushStatus: protectedProcedure.query(() => getWebPushStatus()),
+    savePushSubscription: protectedProcedure.input(z.object({ endpoint: z.string().url().max(2048), keys: z.object({ p256dh: z.string().min(16), auth: z.string().min(8) }), userAgent: z.string().max(512).optional() })).mutation(async ({ ctx, input }) => {
+      assertWebPushConfigured();
+      const db = await databaseOrThrow();
+      await db.insert(webPushSubscriptions).values({ userId: ctx.user.id, endpoint: input.endpoint, publicKey: input.keys.p256dh, authSecret: input.keys.auth, userAgent: input.userAgent }).onDuplicateKeyUpdate({ set: { userId: ctx.user.id, publicKey: input.keys.p256dh, authSecret: input.keys.auth, userAgent: input.userAgent, revokedAt: null } });
+      await db.update(userProfiles).set({ pushEnabled: true }).where(eq(userProfiles.userId, ctx.user.id));
+      return { success: true };
+    }),
+    revokePushSubscription: protectedProcedure.input(z.object({ endpoint: z.string().url().max(2048) })).mutation(async ({ ctx, input }) => {
+      const db = await databaseOrThrow();
+      await db.update(webPushSubscriptions).set({ revokedAt: new Date() }).where(and(eq(webPushSubscriptions.userId, ctx.user.id), eq(webPushSubscriptions.endpoint, input.endpoint)));
+      return { success: true };
+    }),
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await databaseOrThrow();
       return db.select().from(notifications).where(eq(notifications.userId, ctx.user.id)).orderBy(desc(notifications.createdAt));

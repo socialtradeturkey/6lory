@@ -55,6 +55,14 @@ export function isMatchingSecretCode(candidate: string, storedHash: string | nul
   return candidateHash.length === stored.length && timingSafeEqual(candidateHash, stored);
 }
 
+export function getTaskSessionAccess(input: { sessionUserId: number; requesterUserId: number; expiresAt: Date; status: string; now?: Date }) {
+  const now = input.now ?? new Date();
+  if (input.sessionUserId !== input.requesterUserId) return { allowed: false, code: "SESSION_NOT_OWNED" as const };
+  if (input.expiresAt <= now) return { allowed: false, code: "SESSION_EXPIRED" as const };
+  if (input.status !== "active") return { allowed: false, code: "SESSION_NOT_ACTIVE" as const };
+  return { allowed: true, code: "OK" as const };
+}
+
 export function resolveVerification(input: {
   method: "web_signals" | "secret_code" | "manual_review" | "platform_api" | "platform_api_manual_fallback";
   webSignals: WebSignals;
