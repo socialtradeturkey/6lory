@@ -49,6 +49,22 @@ Paylaşılan depo: `https://github.com/socialtradeturkey/6lory.git`.
 
 GitHub deposuna `.env`, veritabanı bağlantı metni, JWT, OAuth secret, gerçek kullanıcı kaydı veya uygulama günlüğü göndermeyin. Vercel, ortam değişkenlerini proje ayarlarında şifreli saklar; bu değerleri kaynak koda yazmak yerine ilgili ortamda yapılandırın.[3]
 
+## 24 Ağustos 2026 bağlantı doğrulaması
+
+Vercel projesinin GitHub bağlantısı doğrulandı: `socialtradeturkey/6lory` deposunun `main` dalındaki `aad7627` commit’i, hedefi **production** olan ve `READY` durumundaki son dağıtımı tetiklemiştir. Bu nedenle kaynak kod yedeği ve Vercel’in Git tabanlı otomatik dağıtım bağlantısı günceldir.
+
+Ancak bu dağıtım ürünün çalışır bir tam yığın kopyası değildir. Kök alan adında HTML uygulama kabuğu yerine paketlenmiş sunucu JavaScript’i dönmekte, `/api/oauth/callback` ise Vercel tarafından `404 NOT_FOUND` ile yanıtlanmaktadır. Bu gözlem, mevcut Express girişinin Vercel Function olarak route edilmediğini doğrular. Bu durumda OAuth, tRPC, görev doğrulaması, immutable puan ledger’ı, ödül işlemleri ve uygulama içi bildirim merkezinin Vercel alan adında güvenilir biçimde çalıştığı iddia edilemez.
+
+| Doğrulanan konu | Bulgular | Karar |
+| --- | --- | --- |
+| GitHub ↔ Vercel bağlantısı | `main` dalındaki güncel commit otomatik olarak production hedefli dağıtıma alınmış | Bağlantı güncel |
+| Kök rota | JavaScript yanıtı dönüyor; kullanıcı uygulaması HTML’i dönmüyor | Ürün trafiği için kullanılmayacak |
+| OAuth API rotası | `/api/oauth/callback` `404 NOT_FOUND` döndürüyor | Kimlik doğrulama işlevsel değil |
+| Kritik iş kuralları | tRPC/Express Function ve gerekli ortam değişkenleri henüz uyarlanmadı | Puan/ödül/doğrulama devre dışı kabul edilir |
+| Güvenli canlı hedef | Yönetilen tam-yığın dağıtım: `https://6loryapp-pernhdey.manus.space` | Mevcut ürün hedefi olarak korunur |
+
+Vercel’de gerçek üretim geçişi için önce `listen()` çağrısını içermeyen bir Express Function girişini varsayılan export olarak ayırmak, API ve SPA rewrite kurallarını eklemek, Vercel ortam değişkenlerini güvenli biçimde yapılandırmak ve Vercel domainini OAuth sağlayıcısındaki izinli callback listesine eklemek gerekir. Bu iş tamamlanmadan Vercel alan adını kullanıcıya ürünün canlı adresi olarak vermeyin. Yalnızca statik arayüz önizlemesi de ürün yerine geçmez; bu yaklaşım kritik işlemleri yanlışlıkla çalışıyor gibi göstermemelidir.[1] [2] [3]
+
 ## Dağıtım öncesi kontrol
 
 ```bash
