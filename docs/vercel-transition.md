@@ -51,19 +51,21 @@ GitHub deposuna `.env`, veritabanı bağlantı metni, JWT, OAuth secret, gerçek
 
 ## 24 Ağustos 2026 bağlantı doğrulaması
 
-Vercel projesinin GitHub bağlantısı doğrulandı: `socialtradeturkey/6lory` deposunun `main` dalındaki `aad7627` commit’i, hedefi **production** olan ve `READY` durumundaki son dağıtımı tetiklemiştir. Bu nedenle kaynak kod yedeği ve Vercel’in Git tabanlı otomatik dağıtım bağlantısı günceldir.
+Vercel projesinin GitHub bağlantısı doğrulandı: `socialtradeturkey/6lory` deposunun `main` dalındaki `d9a0df9` commit’i, hedefi **production** olan ve `READY` durumundaki son dağıtımı tetiklemiştir. Bu nedenle kaynak kod yedeği ve Vercel’in Git tabanlı otomatik dağıtım bağlantısı günceldir.
 
-Ancak bu dağıtım ürünün çalışır bir tam yığın kopyası değildir. Kök alan adında HTML uygulama kabuğu yerine paketlenmiş sunucu JavaScript’i dönmekte, `/api/oauth/callback` ise Vercel tarafından `404 NOT_FOUND` ile yanıtlanmaktadır. Bu gözlem, mevcut Express girişinin Vercel Function olarak route edilmediğini doğrular. Bu durumda OAuth, tRPC, görev doğrulaması, immutable puan ledger’ı, ödül işlemleri ve uygulama içi bildirim merkezinin Vercel alan adında güvenilir biçimde çalıştığı iddia edilemez.
+İlk dağıtımda kök alan adı HTML uygulama kabuğu yerine paketlenmiş sunucu JavaScript’i döndürüyor, `/api/oauth/callback` ise `404 NOT_FOUND` ile yanıtlanıyordu. Bu hata, Vite istemci çıktısı ile Express girişinin aynı dağıtım çıktısında yanlış algılanmasından kaynaklandı. Düzeltmede port dinlemeyen bir Express Function girişi, `/api/**` yönlendirmesi, Vite çıktı dizini ve SPA fallback’i tanımlandı. Function’ın ESM yerel modül çözümlemesi de `.js` yollarıyla Vercel çalışma zamanına uygun hâle getirildi.
 
 | Doğrulanan konu | Bulgular | Karar |
 | --- | --- | --- |
 | GitHub ↔ Vercel bağlantısı | `main` dalındaki güncel commit otomatik olarak production hedefli dağıtıma alınmış | Bağlantı güncel |
-| Kök rota | JavaScript yanıtı dönüyor; kullanıcı uygulaması HTML’i dönmüyor | Ürün trafiği için kullanılmayacak |
-| OAuth API rotası | `/api/oauth/callback` `404 NOT_FOUND` döndürüyor | Kimlik doğrulama işlevsel değil |
-| Kritik iş kuralları | tRPC/Express Function ve gerekli ortam değişkenleri henüz uyarlanmadı | Puan/ödül/doğrulama devre dışı kabul edilir |
-| Güvenli canlı hedef | Yönetilen tam-yığın dağıtım: `https://6loryapp-pernhdey.manus.space` | Mevcut ürün hedefi olarak korunur |
+| Kök rota | `https://6lory.vercel.app/` artık `200 text/html` ve React/PWA uygulama kabuğu döndürüyor | Ana sayfa çalışır |
+| SPA derin bağlantı | `/tasks` artık `200 text/html` ile `index.html` fallback’ine yönleniyor | Kullanıcı rotaları yenilemede korunur |
+| OAuth API rotası | `/api/oauth/callback` artık Express Function üzerinden beklenen eksik parametre yanıtını (`400`) döndürüyor | API Function route’u çalışır |
+| tRPC API rotası | `/api/trpc/auth.me?batch=1` anonim istek için `200 application/json` ve beklenen `null` oturum zarfını döndürüyor | tRPC middleware ve API yönlendirmesi canlıda doğrulandı |
+| Kritik iş kuralları | tRPC/Express Function yönlendirmesi çalışır; veritabanı ve OAuth işlemleri Vercel ortam değişkenleri ile izinli callback kaydına bağlıdır | Gizli değerler yapılandırılmadan canlı işlem onayı verilmez |
+| Güvenli canlı hedef | Yönetilen tam-yığın dağıtım: `https://6loryapp-pernhdey.manus.space` | Vercel production hedefiyle birlikte korunur |
 
-Vercel’de gerçek üretim geçişi için önce `listen()` çağrısını içermeyen bir Express Function girişini varsayılan export olarak ayırmak, API ve SPA rewrite kurallarını eklemek, Vercel ortam değişkenlerini güvenli biçimde yapılandırmak ve Vercel domainini OAuth sağlayıcısındaki izinli callback listesine eklemek gerekir. Bu iş tamamlanmadan Vercel alan adını kullanıcıya ürünün canlı adresi olarak vermeyin. Yalnızca statik arayüz önizlemesi de ürün yerine geçmez; bu yaklaşım kritik işlemleri yanlışlıkla çalışıyor gibi göstermemelidir.[1] [2] [3]
+Vercel’de uygulama kabuğu ve API Function yönlendirmesi artık çalışmaktadır. Kimlik doğrulama, veritabanı işlemleri ve ödül akışlarının bu alanda üretim kullanımına açılması için `DATABASE_URL`, `JWT_SECRET`, OAuth ortam değişkenleri ve Vercel alan adının izinli OAuth callback kaydı ayrıca yapılandırılmalıdır. Bu değerler kaynak koda veya GitHub’a yazılmamalıdır.[1] [2] [3]
 
 ## Dağıtım öncesi kontrol
 

@@ -78,4 +78,5 @@
 - [x] Bildirim filtresi ve operasyon analitiği güncellemelerini hassas dosya dışlamalarını doğrulayarak GitHub main dalına aktarmak.
 - [x] Canlı yönetilen dağıtımın yeni sürümü kullandığını doğrulamak ve Vercel’e gerçek full-stack geçiş için kalan teknik engelleri açıkça belgelemek.
 - [x] Vercel projesinin mevcut bağlantısını ve full-stack dağıtım uyumluluğunu doğrulamak; güvenli değilse yanıltıcı dağıtım yapmadan uygulanabilir geçiş yolunu netleştirmek.
-- [ ] Vercel dağıtımında ana sayfanın HTML/PWA kabuğunu, SPA rota fallback’ini ve tam yığın API yönlendirmesini çalışır hâle getirerek canlı alan adında doğrulamak.
+- [x] Vercel dağıtımında ana sayfanın HTML/PWA kabuğunu, SPA rota fallback’ini ve tam yığın API yönlendirmesini çalışır hâle getirerek canlı alan adında doğrulamak.
+- [x] Vercel canlı alan adında en az bir tRPC endpoint’inin başarılı HTTP yanıtını doğrulayarak API yönlendirmesi kanıtını tamamlamak.
