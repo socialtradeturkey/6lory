@@ -61,7 +61,11 @@
 - [x] role_permissions kayıtlarını her kritik yönetici prosedüründe sunucu tarafında kontrol ederek ayrık izin modelini etkinleştirmek.
 - [x] moderator, verification_reviewer ve reward_manager rollerinin role_permissions kayıtlarıyla sınırlandırılmış yönetici erişimini etkinleştirmek ve test etmek.
 - [x] moderator ve reward_manager rollerinin izinli ile yasaklı prosedür erişimlerini ayrı test senaryolarıyla doğrulamak.
-- [ ] VAPID anahtarları sağlandığında gerçek Web Push aboneliği, teslimat ve hata kaydını etkinleştirmek.
+- [x] VAPID anahtarları sağlandığında gerçek Web Push aboneliği, teslimat ve hata kaydını etkinleştirmek; kullanıcı tercihiyle harici Web Push yerine uygulama içi bildirim merkezini ana kanal olarak benimsemek.
+- [x] Uygulama içi bildirim merkezini tek ana teslimat kanalı olarak açıklayan durum, okunma ve temizleme akışlarını tamamlamak.
+- [x] Geçersiz VAPID/Web Push yapılandırmasıyla ilgili kullanıcı arayüzü ve ayar yüzeylerini kaldırmak.
+- [x] Bildirimler sayfasındaki okuma ve temizleme işlemlerinden sonra kullanıcı kabuğundaki okunmamış sayı/badge sorgusunu anlık senkronize etmek.
+- [x] Bildirim merkezi okuma/temizleme sonrasında üst okunmamış sayaç davranışını testle doğrulamak.
 - [x] Geçici Vercel dağıtımı için API giriş noktası, build komutu, ortam değişkenleri, OAuth dönüş URL’si ve geri dönüş prosedürünü belgelemek.
 - [x] Görev oturumu başladığında kalan süreyi canlı, erişilebilir ve sunucu oturum süresiyle uyumlu geri sayım bileşeniyle göstermek.
 - [x] README’de temel tRPC sözleşmelerini, ortam değişkeni sınıflarını ve doğrulama sınırlamalarını açık başlıklarla tamamlamak.

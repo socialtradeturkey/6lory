@@ -6,7 +6,6 @@ import {
   Activity,
   ArrowLeft,
   BellRing,
-  CircleAlert,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -44,35 +43,24 @@ const roleLabels: Record<string, string> = {
   reward_manager: "Ödül yöneticisi",
 };
 
-function PushDeliveryStatus() {
-  const status = trpc.notifications.pushStatus.useQuery();
-  const configured = status.data?.configured ?? false;
+function InAppNotificationStatus() {
   return (
-    <section
-      className={`mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 shadow-sm ${configured ? "border-teal-500/25 bg-teal-500/[0.05]" : "border-amber-500/25 bg-amber-500/[0.05]"}`}
-    >
+    <section className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/[0.05] p-3 shadow-sm">
       <div className="flex items-start gap-2.5">
-        <span
-          className={`grid size-8 shrink-0 place-items-center rounded-xl ${configured ? "bg-teal-500/10 text-teal-700 dark:text-teal-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}
-        >
+        <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-300">
           <BellRing className="size-4" />
         </span>
         <div>
-          <p className="text-xs font-bold">Bildirim teslimat durumu</p>
+          <p className="text-xs font-bold">Uygulama içi bildirim merkezi</p>
           <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-            {status.isLoading
-              ? "Yapılandırma kontrol ediliyor."
-              : configured
-                ? "Web Push tarayıcı izni olan cihazlarda etkinleştirilebilir."
-                : "Web Push devre dışı. Yeni görev, puan ve ödül gelişmeleri uygulama içi bildirim merkezi üzerinden iletilir."}
+            Görev, doğrulama, puan ve ödül gelişmeleri kullanıcı hesabına kalıcı
+            olarak kaydedilir.
           </p>
         </div>
       </div>
-      {!configured && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
-          <CircleAlert className="size-3.5" /> VAPID bekliyor
-        </span>
-      )}
+      <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 px-2.5 py-1 text-[11px] font-bold text-teal-700 dark:text-teal-300">
+        Etkin
+      </span>
     </section>
   );
 }
@@ -228,7 +216,7 @@ export default function DashboardLayout({
           </span>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">
-          <PushDeliveryStatus />
+          <InAppNotificationStatus />
           {children}
         </main>
       </SidebarInset>

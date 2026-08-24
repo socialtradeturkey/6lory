@@ -53,7 +53,7 @@ Kimlik doğrulama altyapısındaki kullanıcı kaydı genişletilir; ürün veri
 
 Arayüz, parlak neon veya casino çağrışımından kaçınan; derin lacivert, soğuk gri, kırık beyaz ve sınırlı turkuaz/viyole vurgu renklerini kullanan zarif bir ürün dili benimser. Açık ve koyu tema aynı hiyerarşiyi korur. Kullanıcı uygulamasında ana navigasyon alt çubukta yer alır; yönetici alanında tablet ve masaüstüne uygun bir kenar çubuğu kullanılır. Hareketler kısa, erişilebilir ve `prefers-reduced-motion` tercihiyle uyumludur.
 
-PWA manifesti, güvenli HTTPS kurulumu, service worker ve çevrimdışı uygulama kabuğu kullanıcı katmanına eklenir. Uygulama içi bildirimler veri tabanında tutulur. Web Push yalnızca kullanıcı açıkça izin verdiğinde kullanılacak, başarısız teslimatlar yeniden deneme politikasıyla kaydedilecektir. Push, görev durumuna ya da ilgili ödül talebine doğrudan yönlendiren güvenli bir yol taşıyacaktır.
+PWA manifesti, güvenli HTTPS kurulumu, service worker ve çevrimdışı uygulama kabuğu kullanıcı katmanına eklenir. Görev, doğrulama, puan ve ödül bildirimleri veri tabanında saklanan uygulama içi bildirim merkezi üzerinden kullanıcı hesabına iletilir. Okundu işaretleme ve yalnızca okunmuş kayıtları temizleme işlemleri, kaynak sahipliğiyle sunucu tarafında sınırlandırılır.
 
 ## Entegrasyon durumu
 
@@ -80,7 +80,6 @@ Paylaşılan `https://github.com/socialtradeturkey/6lory.git` deposu **public ve
 | --- | --- | --- | --- |
 | Süresi dolan Task Session temizliği | Saatlik | `/api/scheduled/expire-sessions` | Oturum yalnızca `active`/`pending_verification` durumundaysa ve sunucu saati `expiresAt` değerini geçtiyse güncellenir. |
 | Manual review hatırlatması | Saatlik | `/api/scheduled/review-reminders` | Aynı review için son teslimat kontrol edilmeden ikinci bildirim kuyruğa eklenmez. |
-| Bildirim teslimat yeniden denemesi | 15 dakikada bir | `/api/scheduled/retry-notifications` | Sadece `queued`/`failed` ve retry sınırı altındaki teslimatlar işlenir. |
 | Görev/pencere yenileme | Saatlik | `/api/scheduled/refresh-task-status` | Kampanya ve görev durumu yalnızca geçerli zaman penceresine göre ilerletilir; puan ya da kullanıcı ataması oluşturmaz. |
 
 Callback’ler kurulmadan önce proje dışarıya dağıtılmış olmalı; callback kimliği `taskUid` üzerinden doğrulanmalı ve 5xx yanıtlarında hata bağlamı JSON olarak dönmelidir. Geçici Vercel dağıtımında bu endpoint’ler ayrıca uyarlanıp doğrulanmadan scheduler etkinleştirilmez.

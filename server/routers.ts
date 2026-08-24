@@ -22,7 +22,6 @@ import {
   userProfiles,
   verificationAttempts,
   verificationSignals,
-  webPushSubscriptions,
 } from "../drizzle/schema";
 import {
   assertRedemptionEligibility,
@@ -35,7 +34,6 @@ import {
   resolveVerification,
 } from "./domain";
 import { getDb } from "./db";
-import { assertWebPushConfigured, getWebPushStatus } from "./webpush";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -210,14 +208,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await databaseOrThrow();
         try {
-          await db
-            .insert(userProfiles)
-            .values({
-              userId: ctx.user.id,
-              username: input.username,
-              displayName: input.displayName,
-              onboardingStatus: "completed",
-            });
+          await db.insert(userProfiles).values({
+            userId: ctx.user.id,
+            username: input.username,
+            displayName: input.displayName,
+            onboardingStatus: "completed",
+          });
           await db
             .insert(pointBalances)
             .values({ userId: ctx.user.id })
@@ -252,13 +248,11 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await databaseOrThrow();
         try {
-          const result = await db
-            .insert(socialAccounts)
-            .values({
-              userId: ctx.user.id,
-              ...input,
-              verificationStatus: "pending",
-            });
+          const result = await db.insert(socialAccounts).values({
+            userId: ctx.user.id,
+            ...input,
+            verificationStatus: "pending",
+          });
           return { id: Number(result[0].insertId), status: "pending" as const };
         } catch {
           throw new TRPCError({
@@ -406,13 +400,11 @@ export const appRouter = router({
               .update(tasks)
               .set({ claimedQuota: task.claimedQuota + 1 })
               .where(eq(tasks.id, task.id));
-            const created = await tx
-              .insert(taskAssignments)
-              .values({
-                taskId: task.id,
-                userId: ctx.user.id,
-                expiresAt: task.endsAt,
-              });
+            const created = await tx.insert(taskAssignments).values({
+              taskId: task.id,
+              userId: ctx.user.id,
+              expiresAt: task.endsAt,
+            });
             [assignment] = await tx
               .select()
               .from(taskAssignments)
@@ -586,16 +578,14 @@ export const appRouter = router({
             completedAt: new Date(),
           });
           const verificationAttemptId = Number(inserted[0].insertId);
-          await tx
-            .insert(verificationSignals)
-            .values(
-              Object.entries(decision.signals).map(([key, value]) => ({
-                verificationAttemptId,
-                key,
-                value,
-                score: typeof value === "number" ? Math.round(value) : null,
-              }))
-            );
+          await tx.insert(verificationSignals).values(
+            Object.entries(decision.signals).map(([key, value]) => ({
+              verificationAttemptId,
+              key,
+              value,
+              score: typeof value === "number" ? Math.round(value) : null,
+            }))
+          );
           if (decision.status === "manual_review")
             await tx.insert(manualReviews).values({ verificationAttemptId });
           if (decision.status === "pass") {
@@ -621,15 +611,13 @@ export const appRouter = router({
               .update(taskAssignments)
               .set({ status: "completed", completedAt: new Date() })
               .where(eq(taskAssignments.id, session.assignmentId));
-            await tx
-              .insert(notifications)
-              .values({
-                userId: ctx.user.id,
-                type: "points_earned",
-                title: "Puanlar hesabınıza eklendi",
-                body: `+${task.rewardPoints} puan kazandınız.`,
-                destination: "/",
-              });
+            await tx.insert(notifications).values({
+              userId: ctx.user.id,
+              type: "points_earned",
+              title: "Puanlar hesabınıza eklendi",
+              body: `+${task.rewardPoints} puan kazandınız.`,
+              destination: "/",
+            });
           } else {
             await tx
               .update(taskSessions)
@@ -720,18 +708,16 @@ export const appRouter = router({
           } catch (error) {
             productError(error);
           }
-          const created = await tx
-            .insert(rewardRedemptions)
-            .values({
-              idempotencyKey: input.idempotencyKey,
-              rewardId: reward.id,
-              userId: ctx.user.id,
-              pointsCost: reward.pointsCost,
-              riskSnapshot: {
-                score: trust?.score ?? 50,
-                status: trust?.status ?? "normal",
-              },
-            });
+          const created = await tx.insert(rewardRedemptions).values({
+            idempotencyKey: input.idempotencyKey,
+            rewardId: reward.id,
+            userId: ctx.user.id,
+            pointsCost: reward.pointsCost,
+            riskSnapshot: {
+              score: trust?.score ?? 50,
+              status: trust?.status ?? "normal",
+            },
+          });
           const redemptionId = Number(created[0].insertId);
           const nextBalance =
             (balance?.availablePoints ?? 0) - reward.pointsCost;
@@ -746,26 +732,22 @@ export const appRouter = router({
               lifetimeSpent: (balance?.lifetimeSpent ?? 0) + reward.pointsCost,
             })
             .where(eq(pointBalances.userId, ctx.user.id));
-          await tx
-            .insert(pointLedger)
-            .values({
-              idempotencyKey: `redeem:${input.idempotencyKey}`,
-              userId: ctx.user.id,
-              type: "reward_redemption",
-              amount: -reward.pointsCost,
-              rewardRedemptionId: redemptionId,
-              balanceAfter: nextBalance,
-              reason: "Ödül talebi",
-            });
-          await tx
-            .insert(notifications)
-            .values({
-              userId: ctx.user.id,
-              type: "reward_requested",
-              title: "Ödül talebiniz alındı",
-              body: `${reward.name} için talebinizi inceleyeceğiz.`,
-              destination: "/rewards",
-            });
+          await tx.insert(pointLedger).values({
+            idempotencyKey: `redeem:${input.idempotencyKey}`,
+            userId: ctx.user.id,
+            type: "reward_redemption",
+            amount: -reward.pointsCost,
+            rewardRedemptionId: redemptionId,
+            balanceAfter: nextBalance,
+            reason: "Ödül talebi",
+          });
+          await tx.insert(notifications).values({
+            userId: ctx.user.id,
+            type: "reward_requested",
+            title: "Ödül talebiniz alındı",
+            body: `${reward.name} için talebinizi inceleyeceğiz.`,
+            destination: "/rewards",
+          });
           const [redemption] = await tx
             .select()
             .from(rewardRedemptions)
@@ -777,60 +759,6 @@ export const appRouter = router({
   }),
 
   notifications: router({
-    pushStatus: protectedProcedure.query(() => getWebPushStatus()),
-    savePushSubscription: protectedProcedure
-      .input(
-        z.object({
-          endpoint: z.string().url().max(2048),
-          keys: z.object({
-            p256dh: z.string().min(16),
-            auth: z.string().min(8),
-          }),
-          userAgent: z.string().max(512).optional(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        assertWebPushConfigured();
-        const db = await databaseOrThrow();
-        await db
-          .insert(webPushSubscriptions)
-          .values({
-            userId: ctx.user.id,
-            endpoint: input.endpoint,
-            publicKey: input.keys.p256dh,
-            authSecret: input.keys.auth,
-            userAgent: input.userAgent,
-          })
-          .onDuplicateKeyUpdate({
-            set: {
-              userId: ctx.user.id,
-              publicKey: input.keys.p256dh,
-              authSecret: input.keys.auth,
-              userAgent: input.userAgent,
-              revokedAt: null,
-            },
-          });
-        await db
-          .update(userProfiles)
-          .set({ pushEnabled: true })
-          .where(eq(userProfiles.userId, ctx.user.id));
-        return { success: true };
-      }),
-    revokePushSubscription: protectedProcedure
-      .input(z.object({ endpoint: z.string().url().max(2048) }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await databaseOrThrow();
-        await db
-          .update(webPushSubscriptions)
-          .set({ revokedAt: new Date() })
-          .where(
-            and(
-              eq(webPushSubscriptions.userId, ctx.user.id),
-              eq(webPushSubscriptions.endpoint, input.endpoint)
-            )
-          );
-        return { success: true };
-      }),
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await databaseOrThrow();
       return db
@@ -859,6 +787,31 @@ export const appRouter = router({
           });
         return { success: true };
       }),
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await databaseOrThrow();
+      const result = await db
+        .update(notifications)
+        .set({ status: "read", readAt: new Date() })
+        .where(
+          and(
+            eq(notifications.userId, ctx.user.id),
+            eq(notifications.status, "unread")
+          )
+        );
+      return { updated: result[0].affectedRows };
+    }),
+    clearRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await databaseOrThrow();
+      const result = await db
+        .delete(notifications)
+        .where(
+          and(
+            eq(notifications.userId, ctx.user.id),
+            eq(notifications.status, "read")
+          )
+        );
+      return { deleted: result[0].affectedRows };
+    }),
   }),
 
   leaderboard: router({
@@ -1021,13 +974,11 @@ export const appRouter = router({
             message: "Kampanya bitişi başlangıçtan sonra olmalı.",
           });
         const db = await databaseOrThrow();
-        const created = await db
-          .insert(campaigns)
-          .values({
-            ...input,
-            status: input.startsAt ? "scheduled" : "draft",
-            createdBy: ctx.user.id,
-          });
+        const created = await db.insert(campaigns).values({
+          ...input,
+          status: input.startsAt ? "scheduled" : "draft",
+          createdBy: ctx.user.id,
+        });
         return { id: Number(created[0].insertId) };
       }),
     createTask: adminProcedure
@@ -1077,18 +1028,16 @@ export const appRouter = router({
           .insert(tasks)
           .values({ ...input, status, createdBy: ctx.user.id });
         const taskId = Number(created[0].insertId);
-        await db
-          .insert(auditLogs)
-          .values({
-            actorUserId: ctx.user.id,
-            action: "task.created",
-            entityType: "task",
-            entityId: String(taskId),
-            afterState: {
-              title: input.title,
-              verificationMethod: input.verificationMethod,
-            },
-          });
+        await db.insert(auditLogs).values({
+          actorUserId: ctx.user.id,
+          action: "task.created",
+          entityType: "task",
+          entityId: String(taskId),
+          afterState: {
+            title: input.title,
+            verificationMethod: input.verificationMethod,
+          },
+        });
         return { id: taskId, status };
       }),
     createReward: adminProcedure
@@ -1116,19 +1065,17 @@ export const appRouter = router({
           .insert(rewards)
           .values({ ...input, status: "active" });
         const rewardId = Number(created[0].insertId);
-        await db
-          .insert(auditLogs)
-          .values({
-            actorUserId: ctx.user.id,
-            action: "reward.created",
-            entityType: "reward",
-            entityId: String(rewardId),
-            afterState: {
-              name: input.name,
-              stock: input.stock,
-              pointsCost: input.pointsCost,
-            },
-          });
+        await db.insert(auditLogs).values({
+          actorUserId: ctx.user.id,
+          action: "reward.created",
+          entityType: "reward",
+          entityId: String(rewardId),
+          afterState: {
+            name: input.name,
+            stock: input.stock,
+            pointsCost: input.pointsCost,
+          },
+        });
         return { id: rewardId };
       }),
     createCommentPool: adminProcedure
@@ -1160,15 +1107,13 @@ export const appRouter = router({
         const db = await databaseOrThrow();
         const created = await db.insert(comments).values(input);
         const commentId = Number(created[0].insertId);
-        await db
-          .insert(auditLogs)
-          .values({
-            actorUserId: ctx.user.id,
-            action: "comment_pool.comment_added",
-            entityType: "comment",
-            entityId: String(commentId),
-            afterState: { poolId: input.poolId },
-          });
+        await db.insert(auditLogs).values({
+          actorUserId: ctx.user.id,
+          action: "comment_pool.comment_added",
+          entityType: "comment",
+          entityId: String(commentId),
+          afterState: { poolId: input.poolId },
+        });
         return { id: commentId };
       }),
     verificationQueue: adminProcedure.query(async ({ ctx }) => {
@@ -1273,15 +1218,13 @@ export const appRouter = router({
               })
               .where(eq(verificationAttempts.id, attempt.id));
           }
-          await tx
-            .insert(auditLogs)
-            .values({
-              actorUserId: ctx.user.id,
-              action: `verification.${input.decision}`,
-              entityType: "manual_review",
-              entityId: String(review.id),
-              afterState: { reason: input.reason },
-            });
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: `verification.${input.decision}`,
+            entityType: "manual_review",
+            entityId: String(review.id),
+            afterState: { reason: input.reason },
+          });
           return { success: true };
         });
       }),

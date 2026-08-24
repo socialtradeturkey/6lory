@@ -267,6 +267,18 @@ describe.runIf(runRealDbIntegration)(
         amount: -40,
         balanceAfter: 60,
       });
+
+      const summaryBeforeRead = await caller.dashboard.summary();
+      expect(summaryBeforeRead.unreadNotifications).toBe(2);
+
+      const markedRead = await caller.notifications.markAllRead();
+      expect(markedRead.updated).toBe(2);
+      const summaryAfterRead = await caller.dashboard.summary();
+      expect(summaryAfterRead.unreadNotifications).toBe(0);
+
+      const clearedRead = await caller.notifications.clearRead();
+      expect(clearedRead.deleted).toBe(2);
+      expect(await caller.notifications.list()).toHaveLength(0);
     }, 30_000);
   }
 );

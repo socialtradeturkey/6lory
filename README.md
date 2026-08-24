@@ -47,12 +47,11 @@ Tarayıcı sinyalleri tek başına otomatik puan onayı vermez. Resmî platform 
 | --- | --- | --- |
 | Veri ve oturum | `DATABASE_URL`, `JWT_SECRET` | Sadece sunucuda saklanır; kaynak kontrolüne eklenmez. |
 | Kimlik | `OAUTH_SERVER_URL`, `VITE_OAUTH_PORTAL_URL`, `VITE_APP_ID` | Domain değiştiğinde callback URL ayarı ayrıca güncellenir. |
-| Web Push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Gerçek cihaz bildirimi için gerekir; private key istemciye aktarılmaz. |
 | İstemci görünürlüğü | `VITE_*` | Bu önekli değişkenler build çıktısına dahil olabileceği için gizli veri içermez. |
 
 ## Doğrulama sınırlamaları
 
-Platform API’si, izin kapsamı veya güvenilir adapter bulunmayan sosyal görevler **başarılı** gösterilmez. Sistem bu hallerde `UNAVAILABLE` döner ya da görev politikası izin veriyorsa manuel inceleme kuyruğuna yönlendirir. Web Push için PWA kabuğu hazırdır; gerçek abonelik ve teslimat, VAPID anahtarları sağlandıktan sonra etkinleştirilir.
+Platform API’si, izin kapsamı veya güvenilir adapter bulunmayan sosyal görevler **başarılı** gösterilmez. Sistem bu hallerde `UNAVAILABLE` döner ya da görev politikası izin veriyorsa manuel inceleme kuyruğuna yönlendirir. Görev, doğrulama, puan ve ödül gelişmeleri kullanıcı hesabına ait kalıcı **uygulama içi bildirim merkezi** üzerinden iletilir; okunma ve temizleme işlemleri kaynak sahipliğiyle sunucuda sınırlandırılır.
 
 ## Geçici Vercel kullanımı
 

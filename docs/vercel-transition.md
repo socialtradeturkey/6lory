@@ -30,7 +30,7 @@ Vercel Express uygulamalarını bir Vercel Function olarak çalıştırabilir; a
 | Statik varlıklar | Vercel’de `public/**` ile CDN servis edildiğini dikkate almak | PWA manifest/service worker varlıkları kontrol edilecek |
 | OAuth | Vercel domain callback URL’si, cookie SameSite/Secure politikası ve sağlayıcı sırları | Domain netleştiğinde zorunlu |
 | Veritabanı | Vercel Function’a erişebilen TLS destekli MySQL/TiDB bağlantısı | Üretim öncesi zorunlu |
-| Web Push | VAPID anahtarları ve izinli HTTPS origin | Anahtarlar sağlandığında etkinleştirilecek |
+| Uygulama içi bildirimler | Veritabanı erişimi ve kullanıcı oturumu | Mevcut tRPC akışıyla çalışır; ek cihaz anahtarı gerektirmez |
 
 ## Ortam değişkenleri
 
@@ -41,14 +41,13 @@ Vercel ortam değişkenlerini Project Settings üzerinden Production ve Preview 
 | `DATABASE_URL` | Evet | TLS destekli, Function’dan erişilebilir MySQL/TiDB bağlantısı |
 | `JWT_SECRET` | Evet | Her ortamda yüksek entropili ve ayrı değer |
 | `OAUTH_SERVER_URL`, `VITE_OAUTH_PORTAL_URL`, `VITE_APP_ID` | OAuth adapter’a bağlı | Mevcut sağlayıcının Vercel uyumluluğu doğrulanmalı; aksi durumda sağlayıcı değiştirilir |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push etkinleştiğinde | Özel anahtar yalnızca sunucu ortamında tutulur |
 | `BUILT_IN_FORGE_API_*` | Özellik kullanımına bağlı | Vercel dışında erişim ve yetkilendirme eşdeğeri sağlanmadan varsayılmamalı |
 
 ## GitHub ve secret güvenliği
 
 Paylaşılan depo: `https://github.com/socialtradeturkey/6lory.git`.
 
-GitHub deposuna `.env`, VAPID private key, veritabanı bağlantı metni, JWT, OAuth secret, gerçek kullanıcı kaydı, push endpoint veya uygulama günlüğü göndermeyin. Vercel, ortam değişkenlerini proje ayarlarında şifreli saklar; bu değerleri kaynak koda yazmak yerine ilgili ortamda yapılandırın.[3]
+GitHub deposuna `.env`, veritabanı bağlantı metni, JWT, OAuth secret, gerçek kullanıcı kaydı veya uygulama günlüğü göndermeyin. Vercel, ortam değişkenlerini proje ayarlarında şifreli saklar; bu değerleri kaynak koda yazmak yerine ilgili ortamda yapılandırın.[3]
 
 ## Dağıtım öncesi kontrol
 
