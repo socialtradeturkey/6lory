@@ -32,6 +32,7 @@
 - [ ] Canlı /api/oauth/callback akışında görülen invalid oauth state hatasını giderip güvenli giriş dönüşünü doğrulamak.
 - [ ] OAuth başlangıç origin’i, callback redirect URI’si ve host-only nonce çerezinin canlı akışta aynı domain üzerinde eşleştiğini teşhis edip doğrulamak.
 - [ ] Servis worker’ın eski uygulama kabuğunu cache-first sunarak OAuth düzeltmesini gölgelemesini önlemek için navigasyon güncelleme stratejisini düzeltmek.
+- [ ] Canlı HTML giriş belgesinin eski JavaScript manifestiyle CDN önbelleğinde kalmasını önlemek için no-cache yanıt başlıklarını ayarlamak.
 - [ ] Mevcut güvenli OAuth akışı çözülemezse resmi Google OAuth istemcisi, redirect URI ve gerekli gizli anahtar yapılandırmasını değerlendirmek.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
 - [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
