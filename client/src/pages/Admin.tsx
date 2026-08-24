@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import EmptyState from "@/components/EmptyState";
@@ -111,7 +112,10 @@ function Metric({
 
 export default function Admin() {
   const [tab, setTab] = useState<AdminTab>("overview");
-  const access = trpc.admin.access.useQuery();
+  const { isAuthenticated } = useAuth();
+  const access = trpc.admin.access.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
   const permissions = access.data?.permissions ?? [];
   const can = (permission: string) => permissions.includes(permission);
   const overview = trpc.admin.overview.useQuery(undefined, {

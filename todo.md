@@ -28,6 +28,8 @@
 - [x] DashboardLayout erişimini moderator, verification_reviewer ve reward_manager rollerine; sunucu capability modelini koruyacak biçimde açmak.
 - [x] Yönetim sekmelerini kullanıcının izinlerine göre filtrelemek ve yasaklı alanları kullanıcı arayüzünde göstermemek.
 - [x] Görev oluşturma formunda platform, eylem, doğrulama/fallback, kullanıcı limiti, oturum süresi, zaman penceresi, uygunluk ve kampanya alanlarını görünür/doğrulanabilir hale getirmek.
+- [ ] Aktif yönetici hesabı için güvenli giriş akışını ve /admin operasyon merkezinin canlı erişimini doğrulamak.
+- [ ] Canlı /api/oauth/callback akışında görülen invalid oauth state hatasını giderip güvenli giriş dönüşünü doğrulamak.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
 - [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
 - [x] GitHub yedekleme/aktarımı için https://github.com/socialtradeturkey/6lory.git deposunun mevcut içeriğini incelemek ve güvenli entegrasyon yolunu belgelemek.
