@@ -8,6 +8,7 @@ import { ArrowRight, Bell, CheckCircle2, Gift, ShieldCheck, Sparkles, Target } f
 import { Link } from "wouter";
 
 export default function Home() {
+  // Managed preview HMR smoke check: this render path remains side-effect free.
   const { isAuthenticated, user } = useAuth();
   const summary = trpc.dashboard.summary.useQuery(undefined, { enabled: isAuthenticated });
   const tasksQuery = trpc.tasks.list.useQuery(undefined, { enabled: isAuthenticated });

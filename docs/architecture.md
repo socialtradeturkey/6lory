@@ -71,3 +71,16 @@ Paylaşılan `https://github.com/socialtradeturkey/6lory.git` deposu **public ve
 | Hassas kullanıcı alanı | `/profile`, `/notifications`, `/tasks/:id` | Kaynak sahipliği ve kullanıcı kimliği kontrol edilir; başka kullanıcıya ait kayıt döndürülmez. | Güvenli profil ayarları ve bildirim merkezi sunulur. |
 | Yönetici operasyon alanı | `/admin`, `/admin/tasks`, `/admin/campaigns`, `/admin/rewards` | `admin` rolü zorunludur; prosedürler yönetici yetkisini her istekte denetler. | Tablet/masaüstü kenar çubuğu, sadece yetkili kullanıcıya görünür. |
 | İnceleme ve risk alanı | `/admin/verifications`, `/admin/risk`, `/admin/audit` | Yalnızca yönetici; daha dar roller eklendiğinde işlem bazında izin denetimi uygulanır. | Sinyal, neden ve işlem geçmişi okunabilir; kritik kararlar audit log oluşturur. |
+
+## Zamanlanmış iş tasarımı
+
+6lory, sunucu belleğinde çalışan `setInterval` veya `node-cron` kullanmaz. Dağıtım tamamlandıktan sonra arka plan işlemleri, kimliği doğrulanmış ve idempotent `/api/scheduled/*` callback’leri üzerinden yönetilen Heartbeat altyapısıyla yürütülür.
+
+| İş | Önerilen tetikleme | Callback | İdempotency ve güvenlik |
+| --- | --- | --- | --- |
+| Süresi dolan Task Session temizliği | Saatlik | `/api/scheduled/expire-sessions` | Oturum yalnızca `active`/`pending_verification` durumundaysa ve sunucu saati `expiresAt` değerini geçtiyse güncellenir. |
+| Manual review hatırlatması | Saatlik | `/api/scheduled/review-reminders` | Aynı review için son teslimat kontrol edilmeden ikinci bildirim kuyruğa eklenmez. |
+| Bildirim teslimat yeniden denemesi | 15 dakikada bir | `/api/scheduled/retry-notifications` | Sadece `queued`/`failed` ve retry sınırı altındaki teslimatlar işlenir. |
+| Görev/pencere yenileme | Saatlik | `/api/scheduled/refresh-task-status` | Kampanya ve görev durumu yalnızca geçerli zaman penceresine göre ilerletilir; puan ya da kullanıcı ataması oluşturmaz. |
+
+Callback’ler kurulmadan önce proje dışarıya dağıtılmış olmalı; callback kimliği `taskUid` üzerinden doğrulanmalı ve 5xx yanıtlarında hata bağlamı JSON olarak dönmelidir. Geçici Vercel dağıtımında bu endpoint’ler ayrıca uyarlanıp doğrulanmadan scheduler etkinleştirilmez.

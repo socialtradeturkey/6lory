@@ -17,7 +17,7 @@
 - [x] Yönetici dashboard’u, görev/kampanya oluşturma sihirbazı, uygunluk/limit/zamanlama ayarlarını geliştirmek.
 - [x] Yönetici doğrulama merkezi, risk merkezi, ödül yönetimi, yorum havuzu ve audit görünümünü geliştirmek.
 - [x] Web uygulamasının kurulabilir PWA manifesti, service worker, çevrimdışı kabuğu ve bildirim yönlendirmelerini hazırlamak.
-- [ ] Periyodik görev ataması, süresi dolan oturum temizliği, doğrulama tekrar denemeleri ve bildirim gönderimi için güvenli arka plan iş tasarımını hazırlamak.
+- [x] Periyodik görev ataması, süresi dolan oturum temizliği, doğrulama tekrar denemeleri ve bildirim gönderimi için güvenli arka plan iş tasarımını hazırlamak.
 - [ ] Yetkisiz erişim, IDOR, tekrar oynatma, çift puan, çift redemption, kota ve secret code testlerini yazmak.
 - [ ] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
@@ -31,10 +31,10 @@
 - [ ] İdempotent task reward, bakiye projeksiyonu ve çift puan korumasını entegrasyon odaklı testlerle doğrulamak.
 - [ ] Ödül redemption için stok, kullanıcı limiti, risk ve puan düşümü kontrollerini entegrasyon odaklı testlerle doğrulamak.
 - [ ] Task Session, görev uygunluğu/kota/süre penceresi ve Verification Engine akışlarını sunucu sözleşmeleri üzerinden doğrulamak.
-- [ ] Resmî API kimlik bilgisi olmayan sosyal görevler için UNAVAILABLE veya manuel inceleme fallback adapter davranışını açık bir modül olarak doğrulamak.
+- [x] Resmî API kimlik bilgisi olmayan sosyal görevler için UNAVAILABLE veya manuel inceleme fallback adapter davranışını açık bir modül olarak doğrulamak.
 - [x] PWA uygulama kabuğu için route fallback ve ilk çevrimiçi kullanımdan sonra JavaScript/CSS varlıklarını kalıcı runtime cache ile desteklemek.
 - [x] Yönetici merkezine kullanıcı güven skorlarını, risk durumlarını ve inceleme bağlamını gösteren ayrı bir risk görünümü eklemek.
-- [ ] Kampanya ve görev yapılandırmasını aynı yönetici akışında açık, doğrulanabilir form alanlarıyla sunmak.
+- [x] Kampanya ve görev yapılandırmasını aynı yönetici akışında açık, doğrulanabilir form alanlarıyla sunmak.
 - [x] role_permissions kayıtlarını her kritik yönetici prosedüründe sunucu tarafında kontrol ederek ayrık izin modelini etkinleştirmek.
 - [x] moderator, verification_reviewer ve reward_manager rollerinin role_permissions kayıtlarıyla sınırlandırılmış yönetici erişimini etkinleştirmek ve test etmek.
 - [x] moderator ve reward_manager rollerinin izinli ile yasaklı prosedür erişimlerini ayrı test senaryolarıyla doğrulamak.
@@ -43,3 +43,5 @@
 - [x] Görev oturumu başladığında kalan süreyi canlı, erişilebilir ve sunucu oturum süresiyle uyumlu geri sayım bileşeniyle göstermek.
 - [x] README’de temel tRPC sözleşmelerini, ortam değişkeni sınıflarını ve doğrulama sınırlamalarını açık başlıklarla tamamlamak.
 - [x] Klavye erişimi, görünür focus, tema kontrastı ve mobil ekran kontrollerini kalite güvence belgesinde somutlaştırmak.
+- [x] Yönetilen önizleme proxy’sinde desteklenmeyen Vite HMR WebSocket denemesini devre dışı bırakmak; localhost:5173 hata döngüsü olmadan kararlı önizleme yüklemesi sağlamak.
+- [x] WSS/443 Vite HMR kanalının proxy tarafından desteklenmediğini doğrulamak; taze önizleme yüklemesinde WebSocket hatası oluşturmayan normal yenileme akışına geçmek.

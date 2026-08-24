@@ -170,6 +170,10 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // The managed preview proxy does not provide a Vite WebSocket upgrade
+    // channel. Disable HMR to prevent the browser from retrying localhost:5173.
+    // The preview remains usable with ordinary browser refreshes.
+    hmr: false,
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",
