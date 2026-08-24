@@ -22,6 +22,12 @@
 - [x] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
 - [ ] Gerçek veritabanı durumu üzerinde tasks.start → tasks.verify → rewards.redeem zincirinin ledger, bakiye, ödül talebi ve oturum yan etkilerini doğrulayan entegrasyon testi eklemek.
 - [ ] GitHub yedeklemesi öncesinde secret/log/build dışlama kurallarını doğrulamak, uzak depoyu bağlamak ve test edilmiş kaynak kodunu Vercel hazırlık dokümanlarıyla göndermek.
+- [x] Geçerli VAPID anahtarları olmadan Web Push’un uygulama içi bildirim fallback’ini kullanıcı ve yönetici akışlarında açık biçimde doğrulamak.
+- [x] Yönetici merkezinde geçersiz VAPID yapılandırması ile uygulama içi bildirim fallback’ini açıkça gösteren bir teslimat durumu kartı eklemek.
+- [x] Geçersiz VAPID durumunda savePushSubscription çağrısının reddedildiğini test paketinde doğrulamak.
+- [x] DashboardLayout erişimini moderator, verification_reviewer ve reward_manager rollerine; sunucu capability modelini koruyacak biçimde açmak.
+- [x] Yönetim sekmelerini kullanıcının izinlerine göre filtrelemek ve yasaklı alanları kullanıcı arayüzünde göstermemek.
+- [x] Görev oluşturma formunda platform, eylem, doğrulama/fallback, kullanıcı limiti, oturum süresi, zaman penceresi, uygunluk ve kampanya alanlarını görünür/doğrulanabilir hale getirmek.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
 - [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
 - [x] GitHub yedekleme/aktarımı için https://github.com/socialtradeturkey/6lory.git deposunun mevcut içeriğini incelemek ve güvenli entegrasyon yolunu belgelemek.

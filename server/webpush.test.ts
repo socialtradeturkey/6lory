@@ -21,6 +21,11 @@ describe("web push yapılandırması", () => {
     } else {
       expect(status.publicKey).toBe("");
       expect(status.subject).toBe("");
+      await expect(caller.notifications.savePushSubscription({
+        endpoint: "https://push.example.test/subscription/1",
+        keys: { p256dh: "a".repeat(32), auth: "b".repeat(16) },
+        userAgent: "6lory-test",
+      })).rejects.toThrow("WEB_PUSH_VAPID_CONFIG_INVALID");
     }
   });
 });
