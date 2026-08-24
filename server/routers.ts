@@ -22,7 +22,7 @@ import {
   userProfiles,
   verificationAttempts,
   verificationSignals,
-} from "../drizzle/schema";
+} from "../drizzle/schema.js";
 import {
   assertRedemptionEligibility,
   createSecretCode,
@@ -32,18 +32,18 @@ import {
   hashSecretCode,
   isMatchingSecretCode,
   resolveVerification,
-} from "./domain";
-import { buildOperationsAnalytics } from "./operationsAnalytics";
-import { getDb } from "./db";
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
+} from "./domain.js";
+import { buildOperationsAnalytics } from "./operationsAnalytics.js";
+import { getDb } from "./db.js";
+import { COOKIE_NAME } from "../shared/const.js";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { systemRouter } from "./_core/systemRouter.js";
 import {
   adminProcedure,
   protectedProcedure,
   publicProcedure,
   router,
-} from "./_core/trpc";
+} from "./_core/trpc.js";
 
 const idempotencyKey = z.string().min(12).max(96);
 const taskSessionInput = z.object({
