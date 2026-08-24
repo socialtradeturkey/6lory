@@ -21,7 +21,7 @@
 - [x] Yetkisiz erişim, IDOR, tekrar oynatma, çift puan, çift redemption, kota ve secret code testlerini yazmak.
 - [x] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
 - [x] Gerçek veritabanı durumu üzerinde tasks.start → tasks.verify → rewards.redeem zincirinin ledger, bakiye, ödül talebi ve oturum yan etkilerini doğrulayan entegrasyon testi eklemek.
-- [ ] GitHub yedeklemesi öncesinde secret/log/build dışlama kurallarını doğrulamak, uzak depoyu bağlamak ve test edilmiş kaynak kodunu Vercel hazırlık dokümanlarıyla göndermek.
+- [x] GitHub yedeklemesi öncesinde secret/log/build dışlama kurallarını doğrulamak, uzak depoyu bağlamak ve test edilmiş kaynak kodunu Vercel hazırlık dokümanlarıyla göndermek.
 - [x] Geçerli VAPID anahtarları olmadan Web Push’un uygulama içi bildirim fallback’ini kullanıcı ve yönetici akışlarında açık biçimde doğrulamak.
 - [x] Yönetici merkezinde geçersiz VAPID yapılandırması ile uygulama içi bildirim fallback’ini açıkça gösteren bir teslimat durumu kartı eklemek.
 - [x] Geçersiz VAPID durumunda savePushSubscription çağrısının reddedildiğini test paketinde doğrulamak.
