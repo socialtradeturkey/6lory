@@ -20,7 +20,7 @@
 - [x] Periyodik görev ataması, süresi dolan oturum temizliği, doğrulama tekrar denemeleri ve bildirim gönderimi için güvenli arka plan iş tasarımını hazırlamak.
 - [x] Yetkisiz erişim, IDOR, tekrar oynatma, çift puan, çift redemption, kota ve secret code testlerini yazmak.
 - [x] Uçtan uca kullanıcı → görev → doğrulama → ledger → ödül akışını test etmek.
-- [ ] Gerçek veritabanı durumu üzerinde tasks.start → tasks.verify → rewards.redeem zincirinin ledger, bakiye, ödül talebi ve oturum yan etkilerini doğrulayan entegrasyon testi eklemek.
+- [x] Gerçek veritabanı durumu üzerinde tasks.start → tasks.verify → rewards.redeem zincirinin ledger, bakiye, ödül talebi ve oturum yan etkilerini doğrulayan entegrasyon testi eklemek.
 - [ ] GitHub yedeklemesi öncesinde secret/log/build dışlama kurallarını doğrulamak, uzak depoyu bağlamak ve test edilmiş kaynak kodunu Vercel hazırlık dokümanlarıyla göndermek.
 - [x] Geçerli VAPID anahtarları olmadan Web Push’un uygulama içi bildirim fallback’ini kullanıcı ve yönetici akışlarında açık biçimde doğrulamak.
 - [x] Yönetici merkezinde geçersiz VAPID yapılandırması ile uygulama içi bildirim fallback’ini açıkça gösteren bir teslimat durumu kartı eklemek.
@@ -28,12 +28,12 @@
 - [x] DashboardLayout erişimini moderator, verification_reviewer ve reward_manager rollerine; sunucu capability modelini koruyacak biçimde açmak.
 - [x] Yönetim sekmelerini kullanıcının izinlerine göre filtrelemek ve yasaklı alanları kullanıcı arayüzünde göstermemek.
 - [x] Görev oluşturma formunda platform, eylem, doğrulama/fallback, kullanıcı limiti, oturum süresi, zaman penceresi, uygunluk ve kampanya alanlarını görünür/doğrulanabilir hale getirmek.
-- [ ] Aktif yönetici hesabı için güvenli giriş akışını ve /admin operasyon merkezinin canlı erişimini doğrulamak.
-- [ ] Canlı /api/oauth/callback akışında görülen invalid oauth state hatasını giderip güvenli giriş dönüşünü doğrulamak.
-- [ ] OAuth başlangıç origin’i, callback redirect URI’si ve host-only nonce çerezinin canlı akışta aynı domain üzerinde eşleştiğini teşhis edip doğrulamak.
-- [ ] Servis worker’ın eski uygulama kabuğunu cache-first sunarak OAuth düzeltmesini gölgelemesini önlemek için navigasyon güncelleme stratejisini düzeltmek.
-- [ ] Canlı HTML giriş belgesinin eski JavaScript manifestiyle CDN önbelleğinde kalmasını önlemek için no-cache yanıt başlıklarını ayarlamak.
-- [ ] Mevcut güvenli OAuth akışı çözülemezse resmi Google OAuth istemcisi, redirect URI ve gerekli gizli anahtar yapılandırmasını değerlendirmek.
+- [x] Aktif yönetici hesabı için güvenli giriş akışını ve /admin operasyon merkezinin canlı erişimini doğrulamak.
+- [x] Canlı /api/oauth/callback akışında görülen invalid oauth state hatasını giderip güvenli giriş dönüşünü doğrulamak.
+- [x] OAuth başlangıç origin’i, callback redirect URI’si ve host-only nonce çerezinin canlı akışta aynı domain üzerinde eşleştiğini teşhis edip doğrulamak.
+- [x] Servis worker’ın eski uygulama kabuğunu cache-first sunarak OAuth düzeltmesini gölgelemesini önlemek için navigasyon güncelleme stratejisini düzeltmek.
+- [x] Canlı HTML giriş belgesinin eski JavaScript manifestiyle CDN önbelleğinde kalmasını önlemek için no-cache yanıt başlıklarını ayarlamak.
+- [x] Mevcut güvenli OAuth akışı çözülemezse resmi Google OAuth istemcisi, redirect URI ve gerekli gizli anahtar yapılandırmasını değerlendirmek; mevcut sağlayıcı akışı düzeltildiği için ek istemci gerekmediğini doğrulamak.
 - [x] Erişilebilirlik, mobil ekranlar, açık/koyu tema ve görsel kaliteyi doğrulamak.
 - [x] Mimari, kurulum, ortam değişkenleri, API sözleşmeleri ve doğrulama sınırlamalarını README’de belgelemek.
 - [x] GitHub yedekleme/aktarımı için https://github.com/socialtradeturkey/6lory.git deposunun mevcut içeriğini incelemek ve güvenli entegrasyon yolunu belgelemek.
