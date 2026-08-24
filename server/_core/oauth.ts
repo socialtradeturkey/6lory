@@ -50,7 +50,7 @@ export function registerOAuthRoutes(app: Express) {
         secure: true,
         sameSite: "lax",
       });
-      res.status(403).json({ error: "invalid oauth state" });
+      res.redirect(302, "/admin?auth=retry");
       return;
     }
     res.clearCookie(OAUTH_STATE_COOKIE, {

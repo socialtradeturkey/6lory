@@ -85,6 +85,9 @@ export default function DashboardLayout({
   const { loading, user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { toggleTheme } = useTheme();
+  const retryLogin =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("auth") === "retry";
 
   if (loading)
     return (
@@ -101,8 +104,9 @@ export default function DashboardLayout({
             Yönetici girişi gerekli
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Bu alan, kampanya ve doğrulama operasyonlarını yetkili
-            kullanıcılarla sınırlar.
+            {retryLogin
+              ? "Önceki oturum doğrulanamadı; güvenlik nedeniyle giriş kodu kabul edilmedi. Aşağıdan yeni ve tekil bir giriş başlatın."
+              : "Bu alan, kampanya ve doğrulama operasyonlarını yetkili kullanıcılarla sınırlar."}
           </p>
           <Button
             onClick={() => startLogin()}
