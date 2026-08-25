@@ -146,3 +146,8 @@
 - [x] Yeni kullanıcı kayıt, mevcut kullanıcı giriş, logout ve oturum yenileme backend akışını uygulamak; OAuth ile çakışan hesap birleştirmesini güvenli yönetmek.
 - [x] Giriş ekranında Google/Manus ve yeni kayıt-giriş seçeneklerini erişilebilir loading/error durumlarıyla sunmak.
 - [x] Gerçek auth akışlarını test edip GitHub main’e senkronize etmek; canlı doğrulama tamamlanmadan işi bitmiş saymamak.
+
+- [x] Vercel production’da giriş panelinin ve güncel auth bundle’ının gerçekten servis edildiğini yeniden doğrulamak; eski deployment/cache ihtimalini ayırmak.
+- [x] Vercel auth çağrılarının `/api/trpc` ve OAuth callback yönlendirmesiyle uyumunu runtime seviyesinde test etmek.
+- [ ] Gerekli düzeltmeyi GitHub main’e push edip kullanıcıya manuel Vercel deploy sonrası tek adımlı canlı giriş testi yaptırmak; kullanıcı doğrulaması olmadan kapanış yapmamak.
+- [x] Vercel ile managed alan arasındaki host-only oturum farkını giriş ekranında açıkça anlatmak; kullanıcıyı login sonrası doğru canonical managed alanda tutmak.

@@ -27,6 +27,12 @@ export default function AuthPanel() {
     onError: error => setMessage(error.message),
   });
   const pending = login.isPending || register.isPending;
+  const isVercelFrontend = typeof window !== "undefined" && window.location.hostname === "6lory.vercel.app";
+  const beginOAuth = () => {
+    if (!startLogin()) {
+      setMessage("Güvenli giriş başlatılamadı. Çerezleri etkinleştirip tekrar deneyin veya e-posta ile giriş yapın.");
+    }
+  };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,7 +59,8 @@ export default function AuthPanel() {
         <Button className="w-full rounded-xl" type="submit" disabled={pending}>{pending ? "İşleniyor…" : mode === "login" ? "E-posta ile giriş yap" : "Güvenli hesabımı oluştur"}</Button>
       </form>
       <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground"><span className="h-px flex-1 bg-border" />veya<span className="h-px flex-1 bg-border" /></div>
-      <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => startLogin()}>Google / Manus ile devam et</Button>
+      <Button type="button" variant="outline" className="w-full rounded-xl" onClick={beginOAuth}>Google / Manus ile devam et</Button>
+      {isVercelFrontend && <p className="mt-4 rounded-xl border border-teal-500/20 bg-teal-500/5 px-3 py-2.5 text-xs leading-5 text-muted-foreground">Vercel geçici giriş alanıdır. Google/Manus sonrası güvenli oturum, managed 6lory alanında devam eder; giriş tamamlandığında tarayıcıyı orada bırakın.</p>}
       <p className="mt-4 text-xs leading-5 text-muted-foreground">Parolalar düz metin saklanmaz. Hesap kurtarma e-postası özelliği ayrıca yapılandırılana kadar parolanızı güvenli yerde tutun.</p>
     </div>
   );
