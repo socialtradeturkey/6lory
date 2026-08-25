@@ -140,3 +140,9 @@
 - [ ] Vercel’in GitHub kaynak bağlantısını veya güvenli alternatif production dağıtımını doğrulamak ve aynı sürümün yayımlandığını kanıtlamak.
 - [x] Manus GitHub yazma connector’ı bulunmadığı için GitHub’a push yapılamadığını belgelemek ve kullanıcıya güvenli seçenekleri sunmak: GitHub web oturumu üzerinden kullanıcı commit’i veya açıkça sağlanan fine-grained token ile tek seferlik push.
 - [x] Kullanıcı isteğiyle Vercel deploy’ını kullanıcıya bırakıp doğrulanmış kaynak değişikliklerini yalnız GitHub `main` dalına senkronize etmek ve remote commit’i doğrulamak.
+
+- [ ] Google/Manus girişindeki gerçek blokajı yeniden üretip callback, state/nonce, cookie ve oturum sonucunu kaydetmek.
+- [ ] Yeni kayıt ve giriş formu için güvenli parola saklama, rate limit, CSRF/oturum, hata mesajı ve hesap kilitleme kurallarını belirlemek.
+- [ ] Yeni kullanıcı kayıt, mevcut kullanıcı giriş, logout ve oturum yenileme backend akışını uygulamak; OAuth ile çakışan hesap birleştirmesini güvenli yönetmek.
+- [ ] Giriş ekranında Google/Manus ve yeni kayıt-giriş seçeneklerini erişilebilir loading/error durumlarıyla sunmak.
+- [ ] Gerçek auth akışlarını test edip GitHub main’e senkronize etmek; canlı doğrulama tamamlanmadan işi bitmiş saymamak.

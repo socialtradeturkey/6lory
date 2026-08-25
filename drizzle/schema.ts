@@ -28,6 +28,22 @@ export const users = mysqlTable("users", {
   lastSignedIn: utcTimestamp().defaultNow().notNull(),
 });
 
+export const localAuthCredentials = mysqlTable(
+  "local_auth_credentials",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 320 }).notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    passwordSalt: varchar("password_salt", { length: 128 }).notNull(),
+    failedAttempts: int("failed_attempts").default(0).notNull(),
+    lockedUntil: timestamp("locked_until"),
+    createdAt: utcTimestamp().defaultNow().notNull(),
+    updatedAt: utcTimestamp().defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("local_auth_email_idx").on(table.email)],
+);
+
 export const userProfiles = mysqlTable(
   "user_profiles",
   {
