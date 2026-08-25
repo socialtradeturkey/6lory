@@ -167,4 +167,6 @@
 - [ ] Kapasite/atama migration’ını uygula; Vitest ve build kontrolleri başarılı; gerçek DB opt-in atama ve canlı yönetici arayüzü kontrolü bekliyor.
 - [x] Kullanıcı bildirimi: ana sayfada görev sayısı görünürken Görevler sekmesinde “size uygun görev yok” mesajı oluşuyor; iki görünümün aynı görev sorgusunu kullanmasını sağla.
 - [x] Görev görünürlüğündeki aşırı kısıtları kaldır; aktif/zamanı geçerli görevlerin kullanıcı listesinde ve detayında tutarlı görünmesini sağla; assigned audience kayıtları yönetim/audit amacıyla korunurken kullanıcı görünürlüğü aktif görevler için açıldı.
-- [ ] Görev görünürlük düzeltmesini test, build, canlı önizleme ve checkpoint ile doğrula.
+- [ ] Görev görünürlük düzeltmesinin test/build ve DB veri düzeltmesi tamamlandı; canlı önizleme ve gerçek kullanıcı oturumunda görev başlatma doğrulaması bekliyor.
+- [x] Kullanıcı yeniden bildirdi: ana sayfada görev görünürken Görevler sekmesi hâlâ boş; canlı API ve veritabanı kontrolünde aktif görevlerin geçmiş `endsAt` tarihi nedeniyle listeden elendiği doğrulandı ve düzeltildi.
+- [ ] Görev kartı sayısı ile görev listesi arasında gerçek kullanıcı oturumunda eşleşme kanıtı üret; API görünürlük ve geçmiş bitiş tarihi düzeltmesi yayımlandı, kullanıcı tarayıcı doğrulaması bekliyor.
