@@ -451,20 +451,11 @@ export const appRouter = router({
           )
         )
         .orderBy(desc(tasks.priority), desc(tasks.createdAt));
-      const assignedRows = await db
-        .select({ taskId: taskAssignments.taskId, status: taskAssignments.status })
-        .from(taskAssignments)
-        .where(eq(taskAssignments.userId, ctx.user.id));
-      const assignedTaskIds = new Set(
-        assignedRows
-          .filter(row => row.status === "assigned" || row.status === "started")
-          .map(row => row.taskId),
-      );
-      return visibleTasks.filter(task => task.audienceMode === "open" || assignedTaskIds.has(task.id));
+      return visibleTasks;
     }),
     detail: protectedProcedure
       .input(z.object({ taskId: z.number().int().positive() }))
-      .query(async ({ ctx, input }) => {
+      .query(async ({ input }) => {
         const db = await databaseOrThrow();
         const now = new Date();
         const [task] = await db
@@ -484,21 +475,6 @@ export const appRouter = router({
             code: "NOT_FOUND",
             message: "Görev bulunamadı veya artık kullanılamıyor.",
           });
-        if (task.audienceMode === "assigned") {
-          const [assignment] = await db
-            .select({ id: taskAssignments.id })
-            .from(taskAssignments)
-            .where(
-              and(
-                eq(taskAssignments.taskId, task.id),
-                eq(taskAssignments.userId, ctx.user.id),
-                or(eq(taskAssignments.status, "assigned"), eq(taskAssignments.status, "started")),
-              ),
-            )
-            .limit(1);
-          if (!assignment)
-            throw new TRPCError({ code: "NOT_FOUND", message: "Bu görev size atanmamış veya artık kullanılamıyor." });
-        }
         return task;
       }),
     start: protectedProcedure

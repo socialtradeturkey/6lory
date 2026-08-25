@@ -165,3 +165,6 @@
 - [x] Görev atamasını yalnızca aktif, uygun ve kısıtlanmamış kullanıcılara sunucu transaction’ı ile uygula; kota, tekrar atama ve IDOR kontrollerini ekle.
 - [x] Yönetici görev ekranına aktif kullanıcı sayısı, tahmini erişim, kapasite ayarları, dağıtım önizlemesi ve atama işlemi ekle.
 - [ ] Kapasite/atama migration’ını uygula; Vitest ve build kontrolleri başarılı; gerçek DB opt-in atama ve canlı yönetici arayüzü kontrolü bekliyor.
+- [x] Kullanıcı bildirimi: ana sayfada görev sayısı görünürken Görevler sekmesinde “size uygun görev yok” mesajı oluşuyor; iki görünümün aynı görev sorgusunu kullanmasını sağla.
+- [x] Görev görünürlüğündeki aşırı kısıtları kaldır; aktif/zamanı geçerli görevlerin kullanıcı listesinde ve detayında tutarlı görünmesini sağla; assigned audience kayıtları yönetim/audit amacıyla korunurken kullanıcı görünürlüğü aktif görevler için açıldı.
+- [ ] Görev görünürlük düzeltmesini test, build, canlı önizleme ve checkpoint ile doğrula.
