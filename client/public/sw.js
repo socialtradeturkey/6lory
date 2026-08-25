@@ -1,4 +1,4 @@
-const CACHE_NAME = "6lory-shell-v3";
+const CACHE_NAME = "6lory-shell-v4";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/manus-storage/6lory-app-icon_b69505cd.png"];
 const isManagedPreview = self.location.hostname.endsWith(".manus.computer") || self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
 

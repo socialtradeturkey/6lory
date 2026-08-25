@@ -114,3 +114,8 @@
 - [x] Kullanıcı yetkisi kapsamında canlı canary görev, Secret Code, ödül talebi ve yönetici işlem zincirini tamamlayıp test içeriğini pasifleştirerek kapanış denetimini yapmak.
 - [x] Yönetici merkezine görev ve ödül katalog durumlarını capability korumalı, audit kayıtlı biçimde active/paused/archived geçirecek sunucu işlemlerini eklemek.
 - [x] Yönetici arayüzünde görev ve ödül envanterine durum yönetimi kontrollerini ekleyerek canary içeriğini uygulama içinden pasifleştirmek.
+
+- [x] Google girişinin canlıda çalışmama nedenini Vercel→yönetilen OAuth başlangıcı, callback/state, cookie ve oturum sonrası yönlendirme katmanlarında yeniden teşhis etmek.
+- [x] Tespit edilen Google giriş arızasını güvenlik kurallarını koruyarak düzeltmek ve başarısızlık durumunu kullanıcıya görünür kılmak.
+- [ ] Vercel ve yönetilen alanlarda Google girişini hesap seçici → callback → oturum → hedef rota sonuna kadar tekrar doğrulamak.
+- [ ] Google giriş düzeltmesini managed checkpoint ve Vercel production dağıtımıyla yayımlamak.

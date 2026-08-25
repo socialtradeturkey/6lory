@@ -23,6 +23,22 @@ function showLoginBridgeStatus() {
     </main>`;
 }
 
+function showLoginBridgeError() {
+  const root = document.getElementById("root");
+  if (!root) return;
+  root.innerHTML = `
+    <main aria-live="assertive" style="display:grid;min-height:100dvh;place-items:center;padding:24px;background:#f8fafc;color:#172438;font-family:DM Sans,system-ui,sans-serif">
+      <section style="width:min(100%,440px);border:1px solid #f0caca;border-radius:24px;background:#fff;padding:32px;text-align:center;box-shadow:0 16px 40px rgba(15,23,42,.08)">
+        <p style="margin:0;font-weight:800;font-size:18px">Güvenli giriş başlatılamadı</p>
+        <p style="margin:8px 0 0;color:#526173;font-size:14px;line-height:1.55">Çerez ve gizlilik ayarlarınızı kontrol edip yeniden deneyin.</p>
+        <button type="button" style="margin-top:20px;border:0;border-radius:14px;background:#172438;color:#fff;padding:12px 18px;font:600 14px DM Sans,system-ui,sans-serif;cursor:pointer">Ana sayfaya dön</button>
+      </section>
+    </main>`;
+  root.querySelector("button")?.addEventListener("click", () => {
+    window.location.replace("/");
+  });
+}
+
 const bridgeTarget = consumeLoginBridgeUrl(window.location.href);
 if (bridgeTarget) {
   // This runs before React mounts, ensuring a Vercel bridge request cannot
@@ -35,13 +51,18 @@ if (bridgeTarget) {
     // Session storage may be unavailable; OAuth still proceeds safely.
   }
   window.history.replaceState(null, "", bridgeTarget.cleanPath);
-  // Allow the visible status region to paint before leaving for the external
-  // provider. This prevents a slow network or external account chooser from
-  // appearing as a broken, blank application page.
+  // Keep the bridge status mounted until navigation starts. Rendering the full
+  // app here can replace the status during the handoff and make a slow OAuth
+  // redirect look like a blank page.
   showLoginBridgeStatus();
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(startLogin);
-  });
+  window.setTimeout(() => {
+    try {
+      if (!startLogin()) showLoginBridgeError();
+    } catch (error) {
+      console.error("[Auth] OAuth bridge failed to start", error);
+      showLoginBridgeError();
+    }
+  }, 120);
 }
 
 const queryClient = new QueryClient();
@@ -109,10 +130,12 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </trpc.Provider>
-);
+if (!bridgeTarget) {
+  createRoot(document.getElementById("root")!).render(
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </trpc.Provider>
+  );
+}

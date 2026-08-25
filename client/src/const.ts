@@ -21,13 +21,13 @@ let loginNavigationStarted = false;
 // `state` it sends. Do NOT call it during render (no `href={startLogin()}` /
 // `loginUrl={...}`): each call overwrites the cookie, so a stray render-phase
 // call would desync it from an in-flight login and the callback would reject it
-// with "invalid oauth state". It returns void by design, so there is no URL to
-// stash across renders.
-export const startLogin = () => {
+// with "invalid oauth state". It returns whether navigation could be started;
+// callers may use false to show an actionable cookie/privacy error.
+export const startLogin = (): boolean => {
   // A protected query and a user click can occur in the same render turn.
   // Only the first navigation may mint the one-time nonce; a second nonce
   // would invalidate the state already sent to the OAuth provider.
-  if (loginNavigationStarted) return;
+  if (loginNavigationStarted) return false;
   loginNavigationStarted = true;
 
   const managedLoginStartUrl = getManagedLoginStartUrl(
@@ -39,7 +39,7 @@ export const startLogin = () => {
     // provider rejects it before authentication, and a cross-origin session
     // cookie could not be shared back securely in any case.
     window.location.assign(managedLoginStartUrl);
-    return;
+    return true;
   }
 
   const loginOrigin = resolveLoginOrigin(window.location.origin);
@@ -73,7 +73,7 @@ export const startLogin = () => {
     window.alert(
       "Güvenli giriş başlatılamadı. Tarayıcınızda bu site için çerezlere izin verip yeniden deneyin."
     );
-    return;
+    return false;
   }
   const state = encodeOAuthState({ redirectUri, nonce });
 
@@ -84,4 +84,5 @@ export const startLogin = () => {
   url.searchParams.set("type", "signIn");
 
   window.location.href = url.toString();
+  return true;
 };

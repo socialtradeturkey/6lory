@@ -60,7 +60,7 @@ export function registerOAuthRoutes(app: Express) {
         secure: true,
         sameSite: "lax",
       });
-      res.redirect(302, "/admin?auth=retry");
+      res.redirect(302, `${postLoginPath}?auth=retry`);
       return;
     }
     res.clearCookie(OAUTH_STATE_COOKIE, {
