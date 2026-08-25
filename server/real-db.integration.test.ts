@@ -1,13 +1,18 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { TrpcContext } from "./_core/context";
 import { getDb } from "./db";
 import {
+  auditLogs,
+  campaigns,
+  commentPools,
+  comments,
   notifications,
   pointBalances,
   pointLedger,
   rewardRedemptions,
   rewards,
+  riskEvents,
   taskAssignments,
   taskSessions,
   tasks,
@@ -26,6 +31,11 @@ const runId = `itest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 let testUserId: number | undefined;
 let testTaskId: number | undefined;
 let testRewardId: number | undefined;
+let testCampaignId: number | undefined;
+let testCampaignTaskId: number | undefined;
+let testCommentPoolId: number | undefined;
+let testCommentId: number | undefined;
+const testRedemptionIds: number[] = [];
 
 function createUserContext(userId: number): TrpcContext {
   const now = new Date();
@@ -46,6 +56,25 @@ function createUserContext(userId: number): TrpcContext {
   };
 }
 
+function createAdminContext(): TrpcContext {
+  const now = new Date();
+  return {
+    user: {
+      id: 1,
+      openId: "integration-admin",
+      name: "Integration Admin",
+      email: "admin@example.invalid",
+      loginMethod: "integration-test",
+      role: "admin",
+      createdAt: now,
+      updatedAt: now,
+      lastSignedIn: now,
+    },
+    req: { headers: {}, protocol: "https" } as TrpcContext["req"],
+    res: {} as TrpcContext["res"],
+  };
+}
+
 async function cleanIntegrationFixtures() {
   const db = await getDb();
   if (!db || !testUserId) return;
@@ -57,6 +86,24 @@ async function cleanIntegrationFixtures() {
   const attemptIds = attempts.map(attempt => attempt.id);
 
   await db.delete(notifications).where(eq(notifications.userId, testUserId));
+  await db.delete(riskEvents).where(eq(riskEvents.userId, testUserId));
+  const auditTargets = [
+    testCampaignId,
+    testCampaignTaskId,
+    testCommentId,
+    ...testRedemptionIds,
+    testUserId,
+  ]
+    .filter((value): value is number => value !== undefined)
+    .map(String);
+  if (auditTargets.length) {
+    await db.delete(auditLogs).where(
+      and(
+        eq(auditLogs.actorUserId, 1),
+        inArray(auditLogs.entityId, auditTargets),
+      ),
+    );
+  }
   await db.delete(pointLedger).where(eq(pointLedger.userId, testUserId));
   await db
     .delete(rewardRedemptions)
@@ -77,6 +124,12 @@ async function cleanIntegrationFixtures() {
     .delete(taskAssignments)
     .where(eq(taskAssignments.userId, testUserId));
   if (testTaskId) await db.delete(tasks).where(eq(tasks.id, testTaskId));
+  if (testCampaignTaskId)
+    await db.delete(tasks).where(eq(tasks.id, testCampaignTaskId));
+  if (testCampaignId)
+    await db.delete(campaigns).where(eq(campaigns.id, testCampaignId));
+  if (testCommentPoolId)
+    await db.delete(commentPools).where(eq(commentPools.id, testCommentPoolId));
   if (testRewardId)
     await db.delete(rewards).where(eq(rewards.id, testRewardId));
   await db.delete(pointBalances).where(eq(pointBalances.userId, testUserId));
@@ -87,6 +140,11 @@ async function cleanIntegrationFixtures() {
   testUserId = undefined;
   testTaskId = undefined;
   testRewardId = undefined;
+  testCampaignId = undefined;
+  testCampaignTaskId = undefined;
+  testCommentPoolId = undefined;
+  testCommentId = undefined;
+  testRedemptionIds.length = 0;
 }
 
 afterEach(async () => {
@@ -147,7 +205,7 @@ describe.runIf(runRealDbIntegration)(
         stock: 2,
         status: "active",
         deliveryType: "digital",
-        maxPerUser: 1,
+        maxPerUser: 2,
       });
       testRewardId = Number(rewardResult[0].insertId);
 
@@ -279,6 +337,179 @@ describe.runIf(runRealDbIntegration)(
       const clearedRead = await caller.notifications.clearRead();
       expect(clearedRead.deleted).toBe(2);
       expect(await caller.notifications.list()).toHaveLength(0);
-    }, 30_000);
+
+      const admin = appRouter.createCaller(createAdminContext());
+      const campaign = await admin.admin.createCampaign({
+        name: `${runId} kampanya`,
+        description: "İzole yönetici operasyon testi.",
+        pointBudget: 500,
+      });
+      testCampaignId = campaign.id;
+      await admin.admin.setCampaignStatus({
+        campaignId: campaign.id,
+        status: "active",
+      });
+      const campaignTask = await admin.admin.createTask({
+        campaignId: campaign.id,
+        title: `${runId} kampanya görevi`,
+        platform: "web",
+        actionType: "VISIT",
+        rewardPoints: 25,
+        totalQuota: 10,
+        perUserLimit: 1,
+        verificationMethod: "manual_review",
+        fallbackMethod: "manual_review",
+        estimatedDurationSeconds: 30,
+        sessionDurationSeconds: 900,
+        instructions: ["İzole yönetici görev testi."],
+      });
+      testCampaignTaskId = campaignTask.id;
+
+      const campaignRows = await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.id, campaign.id));
+      const campaignTaskRows = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, campaignTask.id));
+      expect(campaignRows[0]).toMatchObject({ status: "active" });
+      expect(campaignTaskRows[0]).toMatchObject({
+        campaignId: campaign.id,
+        status: "active",
+      });
+
+      testRedemptionIds.push(redeemed.redemption!.id);
+      await admin.admin.processRewardRedemption({
+        redemptionId: redeemed.redemption!.id,
+        status: "under_review",
+        note: "Talep inceleme kuyruğuna alındı.",
+      });
+      await admin.admin.processRewardRedemption({
+        redemptionId: redeemed.redemption!.id,
+        status: "rejected",
+        note: "İzole test kapsamında talep reddedildi.",
+      });
+      const rejectedRedemption = await db
+        .select()
+        .from(rewardRedemptions)
+        .where(eq(rewardRedemptions.id, redeemed.redemption!.id));
+      const refundedBalance = await db
+        .select()
+        .from(pointBalances)
+        .where(eq(pointBalances.userId, testUserId));
+      const refundLedger = await db
+        .select()
+        .from(pointLedger)
+        .where(eq(pointLedger.idempotencyKey, `refund:redemption:${redeemed.redemption!.id}`));
+      expect(rejectedRedemption[0]).toMatchObject({ status: "rejected" });
+      expect(refundedBalance[0]).toMatchObject({ availablePoints: 100, lifetimeSpent: 0 });
+      expect(refundLedger).toHaveLength(1);
+      expect(refundLedger[0]).toMatchObject({ type: "reversal", amount: 40, balanceAfter: 100 });
+      const restockedReward = await db
+        .select()
+        .from(rewards)
+        .where(eq(rewards.id, testRewardId));
+      expect(restockedReward[0]).toMatchObject({ stock: 2 });
+
+      const deliveryRedeemKey = `${runId}_redeem_delivery`;
+      const deliveryRedemption = await caller.rewards.redeem({
+        rewardId: testRewardId,
+        idempotencyKey: deliveryRedeemKey,
+      });
+      testRedemptionIds.push(deliveryRedemption.redemption!.id);
+      await admin.admin.processRewardRedemption({
+        redemptionId: deliveryRedemption.redemption!.id,
+        status: "approved",
+        note: "İzole test kapsamında talep onaylandı.",
+      });
+      await admin.admin.processRewardRedemption({
+        redemptionId: deliveryRedemption.redemption!.id,
+        status: "preparing",
+        note: "Ödül teslimat için hazırlanıyor.",
+      });
+      await admin.admin.processRewardRedemption({
+        redemptionId: deliveryRedemption.redemption!.id,
+        status: "shipped",
+        note: "Ödül teslimata çıkarıldı.",
+      });
+      await admin.admin.processRewardRedemption({
+        redemptionId: deliveryRedemption.redemption!.id,
+        status: "delivered",
+        note: "Ödül teslim edildi.",
+      });
+      const deliveredRedemption = await db
+        .select()
+        .from(rewardRedemptions)
+        .where(eq(rewardRedemptions.id, deliveryRedemption.redemption!.id));
+      const deliveryAudit = await db
+        .select()
+        .from(auditLogs)
+        .where(eq(auditLogs.entityId, String(deliveryRedemption.redemption!.id)));
+      const deliveryNotifications = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, testUserId));
+      expect(deliveredRedemption[0]).toMatchObject({ status: "delivered" });
+      expect(deliveryAudit.filter(log => log.action === "redemption.status_changed")).toHaveLength(4);
+      expect(deliveryNotifications.filter(item => item.type === "reward_status_updated")).toHaveLength(6);
+
+      await admin.admin.updateRiskStatus({
+        userId: testUserId,
+        status: "restricted",
+        reason: "İzole risk aksiyonu testi.",
+      });
+      const restrictedTrust = await db
+        .select()
+        .from(trustScores)
+        .where(eq(trustScores.userId, testUserId));
+      const riskRows = await db
+        .select()
+        .from(riskEvents)
+        .where(eq(riskEvents.userId, testUserId));
+      expect(restrictedTrust[0]).toMatchObject({ status: "restricted" });
+      expect(riskRows.some(row => row.type === "admin_risk_status_change")).toBe(true);
+      const riskNotification = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, testUserId),
+            eq(notifications.type, "account_risk_status_updated"),
+          ),
+        );
+      expect(riskNotification).toHaveLength(1);
+
+      const pool = await admin.admin.createCommentPool({
+        name: `${runId} yorum havuzu`,
+      });
+      testCommentPoolId = pool.id;
+      const comment = await admin.admin.addComment({
+        poolId: pool.id,
+        body: "İzole yönetici içerik testi.",
+        weight: 5,
+      });
+      testCommentId = comment.id;
+      const poolComments = await admin.admin.listComments({ poolId: pool.id });
+      expect(poolComments).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: comment.id, weight: 5 }),
+        ]),
+      );
+
+      const adminAudit = await db
+        .select()
+        .from(auditLogs)
+        .where(eq(auditLogs.actorUserId, 1));
+      expect(adminAudit).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ action: "campaign.status_changed", entityId: String(campaign.id) }),
+          expect.objectContaining({ action: "task.created", entityId: String(campaignTask.id) }),
+          expect.objectContaining({ action: "redemption.status_changed", entityId: String(redeemed.redemption!.id) }),
+          expect.objectContaining({ action: "risk.status_changed", entityId: String(testUserId) }),
+          expect.objectContaining({ action: "comment_pool.comment_added", entityId: String(comment.id) }),
+        ]),
+      );
+    }, 60_000);
   }
 );

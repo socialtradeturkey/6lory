@@ -86,9 +86,17 @@
 - [x] `?login=1` otomatik OAuth başlangıcı için regresyon testi veya görünür çalıştırılabilir kanıt eklemek.
 - [x] Ana sayfa giriş alanında, ayrı kayıt formu yerine ilk Google/Manus girişinde hesabın oluşturulduğunu görünür metinle açıklamak ve davranışı dokümantasyonda doğrulamak.
 - [x] Yönetici rolündeki oturumun `/admin` rotasında kullanıcı dashboard’u yerine capability-korumalı yönetici merkezini açmasını canlıda doğrulamak ve gerekirse düzeltmek.
-- [ ] Yönetici merkezindeki kampanya/görev, ödül, doğrulama, risk, yorum ve audit sekmelerinin sayaç yerine gerçek uygulama içi operasyon akışlarını görünür ve tamamlanabilir biçimde sunduğunu yeniden denetlemek ve eksikleri tamamlamak.
-- [ ] Yönetici ana ekranında yalnız sayaç göstermek yerine kampanya oluşturma, görev yayınlama, ödül yönetimi, inceleme ve risk işlemlerine doğrudan erişilen bir operasyon çalışma alanı sunmak.
-- [ ] Kampanya oluşturma, aktif/pasif durum yönetimi ve kampanyaya bağlı görev oluşturma akışını yönetici arayüzünde tamamlamak.
-- [ ] Ödül taleplerini yönetici tarafından inceleme, onaylama veya reddetme; teslimat durumunu güncelleme ve audit kaydı oluşturma akışını eklemek.
-- [ ] Risk merkezinde kullanıcı risk durumunu gerekçeyle güncelleme, kısıtlama/askıya alma kararlarını audit kaydına bağlama ve güvenli kullanıcı geri bildirimini eklemek.
-- [ ] Yorum havuzlarına içerik, ağırlık ve kullanım bağlamı ekleme akışını yönetici arayüzünde tamamlamak.
+- [x] Yönetici merkezindeki kampanya/görev, ödül, doğrulama, risk, yorum ve audit sekmelerinin sayaç yerine gerçek uygulama içi operasyon akışlarını görünür ve tamamlanabilir biçimde sunduğunu yeniden denetlemek ve eksikleri tamamlamak.
+- [x] Yönetici ana ekranında yalnız sayaç göstermek yerine kampanya oluşturma, görev yayınlama, ödül yönetimi, inceleme ve risk işlemlerine doğrudan erişilen bir operasyon çalışma alanı sunmak.
+- [x] Kampanya oluşturma, aktif/pasif durum yönetimi ve kampanyaya bağlı görev oluşturma akışını yönetici arayüzünde tamamlamak.
+- [x] Ödül taleplerini yönetici tarafından inceleme, onaylama veya reddetme; teslimat durumunu güncelleme ve audit kaydı oluşturma akışını eklemek.
+- [x] Risk merkezinde kullanıcı risk durumunu gerekçeyle güncelleme, kısıtlama/askıya alma kararlarını audit kaydına bağlama ve güvenli kullanıcı geri bildirimini eklemek.
+- [x] Yorum havuzlarına içerik, ağırlık ve kullanım bağlamı ekleme akışını yönetici arayüzünde tamamlamak.
+- [x] Kampanya oluşturma, durum değiştirme ve kampanyaya bağlı görev oluşturma akışlarını hedefli testlerle başarı durumlarıyla doğrulamak.
+- [x] Ödül talebi durum geçişlerinde onay, ret/iade, teslimat ve audit etkilerini izole fixture kullanarak test etmek.
+- [x] Risk durumu güncellemesinin trust score, risk olayı, audit kaydı ve kullanıcı bildirimi etkilerini izole fixture kullanarak test etmek.
+- [x] Yorum havuzu oluşturma ile içerik/ağırlık ekleme ve okuma akışını izole fixture kullanarak test etmek.
+- [x] Genel bakış operasyon çalışma alanına risk merkezi için doğrudan hızlı erişim eklemek ve canlıda doğrulamak.
+- [ ] Ödül talebinin onay → hazırlık → kargo → teslim durum geçişlerini, audit ve bildirim etkileriyle izole fixture kullanarak doğrulamak.
+- [ ] Risk durumu güncellemesinin kullanıcı bildirimi kaydı oluşturduğunu izole fixture ile doğrulamak.
+- [ ] Risk hızlı erişim kartını içeren genel bakış görünümünü canlı yönetici tarayıcısında doğrulamak.

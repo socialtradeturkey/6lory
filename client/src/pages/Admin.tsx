@@ -394,6 +394,18 @@ export default function Admin() {
                       </p>
                     </button>
                   )}
+                  {can("risk.read") && (
+                    <button
+                      onClick={() => setTab("risk")}
+                      className="rounded-2xl border border-border/80 p-4 text-left hover:bg-muted"
+                    >
+                      <ShieldAlert className="size-4 text-violet-700 dark:text-violet-300" />
+                      <p className="mt-3 text-sm font-bold">Risk aksiyonu</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Gerekçeli hesap durumu kararlarını kayda alın.
+                      </p>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

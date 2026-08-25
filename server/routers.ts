@@ -1068,6 +1068,14 @@ export const appRouter = router({
 
           const shouldRefund = needsRedemptionRefund(currentStatus, nextStatus);
           if (shouldRefund) {
+            const [reward] = await tx
+              .select()
+              .from(rewards)
+              .where(eq(rewards.id, redemption.rewardId))
+              .limit(1);
+            if (!reward) {
+              throw new TRPCError({ code: "NOT_FOUND", message: "Ödül bulunamadı." });
+            }
             const [balance] = await tx
               .select()
               .from(pointBalances)
@@ -1095,6 +1103,10 @@ export const appRouter = router({
                 reason: "Reddedilen veya iptal edilen ödül talebi iadesi",
                 createdBy: ctx.user.id,
               });
+              await tx
+                .update(rewards)
+                .set({ stock: reward.stock + 1 })
+                .where(eq(rewards.id, reward.id));
             }
           }
 
