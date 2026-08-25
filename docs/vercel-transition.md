@@ -51,7 +51,7 @@ GitHub deposuna `.env`, veritabanı bağlantı metni, JWT, OAuth secret, gerçek
 
 ## 24 Ağustos 2026 bağlantı doğrulaması
 
-Vercel projesinin GitHub bağlantısı doğrulandı: `socialtradeturkey/6lory` deposunun `main` dalındaki `d9a0df9` commit’i, hedefi **production** olan ve `READY` durumundaki son dağıtımı tetiklemiştir. Bu nedenle kaynak kod yedeği ve Vercel’in Git tabanlı otomatik dağıtım bağlantısı günceldir.
+Vercel projesinin GitHub bağlantısı doğrulanmıştır. Ancak GitHub CLI yetkilendirmesi yerel ortamda tamamlanamadığı için en son OAuth/yönetici dönüş düzeltmeleri kaynak depoya henüz gönderilememiş olabilir. Bu süre boyunca doğrulanan kaynak sürümü doğrudan Vercel production dağıtımı ve yönetilen uygulama checkpoint’i üzerinden korunur; GitHub erişimi yenilendiğinde `main` dalı aynı sürümle eşitlenmelidir.
 
 İlk dağıtımda kök alan adı HTML uygulama kabuğu yerine paketlenmiş sunucu JavaScript’i döndürüyor, `/api/oauth/callback` ise `404 NOT_FOUND` ile yanıtlanıyordu. Bu hata, Vite istemci çıktısı ile Express girişinin aynı dağıtım çıktısında yanlış algılanmasından kaynaklandı. Düzeltmede port dinlemeyen bir Express Function girişi, `/api/**` yönlendirmesi, Vite çıktı dizini ve SPA fallback’i tanımlandı. Function’ın ESM yerel modül çözümlemesi de `.js` yollarıyla Vercel çalışma zamanına uygun hâle getirildi.
 
@@ -78,6 +78,12 @@ Vercel, açık kullanıcı deneyimini, rotaları ve API Function yapısını sun
 Vercel ziyaretçisinin giriş isteği önce `https://6loryapp-pernhdey.manus.space/?login=1` adresine taşınır. Yönetilen uygulama bu kısa ömürlü köprü işaretini tarayıcı geçmişinden temizler, tek kullanımlık nonce üreten standart OAuth başlangıcını çalıştırır ve sonuçta kullanıcıyı uygulamaya döndürür. Böylece önceki 404 hedefi ile izinli olmayan Vercel callback’i kullanılmaz.
 
 6lory, ayrı bir e-posta/şifre kayıt formu kullanmaz. Kullanıcı, OAuth sağlayıcısındaki **Başka bir hesap kullan** seçeneğiyle Google/Manus hesabını seçer; başarılı ilk girişte güvenli sunucu tarafı kullanıcı kaydı oluşturulur. Bu yaklaşımda parola, parola sıfırlama veya doğrulanmamış istemci tarafı kayıt akışı bulunmaz.
+
+### Yönetici girişinin kesin davranışı
+
+`https://6lory.vercel.app/admin` adresindeki **Güvenli giriş yap** eylemi, Vercel üzerinde bağımsız bir oturum oluşturmaya çalışmaz. Güvenli köprü, yalnızca host-bound bir kısa ömürlü dönüş işaretiyle izinli yönetilen OAuth alanına geçer. Callback başarıyla tamamlandığında sunucu yalnızca sabit iç hedef olan `/admin` yolunu kabul eder; harici URL’ler, farklı uygulama yolları ve açık yönlendirme denemeleri ana sayfaya düşer.
+
+Bu nedenle başarılı Vercel yönetici girişi şu adreste tamamlanır: `https://6loryapp-pernhdey.manus.space/admin`. Bu beklenen davranıştır: güvenli oturum çerezi origin’ler arasında paylaşılmaz. `socialtradeturkey@gmail.com` kimliği yönetici rolündeyse burada **6LORY CONTROL** operasyon merkezi açılır; görev ve kampanya işlemleri bu yönetilen yönetici merkezi üzerinden yürütülür.
 
 ## Dağıtım öncesi kontrol
 

@@ -10,6 +10,15 @@ export const NOT_ADMIN_ERR_MSG = 'You do not have required permission (10002)';
 // victim's browser.
 export const OAUTH_STATE_COOKIE = "__Host-oauth_state";
 
+// A short-lived, host-only post-login destination. The server deliberately
+// accepts only the single privileged in-app route below; this cookie never
+// carries an arbitrary URL and cannot become an open redirect.
+export const OAUTH_RETURN_TO_COOKIE = "__Host-oauth_return_to";
+
+export function getSafeOAuthReturnPath(returnTo: string | undefined): "/" | "/admin" {
+  return returnTo === "/admin" ? "/admin" : "/";
+}
+
 // `state` carries the callback redirect URI (used at token exchange) plus the
 // CSRF nonce. Defined here so the client encoder and server decoder never drift.
 export type OAuthState = { redirectUri: string; nonce?: string };

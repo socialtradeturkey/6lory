@@ -1,8 +1,10 @@
 import {
   COOKIE_NAME,
   ONE_YEAR_MS,
+  OAUTH_RETURN_TO_COOKIE,
   OAUTH_STATE_COOKIE,
   decodeOAuthState,
+  getSafeOAuthReturnPath,
 } from "../../shared/const.js";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
@@ -32,6 +34,9 @@ export function registerOAuthRoutes(app: Express) {
     const expectedNonce = parseCookieHeader(req.headers.cookie ?? "")[
       OAUTH_STATE_COOKIE
     ];
+    const postLoginPath = getSafeOAuthReturnPath(
+      parseCookieHeader(req.headers.cookie ?? "")[OAUTH_RETURN_TO_COOKIE],
+    );
     if (!nonce || nonce !== expectedNonce) {
       const callbackOrigin = `${req.protocol}://${req.get("host")}`;
       let stateOrigin = "invalid";
@@ -50,10 +55,20 @@ export function registerOAuthRoutes(app: Express) {
         secure: true,
         sameSite: "lax",
       });
+      res.clearCookie(OAUTH_RETURN_TO_COOKIE, {
+        path: "/",
+        secure: true,
+        sameSite: "lax",
+      });
       res.redirect(302, "/admin?auth=retry");
       return;
     }
     res.clearCookie(OAUTH_STATE_COOKIE, {
+      path: "/",
+      secure: true,
+      sameSite: "lax",
+    });
+    res.clearCookie(OAUTH_RETURN_TO_COOKIE, {
       path: "/",
       secure: true,
       sameSite: "lax",
@@ -87,7 +102,7 @@ export function registerOAuthRoutes(app: Express) {
         maxAge: ONE_YEAR_MS,
       });
 
-      res.redirect(302, "/");
+      res.redirect(302, postLoginPath);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });

@@ -1,5 +1,13 @@
-import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
-import { getManagedLoginStartUrl, resolveLoginOrigin } from "@/lib/loginOrigin";
+import {
+  OAUTH_RETURN_TO_COOKIE,
+  OAUTH_STATE_COOKIE,
+  encodeOAuthState,
+} from "@shared/const";
+import {
+  getManagedLoginStartUrl,
+  normalizePostLoginPath,
+  resolveLoginOrigin,
+} from "@/lib/loginOrigin";
 
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
@@ -35,6 +43,17 @@ export const startLogin = () => {
   }
 
   const loginOrigin = resolveLoginOrigin(window.location.origin);
+
+  // The callback is intentionally fixed to a safe application route. Preserve
+  // only the admin entry target in a host-only cookie, so the server can
+  // complete the return even when sessionStorage is unavailable or cleared by
+  // the external OAuth navigation.
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const postLoginPath = normalizePostLoginPath(currentPath);
+  document.cookie = `${OAUTH_RETURN_TO_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+  if (postLoginPath === "/admin") {
+    document.cookie = `${OAUTH_RETURN_TO_COOKIE}=/admin; Path=/; Max-Age=600; SameSite=Lax; Secure`;
+  }
 
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
