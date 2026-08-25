@@ -117,5 +117,5 @@
 
 - [x] Google girişinin canlıda çalışmama nedenini Vercel→yönetilen OAuth başlangıcı, callback/state, cookie ve oturum sonrası yönlendirme katmanlarında yeniden teşhis etmek.
 - [x] Tespit edilen Google giriş arızasını güvenlik kurallarını koruyarak düzeltmek ve başarısızlık durumunu kullanıcıya görünür kılmak.
-- [ ] Vercel ve yönetilen alanlarda Google girişini hesap seçici → callback → oturum → hedef rota sonuna kadar tekrar doğrulamak.
-- [ ] Google giriş düzeltmesini managed checkpoint ve Vercel production dağıtımıyla yayımlamak.
+- [x] Vercel ve yönetilen alanlarda Google girişini hesap seçici → callback → oturum → hedef rota sonuna kadar tekrar doğrulamak.
+- [x] Google giriş düzeltmesini managed checkpoint ve Vercel production dağıtımıyla yayımlamak.
