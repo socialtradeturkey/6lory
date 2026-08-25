@@ -97,6 +97,6 @@
 - [x] Risk durumu güncellemesinin trust score, risk olayı, audit kaydı ve kullanıcı bildirimi etkilerini izole fixture kullanarak test etmek.
 - [x] Yorum havuzu oluşturma ile içerik/ağırlık ekleme ve okuma akışını izole fixture kullanarak test etmek.
 - [x] Genel bakış operasyon çalışma alanına risk merkezi için doğrudan hızlı erişim eklemek ve canlıda doğrulamak.
-- [ ] Ödül talebinin onay → hazırlık → kargo → teslim durum geçişlerini, audit ve bildirim etkileriyle izole fixture kullanarak doğrulamak.
-- [ ] Risk durumu güncellemesinin kullanıcı bildirimi kaydı oluşturduğunu izole fixture ile doğrulamak.
-- [ ] Risk hızlı erişim kartını içeren genel bakış görünümünü canlı yönetici tarayıcısında doğrulamak.
+- [x] Ödül talebinin onay → hazırlık → kargo → teslim durum geçişlerini, audit ve bildirim etkileriyle izole fixture kullanarak doğrulamak.
+- [x] Risk durumu güncellemesinin kullanıcı bildirimi kaydı oluşturduğunu izole fixture ile doğrulamak.
+- [x] Risk hızlı erişim kartını içeren genel bakış görünümünü canlı yönetici tarayıcısında doğrulamak.
