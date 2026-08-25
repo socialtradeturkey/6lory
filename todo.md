@@ -126,6 +126,6 @@
 - [x] Yönetici merkezinin görev, kampanya, ödül, doğrulama, risk, yorum ve audit işlevlerini görünüm ve yetki bazında yeniden denetlemek.
 - [x] API/DB bütünlüğünü test, fixture temizliği, idempotency ve immutable ledger kontrolleriyle yeniden doğrulamak.
 - [x] Mobil/tablet/desktop görünümleri, PWA service worker ve yükleme/boş/hata durumlarını görsel olarak denetlemek.
-- [ ] Denetim sonucundaki düzeltmeleri test ederek managed checkpoint ve Vercel production’a yayımlamak.
+- [x] Denetim sonucundaki düzeltmeleri test ederek managed checkpoint ve Vercel production’a yayımlamak.
 - [x] Canlı denetimde görülen arşivlenmiş görev ayrıntısı erişimini düzeltmek: kullanıcıya arşiv durumunu gösterip başlatmayı engellemek veya güvenli biçimde bulunamadı ekranına yönlendirmek.
 - [x] Express clearCookie deprecation uyarısını giderip güvenli oturum çıkışını test etmek.
