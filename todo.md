@@ -130,10 +130,10 @@
 - [x] Canlı denetimde görülen arşivlenmiş görev ayrıntısı erişimini düzeltmek: kullanıcıya arşiv durumunu gösterip başlatmayı engellemek veya güvenli biçimde bulunamadı ekranına yönlendirmek.
 - [x] Express clearCookie deprecation uyarısını giderip güvenli oturum çıkışını test etmek.
 
-- [ ] Kullanıcının gerçek tarayıcı koşulunda Google giriş arızasını yeniden üretmek; Vercel, managed OAuth, callback, cookie/state ve oturum sonrası sonucu ayrı ayrı kaydetmek.
-- [ ] Manus OAuth ile doğrudan Google OAuth arasındaki sağlayıcı/deployment sınırını kesinleştirmek ve güvenli mimari kararını belgelemek.
-- [ ] Gerekliyse Google OAuth istemcisi, callback URI’leri, secret/env değerleri ve güvenli oturum entegrasyonunu uygulamak; gerekmiyorsa mevcut akıştaki gerçek blokajı düzeltmek.
-- [ ] Google girişini yeni kullanıcı oluşturma, mevcut kullanıcı oturumu, callback, cookie ve hedef rota ile canlıda doğrulamak; başarısızlığı bitmiş kabul etmemek.
+- [x] Kullanıcının gerçek tarayıcı koşulunda Google giriş arızasını yeniden üretmek; Vercel, managed OAuth, callback, cookie/state ve oturum sonrası sonucu ayrı ayrı kaydetmek.
+- [x] Manus OAuth ile doğrudan Google OAuth arasındaki sağlayıcı/deployment sınırını kesinleştirmek ve güvenli mimari kararını belgelemek.
+- [x] Gerekliyse Google OAuth istemcisi, callback URI’leri, secret/env değerleri ve güvenli oturum entegrasyonunu uygulamak; gerekmiyorsa mevcut akıştaki gerçek blokajı düzeltmek.
+- [x] Google girişini yeni kullanıcı oluşturma, mevcut kullanıcı oturumu, callback, cookie ve hedef rota ile canlıda doğrulamak; başarısızlığı bitmiş kabul etmemek.
 - [ ] Giriş düzeltmesini test edip managed ve Vercel production’a yayımlamak; kullanıcı doğrulaması tamamlanmadan kapanış teslimi yapmamak.
 - [x] GitHub deposu ile yerel doğrulanmış kaynak arasındaki farkı ve kimlik doğrulama durumunu güvenli biçimde incelemek.
 - [x] Secret, build ve geçici dosyaları dışarıda bırakarak doğrulanmış kaynak değişikliklerini GitHub ana dalına senkronize etmek.
@@ -141,8 +141,8 @@
 - [x] Manus GitHub yazma connector’ı bulunmadığı için GitHub’a push yapılamadığını belgelemek ve kullanıcıya güvenli seçenekleri sunmak: GitHub web oturumu üzerinden kullanıcı commit’i veya açıkça sağlanan fine-grained token ile tek seferlik push.
 - [x] Kullanıcı isteğiyle Vercel deploy’ını kullanıcıya bırakıp doğrulanmış kaynak değişikliklerini yalnız GitHub `main` dalına senkronize etmek ve remote commit’i doğrulamak.
 
-- [ ] Google/Manus girişindeki gerçek blokajı yeniden üretip callback, state/nonce, cookie ve oturum sonucunu kaydetmek.
-- [ ] Yeni kayıt ve giriş formu için güvenli parola saklama, rate limit, CSRF/oturum, hata mesajı ve hesap kilitleme kurallarını belirlemek.
-- [ ] Yeni kullanıcı kayıt, mevcut kullanıcı giriş, logout ve oturum yenileme backend akışını uygulamak; OAuth ile çakışan hesap birleştirmesini güvenli yönetmek.
-- [ ] Giriş ekranında Google/Manus ve yeni kayıt-giriş seçeneklerini erişilebilir loading/error durumlarıyla sunmak.
+- [x] Google/Manus girişindeki gerçek blokajı yeniden üretip callback, state/nonce, cookie ve oturum sonucunu kaydetmek.
+- [x] Yeni kayıt ve giriş formu için güvenli parola saklama, rate limit, CSRF/oturum, hata mesajı ve hesap kilitleme kurallarını belirlemek.
+- [x] Yeni kullanıcı kayıt, mevcut kullanıcı giriş, logout ve oturum yenileme backend akışını uygulamak; OAuth ile çakışan hesap birleştirmesini güvenli yönetmek.
+- [x] Giriş ekranında Google/Manus ve yeni kayıt-giriş seçeneklerini erişilebilir loading/error durumlarıyla sunmak.
 - [ ] Gerçek auth akışlarını test edip GitHub main’e senkronize etmek; canlı doğrulama tamamlanmadan işi bitmiş saymamak.
