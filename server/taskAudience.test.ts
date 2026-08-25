@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { isEligibleAudienceUser, planAudienceAssignments } from "./taskAudience";
 
 describe("task audience assignment", () => {
-  it("excludes admins and restricted users from the active audience", () => {
+  it("includes active registered users and excludes only restricted users", () => {
     expect(isEligibleAudienceUser({ id: 1, role: "user", trustStatus: "normal" })).toBe(true);
     expect(isEligibleAudienceUser({ id: 2, role: "user", trustStatus: "watch" })).toBe(true);
-    expect(isEligibleAudienceUser({ id: 3, role: "admin", trustStatus: "normal" })).toBe(false);
+    expect(isEligibleAudienceUser({ id: 3, role: "admin", trustStatus: "normal" })).toBe(true);
     expect(isEligibleAudienceUser({ id: 4, role: "user", trustStatus: "restricted" })).toBe(false);
     expect(isEligibleAudienceUser({ id: 5, role: "user", trustStatus: "suspended" })).toBe(false);
   });

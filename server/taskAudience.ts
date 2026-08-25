@@ -5,7 +5,7 @@ export type AudienceUser = {
 };
 
 export function isEligibleAudienceUser(user: AudienceUser) {
-  return user.role !== "admin" && !["restricted", "suspended"].includes(user.trustStatus ?? "normal");
+  return !["restricted", "suspended"].includes(user.trustStatus ?? "normal");
 }
 
 export function planAudienceAssignments(input: {
