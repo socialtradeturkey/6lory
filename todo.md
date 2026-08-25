@@ -100,3 +100,5 @@
 - [x] Ödül talebinin onay → hazırlık → kargo → teslim durum geçişlerini, audit ve bildirim etkileriyle izole fixture kullanarak doğrulamak.
 - [x] Risk durumu güncellemesinin kullanıcı bildirimi kaydı oluşturduğunu izole fixture ile doğrulamak.
 - [x] Risk hızlı erişim kartını içeren genel bakış görünümünü canlı yönetici tarayıcısında doğrulamak.
+- [ ] Vercel ve yönetilen alanlardan başlayan Google/Manus OAuth girişinin callback, oturum ve hedef rota dönüşünü canlıda yeniden üretip hata nedenini düzeltmek.
+- [ ] Giriş, kullanıcı görev akışı, doğrulama, ödül talebi, bildirim merkezi ve yönetici operasyon merkezi kritik yollarını canlıda yeniden test etmek.
