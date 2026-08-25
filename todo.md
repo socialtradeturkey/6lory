@@ -145,4 +145,4 @@
 - [x] Yeni kayıt ve giriş formu için güvenli parola saklama, rate limit, CSRF/oturum, hata mesajı ve hesap kilitleme kurallarını belirlemek.
 - [x] Yeni kullanıcı kayıt, mevcut kullanıcı giriş, logout ve oturum yenileme backend akışını uygulamak; OAuth ile çakışan hesap birleştirmesini güvenli yönetmek.
 - [x] Giriş ekranında Google/Manus ve yeni kayıt-giriş seçeneklerini erişilebilir loading/error durumlarıyla sunmak.
-- [ ] Gerçek auth akışlarını test edip GitHub main’e senkronize etmek; canlı doğrulama tamamlanmadan işi bitmiş saymamak.
+- [x] Gerçek auth akışlarını test edip GitHub main’e senkronize etmek; canlı doğrulama tamamlanmadan işi bitmiş saymamak.
