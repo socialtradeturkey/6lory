@@ -190,18 +190,6 @@ export default function Admin() {
   const setTaskStatus = trpc.admin.setTaskStatus.useMutation({
     onSuccess: invalidateOperations,
   });
-  const [assignmentTargetDrafts, setAssignmentTargetDrafts] = useState<Record<number, string>>({});
-  const [selectedAudienceTaskId, setSelectedAudienceTaskId] = useState<number | null>(null);
-  const taskAudience = trpc.admin.taskAudiencePreview.useQuery(
-    { taskId: selectedAudienceTaskId ?? 0 },
-    { enabled: can("tasks.read") && selectedAudienceTaskId !== null },
-  );
-  const assignTaskToActiveUsers = trpc.admin.assignTaskToActiveUsers.useMutation({
-    onSuccess: () => {
-      invalidateOperations();
-      taskAudience.refetch();
-    },
-  });
   const setRewardStatus = trpc.admin.setRewardStatus.useMutation({
     onSuccess: invalidateOperations,
   });
@@ -1003,64 +991,6 @@ export default function Admin() {
                       <p className="mt-3 text-sm font-semibold text-teal-700 dark:text-teal-300">
                         +{task.rewardPoints} puan
                       </p>
-                      {can("tasks.write") && (
-                        <div className="mt-4 rounded-2xl bg-muted/60 p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                              <p className="text-xs font-bold">Görev kitlesi</p>
-                              <p className="mt-1 text-[11px] text-muted-foreground">
-                                {task.audienceMode === "assigned" ? "Yalnızca atanan aktif kullanıcılar" : "Tüm uygun aktif kullanıcılar"}
-                                {task.assignmentTargetCount ? ` · hedef ${task.assignmentTargetCount}` : ""}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="rounded-lg text-xs"
-                              onClick={() => setSelectedAudienceTaskId(task.id)}
-                            >
-                              Kapasiteyi gör
-                            </Button>
-                          </div>
-                          {selectedAudienceTaskId === task.id && (
-                            <div className="mt-3 space-y-3">
-                              <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-                                <div className="rounded-xl bg-background p-2"><strong className="block text-base">{taskAudience.data?.eligibleUserCount ?? "—"}</strong>uygun aktif</div>
-                                <div className="rounded-xl bg-background p-2"><strong className="block text-base">{taskAudience.data?.assignedUserCount ?? "—"}</strong>atanmış</div>
-                                <div className="rounded-xl bg-background p-2"><strong className="block text-base">{taskAudience.data?.availableUserCount ?? "—"}</strong>boşta</div>
-                              </div>
-                              <div className="flex flex-col gap-2 sm:flex-row">
-                                <Input
-                                  aria-label={`${task.title} hedef kullanıcı sayısı`}
-                                  type="number"
-                                  min={1}
-                                  max={task.totalQuota}
-                                  value={assignmentTargetDrafts[task.id] ?? String(task.assignmentTargetCount ?? "")}
-                                  onChange={event => setAssignmentTargetDrafts(current => ({ ...current, [task.id]: event.target.value }))}
-                                  placeholder="Hedef kullanıcı sayısı"
-                                  className="h-9 rounded-lg bg-background"
-                                />
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="h-9 rounded-lg whitespace-nowrap"
-                                  disabled={assignTaskToActiveUsers.isPending}
-                                  onClick={() => {
-                                    const raw = assignmentTargetDrafts[task.id]?.trim();
-                                    assignTaskToActiveUsers.mutate({ taskId: task.id, targetCount: raw ? Number(raw) : undefined });
-                                  }}
-                                >
-                                  {assignTaskToActiveUsers.isPending ? "Atanıyor…" : "Aktif kullanıcılara ata"}
-                                </Button>
-                              </div>
-                              {taskAudience.error && <p className="text-xs text-destructive">{taskAudience.error.message}</p>}
-                              {assignTaskToActiveUsers.error && <p className="text-xs text-destructive">{assignTaskToActiveUsers.error.message}</p>}
-                              {assignTaskToActiveUsers.data && <p className="text-xs font-semibold text-teal-700 dark:text-teal-300">{assignTaskToActiveUsers.data.insertedCount} yeni atama yapıldı; hedef {assignTaskToActiveUsers.data.targetCount} kullanıcı.</p>}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   ))
                 )}

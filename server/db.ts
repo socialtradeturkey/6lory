@@ -30,25 +30,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const existingByEmail = user.email
-      ? (await db.select().from(users).where(eq(users.email, user.email)).limit(1))[0]
-      : undefined;
-
-    // OAuth providers can return a stable provider openId that differs from a
-    // pre-existing local credential account. Link only on the provider-asserted
-    // email and preserve the existing role; never let a normal duplicate user
-    // shadow an already-authorized admin account.
-    if (existingByEmail && existingByEmail.openId !== user.openId) {
-      const linkedSet: Record<string, unknown> = {
-        openId: user.openId,
-        lastSignedIn: user.lastSignedIn ?? new Date(),
-      };
-      if (user.name !== undefined) linkedSet.name = user.name ?? null;
-      if (user.loginMethod !== undefined) linkedSet.loginMethod = user.loginMethod ?? null;
-      await db.update(users).set(linkedSet).where(eq(users.id, existingByEmail.id));
-      return;
-    }
-
     const values: InsertUser = {
       openId: user.openId,
     };

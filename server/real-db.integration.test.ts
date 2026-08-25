@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import type { TrpcContext } from "./_core/context";
-import { getDb, upsertUser } from "./db";
+import { getDb } from "./db";
 import {
   auditLogs,
   campaigns,
@@ -542,40 +542,5 @@ describe.runIf(runRealDbIntegration)(
         ]),
       );
     }, 60_000);
-
-    it("aynı e-posta ile farklı OAuth openId geldiğinde mevcut admin rolünü korur", async () => {
-      const db = await getDb();
-      if (!db) throw new Error("DATABASE_URL gerekli");
-
-      const inserted = await db.insert(users).values({
-        openId: `${runId}_local_open_id`,
-        name: "OAuth Link Admin",
-        email: `${runId}@example.invalid`,
-        loginMethod: "email",
-        role: "admin",
-      });
-      testUserId = Number(inserted[0].insertId);
-
-      await upsertUser({
-        openId: `${runId}_google_open_id`,
-        name: "OAuth Link Admin",
-        email: `${runId}@example.invalid`,
-        loginMethod: "google",
-        lastSignedIn: new Date(),
-      });
-
-      const matches = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, `${runId}@example.invalid`));
-      expect(matches).toHaveLength(1);
-      expect(matches[0]).toEqual(
-        expect.objectContaining({
-          openId: `${runId}_google_open_id`,
-          role: "admin",
-          loginMethod: "google",
-        }),
-      );
-    });
   }
 );

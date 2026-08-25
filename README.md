@@ -46,15 +46,13 @@ Tarayıcı sinyalleri tek başına otomatik puan onayı vermez. Resmî platform 
 | Grup | Örnekler | Kural |
 | --- | --- | --- |
 | Veri ve oturum | `DATABASE_URL`, `JWT_SECRET` | Sadece sunucuda saklanır; kaynak kontrolüne eklenmez. |
-| Kimlik | `JWT_SECRET` | Manuel kullanıcı adı/e-posta ve parola oturumunu imzalamak için yalnız sunucuda kullanılır. |
+| Kimlik | `OAUTH_SERVER_URL`, `VITE_OAUTH_PORTAL_URL`, `VITE_APP_ID` | Domain değiştiğinde callback URL ayarı ayrıca güncellenir. |
 | İstemci görünürlüğü | `VITE_*` | Bu önekli değişkenler build çıktısına dahil olabileceği için gizli veri içermez. |
 
 ## Doğrulama sınırlamaları
 
 Platform API’si, izin kapsamı veya güvenilir adapter bulunmayan sosyal görevler **başarılı** gösterilmez. Sistem bu hallerde `UNAVAILABLE` döner ya da görev politikası izin veriyorsa manuel inceleme kuyruğuna yönlendirir. Görev, doğrulama, puan ve ödül gelişmeleri kullanıcı hesabına ait kalıcı **uygulama içi bildirim merkezi** üzerinden iletilir; okunma ve temizleme işlemleri kaynak sahipliğiyle sunucuda sınırlandırılır.
 
-## Kimlik doğrulama
+## Geçici Vercel kullanımı
 
-6lory’de kullanıcı girişi yalnızca **kullanıcı adı veya e-posta + parola** ile yapılır. Yeni kayıt benzersiz kullanıcı adı, ad soyad, e-posta ve güçlü parola ister; parola scrypt ve salt ile hashlenir. Başarılı giriş host-only, HttpOnly ve güvenli session cookie oluşturur. Hesap kilitleme, başarısız deneme sınırı, duplicate e-posta/kullanıcı adı kontrolü ve role göre `/admin` yönlendirmesi sunucu tarafında korunur.
-
-Google/Manus OAuth, OAuth callback route’u ve OAuth bridge kodu kaldırılmıştır. `/api/oauth/callback` artık uygulama API’sinin bir parçası değildir. Vercel ve managed alan aynı manuel auth formunu kullanır; kullanıcı oturumu yalnız giriş yapılan origin’e ait güvenli cookie ile devam eder. Vercel’e aktarırken gizli anahtarları, kullanıcı verilerini ve yerel günlükleri GitHub’a göndermeyin.
+Geçici Vercel dağıtımı için teknik geçiş planı, gerekli ortam değişkenleri, OAuth yönlendirme notları ve geri dönüş prosedürü [`docs/vercel-transition.md`](docs/vercel-transition.md) dosyasındadır. Vercel’e aktarırken gizli anahtarları, kullanıcı verilerini ve yerel günlükleri GitHub’a göndermeyin.

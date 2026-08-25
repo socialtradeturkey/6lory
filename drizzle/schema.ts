@@ -28,22 +28,6 @@ export const users = mysqlTable("users", {
   lastSignedIn: utcTimestamp().defaultNow().notNull(),
 });
 
-export const localAuthCredentials = mysqlTable(
-  "local_auth_credentials",
-  {
-    id: int("id").autoincrement().primaryKey(),
-    userId: int("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
-    email: varchar("email", { length: 320 }).notNull().unique(),
-    passwordHash: text("password_hash").notNull(),
-    passwordSalt: varchar("password_salt", { length: 128 }).notNull(),
-    failedAttempts: int("failed_attempts").default(0).notNull(),
-    lockedUntil: timestamp("locked_until"),
-    createdAt: utcTimestamp().defaultNow().notNull(),
-    updatedAt: utcTimestamp().defaultNow().onUpdateNow().notNull(),
-  },
-  table => [index("local_auth_email_idx").on(table.email)],
-);
-
 export const userProfiles = mysqlTable(
   "user_profiles",
   {
@@ -148,8 +132,6 @@ export const tasks = mysqlTable(
     totalQuota: int("total_quota").notNull(),
     claimedQuota: int("claimed_quota").default(0).notNull(),
     perUserLimit: int("per_user_limit").default(1).notNull(),
-    audienceMode: mysqlEnum("audience_mode", ["open", "assigned"]).default("open").notNull(),
-    assignmentTargetCount: int("assignment_target_count"),
     status: mysqlEnum("status", ["draft", "scheduled", "active", "paused", "ended", "archived"]).default("draft").notNull(),
     priority: int("priority").default(0).notNull(),
     verificationMethod: mysqlEnum("verification_method", ["web_signals", "secret_code", "manual_review", "platform_api", "platform_api_manual_fallback"]).notNull(),
