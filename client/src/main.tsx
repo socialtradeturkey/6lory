@@ -7,13 +7,20 @@ import superjson from "superjson";
 import App from "./App";
 import "./index.css";
 import { startLogin } from "./const";
-import { consumeLoginBridgeUrl } from "./lib/loginBridge";
+import { consumeLoginBridgeUrl, POST_LOGIN_PATH_KEY } from "./lib/loginBridge";
 
 const bridgeTarget = consumeLoginBridgeUrl(window.location.href);
 if (bridgeTarget) {
   // This runs before React mounts, ensuring a Vercel bridge request cannot
   // remain on the landing page because of render or hydration timing.
-  window.history.replaceState(null, "", bridgeTarget);
+  try {
+    if (bridgeTarget.postLoginPath) {
+      sessionStorage.setItem(POST_LOGIN_PATH_KEY, bridgeTarget.postLoginPath);
+    }
+  } catch {
+    // Session storage may be unavailable; OAuth still proceeds safely.
+  }
+  window.history.replaceState(null, "", bridgeTarget.cleanPath);
   startLogin();
 }
 

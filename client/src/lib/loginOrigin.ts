@@ -1,5 +1,12 @@
 export const MANAGED_AUTH_ORIGIN = "https://6loryapp-pernhdey.manus.space";
 
+export function normalizePostLoginPath(value: string | null | undefined): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+
+  const url = new URL(value, "https://6lory.invalid");
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export function resolveLoginOrigin(currentOrigin: string): string {
   const current = new URL(currentOrigin);
 
@@ -13,9 +20,18 @@ export function resolveLoginOrigin(currentOrigin: string): string {
   return current.origin;
 }
 
-export function getManagedLoginStartUrl(currentOrigin: string): string | null {
+export function getManagedLoginStartUrl(
+  currentOrigin: string,
+  postLoginPath?: string,
+): string | null {
   const managedOrigin = resolveLoginOrigin(currentOrigin);
   if (managedOrigin === new URL(currentOrigin).origin) return null;
 
-  return `${managedOrigin}/?login=1`;
+  const url = new URL(managedOrigin);
+  url.searchParams.set("login", "1");
+  const safePostLoginPath = normalizePostLoginPath(postLoginPath);
+  if (safePostLoginPath && safePostLoginPath !== "/") {
+    url.searchParams.set("next", safePostLoginPath);
+  }
+  return url.toString();
 }

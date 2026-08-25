@@ -22,7 +22,10 @@ export const startLogin = () => {
   if (loginNavigationStarted) return;
   loginNavigationStarted = true;
 
-  const managedLoginStartUrl = getManagedLoginStartUrl(window.location.origin);
+  const managedLoginStartUrl = getManagedLoginStartUrl(
+    window.location.origin,
+    `${window.location.pathname}${window.location.search}${window.location.hash}`,
+  );
   if (managedLoginStartUrl) {
     // Do not send an unallowlisted Vercel callback URI to Manus OAuth. The
     // provider rejects it before authentication, and a cross-origin session

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getManagedLoginStartUrl,
   MANAGED_AUTH_ORIGIN,
+  normalizePostLoginPath,
   resolveLoginOrigin,
 } from "./loginOrigin";
 
@@ -26,6 +27,17 @@ describe("resolveLoginOrigin", () => {
     expect(getManagedLoginStartUrl("https://6lory.vercel.app")).toBe(
       `${MANAGED_AUTH_ORIGIN}/?login=1`,
     );
+  });
+
+  it("preserves a safe Vercel admin destination through managed login", () => {
+    expect(getManagedLoginStartUrl("https://6lory.vercel.app", "/admin")).toBe(
+      `${MANAGED_AUTH_ORIGIN}/?login=1&next=%2Fadmin`,
+    );
+  });
+
+  it("rejects external post-login destinations", () => {
+    expect(normalizePostLoginPath("//untrusted.example")).toBeNull();
+    expect(normalizePostLoginPath("https://untrusted.example")).toBeNull();
   });
 
   it("does not redirect an already managed visitor before OAuth starts", () => {

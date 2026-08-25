@@ -85,3 +85,4 @@
 - [x] Vercel `?login=1` akışını canlıda OAuth callback dönüşü, oturum oluşturma ve yönetilen uygulamaya yönlenme sonuna kadar kanıtlamak.
 - [x] `?login=1` otomatik OAuth başlangıcı için regresyon testi veya görünür çalıştırılabilir kanıt eklemek.
 - [x] Ana sayfa giriş alanında, ayrı kayıt formu yerine ilk Google/Manus girişinde hesabın oluşturulduğunu görünür metinle açıklamak ve davranışı dokümantasyonda doğrulamak.
+- [ ] Yönetici rolündeki oturumun `/admin` rotasında kullanıcı dashboard’u yerine capability-korumalı yönetici merkezini açmasını canlıda doğrulamak ve gerekirse düzeltmek.
