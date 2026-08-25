@@ -187,6 +187,12 @@ export default function Admin() {
   const createReward = trpc.admin.createReward.useMutation({
     onSuccess: invalidateOperations,
   });
+  const setTaskStatus = trpc.admin.setTaskStatus.useMutation({
+    onSuccess: invalidateOperations,
+  });
+  const setRewardStatus = trpc.admin.setRewardStatus.useMutation({
+    onSuccess: invalidateOperations,
+  });
   const processRedemption = trpc.admin.processRewardRedemption.useMutation({
     onSuccess: invalidateOperations,
   });
@@ -945,7 +951,7 @@ export default function Admin() {
                       key={task.id}
                       className="rounded-2xl border border-border/80 p-4"
                     >
-                      <div className="flex justify-between gap-3">
+                      <div className="flex flex-wrap justify-between gap-3">
                         <div>
                           <p className="text-sm font-bold">{task.title}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -953,9 +959,34 @@ export default function Admin() {
                             {task.claimedQuota}/{task.totalQuota}
                           </p>
                         </div>
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
-                          {task.status}
-                        </span>
+                        {can("tasks.write") ? (
+                          <label className="sr-only" htmlFor={`task-status-${task.id}`}>Görev durumu</label>
+                        ) : null}
+                        {can("tasks.write") ? (
+                          <select
+                            id={`task-status-${task.id}`}
+                            value={task.status}
+                            disabled={setTaskStatus.isPending}
+                            onChange={event =>
+                              setTaskStatus.mutate({
+                                taskId: task.id,
+                                status: event.target.value as "draft" | "scheduled" | "active" | "paused" | "ended" | "archived",
+                              })
+                            }
+                            className="h-8 rounded-full border border-input bg-background px-2.5 text-[11px] font-bold"
+                          >
+                            <option value="draft">Taslak</option>
+                            <option value="scheduled">Planlandı</option>
+                            <option value="active">Aktif</option>
+                            <option value="paused">Duraklatıldı</option>
+                            <option value="ended">Sonlandırıldı</option>
+                            <option value="archived">Arşivlendi</option>
+                          </select>
+                        ) : (
+                          <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                            {task.status}
+                          </span>
+                        )}
                       </div>
                       <p className="mt-3 text-sm font-semibold text-teal-700 dark:text-teal-300">
                         +{task.rewardPoints} puan
@@ -1048,12 +1079,33 @@ export default function Admin() {
                           kullanıcı başına {reward.maxPerUser}
                         </p>
                       </div>
-                      <p className="font-display text-base font-bold text-teal-700 dark:text-teal-300">
-                        {new Intl.NumberFormat("tr-TR").format(
-                          reward.pointsCost
-                        )}{" "}
-                        puan
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <p className="font-display text-base font-bold text-teal-700 dark:text-teal-300">
+                          {new Intl.NumberFormat("tr-TR").format(
+                            reward.pointsCost
+                          )} {" "}
+                          puan
+                        </p>
+                        {can("rewards.write") ? (
+                          <select
+                            aria-label={`${reward.name} durumu`}
+                            value={reward.status}
+                            disabled={setRewardStatus.isPending}
+                            onChange={event =>
+                              setRewardStatus.mutate({
+                                rewardId: reward.id,
+                                status: event.target.value as "draft" | "active" | "paused" | "archived",
+                              })
+                            }
+                            className="h-8 rounded-full border border-input bg-background px-2.5 text-[11px] font-bold"
+                          >
+                            <option value="draft">Taslak</option>
+                            <option value="active">Aktif</option>
+                            <option value="paused">Duraklatıldı</option>
+                            <option value="archived">Arşivlendi</option>
+                          </select>
+                        ) : null}
+                      </div>
                     </div>
                   ))
                 )}

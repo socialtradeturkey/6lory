@@ -109,3 +109,8 @@
 - [ ] Canlı tarayıcıda aktif bir test ödülü oluşturup kullanıcı hesabında talep başlatmak ve aynı talebi yönetici merkezi UI içinden izinli bir durum geçişiyle işleyerek sonucu doğrulamak.
 - [ ] Canlı tarayıcı kanıtı ile izole gerçek veritabanı canary kanıtını doğrulama notunda ayrı satırlar olarak ayrıştırmak.
 - [ ] Secret Code doğrulama yönteminin görev ayrıntısı ekranında kod isteme, tek kullanımlık kod girme ve doğrulama sonucu alma akışını güvenli biçimde sunmak.
+- [ ] Kullanıcı onayıyla canlı arayüzde geçici Secret Code test görevi ve düşük maliyetli test ödülü oluşturarak görev → doğrulama → ödül talebi → yönetici işlem zincirini kanıtlamak.
+- [ ] Canlı canary sonrasında test görevini ve ödülünü pasifleştirip kalıcı audit/ledger etkisini doğrulama notunda açıkça kaydetmek.
+- [ ] Kullanıcı yetkisi kapsamında canlı canary görev, Secret Code, ödül talebi ve yönetici işlem zincirini tamamlayıp test içeriğini pasifleştirerek kapanış denetimini yapmak.
+- [ ] Yönetici merkezine görev ve ödül katalog durumlarını capability korumalı, audit kayıtlı biçimde active/paused/archived geçirecek sunucu işlemlerini eklemek.
+- [ ] Yönetici arayüzünde görev ve ödül envanterine durum yönetimi kontrollerini ekleyerek canary içeriğini uygulama içinden pasifleştirmek.

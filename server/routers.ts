@@ -992,6 +992,38 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+    setTaskStatus: adminProcedure
+      .input(
+        z.object({
+          taskId: z.number().int().positive(),
+          status: z.enum(["draft", "scheduled", "active", "paused", "ended", "archived"]),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.write");
+        const db = await databaseOrThrow();
+        const [task] = await db
+          .select()
+          .from(tasks)
+          .where(eq(tasks.id, input.taskId))
+          .limit(1);
+        if (!task) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+        }
+        if (task.status === input.status) return { success: true, unchanged: true };
+        await db.transaction(async tx => {
+          await tx.update(tasks).set({ status: input.status }).where(eq(tasks.id, task.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "task.status_changed",
+            entityType: "task",
+            entityId: String(task.id),
+            beforeState: { status: task.status },
+            afterState: { status: input.status },
+          });
+        });
+        return { success: true, unchanged: false };
+      }),
     listTasks: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "tasks.read");
       const db = await databaseOrThrow();
@@ -1002,6 +1034,38 @@ export const appRouter = router({
       const db = await databaseOrThrow();
       return db.select().from(rewards).orderBy(desc(rewards.createdAt));
     }),
+    setRewardStatus: adminProcedure
+      .input(
+        z.object({
+          rewardId: z.number().int().positive(),
+          status: z.enum(["draft", "active", "paused", "archived"]),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "rewards.write");
+        const db = await databaseOrThrow();
+        const [reward] = await db
+          .select()
+          .from(rewards)
+          .where(eq(rewards.id, input.rewardId))
+          .limit(1);
+        if (!reward) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Ödül bulunamadı." });
+        }
+        if (reward.status === input.status) return { success: true, unchanged: true };
+        await db.transaction(async tx => {
+          await tx.update(rewards).set({ status: input.status }).where(eq(rewards.id, reward.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "reward.status_changed",
+            entityType: "reward",
+            entityId: String(reward.id),
+            beforeState: { status: reward.status },
+            afterState: { status: input.status },
+          });
+        });
+        return { success: true, unchanged: false };
+      }),
     rewardRequests: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "redemptions.read");
       const db = await databaseOrThrow();
