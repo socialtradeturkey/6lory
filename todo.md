@@ -102,3 +102,4 @@
 - [x] Risk hızlı erişim kartını içeren genel bakış görünümünü canlı yönetici tarayıcısında doğrulamak.
 - [ ] Vercel ve yönetilen alanlardan başlayan Google/Manus OAuth girişinin callback, oturum ve hedef rota dönüşünü canlıda yeniden üretip hata nedenini düzeltmek.
 - [ ] Giriş, kullanıcı görev akışı, doğrulama, ödül talebi, bildirim merkezi ve yönetici operasyon merkezi kritik yollarını canlıda yeniden test etmek.
+- [ ] İlk uygulama paketi yüklenirken veya OAuth yönlendirmesi başlarken boş ekran algısını önleyen görünür başlangıç durumunu eklemek ve canlıda doğrulamak.
