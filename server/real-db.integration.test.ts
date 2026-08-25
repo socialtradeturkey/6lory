@@ -378,6 +378,19 @@ describe.runIf(runRealDbIntegration)(
         campaignId: campaign.id,
         status: "active",
       });
+      await admin.admin.setTaskStatus({
+        taskId: campaignTask.id,
+        status: "paused",
+      });
+      await admin.admin.setTaskStatus({
+        taskId: campaignTask.id,
+        status: "archived",
+      });
+      const archivedCampaignTask = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, campaignTask.id));
+      expect(archivedCampaignTask[0]).toMatchObject({ status: "archived" });
 
       testRedemptionIds.push(redeemed.redemption!.id);
       await admin.admin.processRewardRedemption({
@@ -453,6 +466,19 @@ describe.runIf(runRealDbIntegration)(
       expect(deliveredRedemption[0]).toMatchObject({ status: "delivered" });
       expect(deliveryAudit.filter(log => log.action === "redemption.status_changed")).toHaveLength(4);
       expect(deliveryNotifications.filter(item => item.type === "reward_status_updated")).toHaveLength(6);
+      await admin.admin.setRewardStatus({
+        rewardId: testRewardId,
+        status: "paused",
+      });
+      await admin.admin.setRewardStatus({
+        rewardId: testRewardId,
+        status: "archived",
+      });
+      const archivedReward = await db
+        .select()
+        .from(rewards)
+        .where(eq(rewards.id, testRewardId));
+      expect(archivedReward[0]).toMatchObject({ status: "archived" });
 
       await admin.admin.updateRiskStatus({
         userId: testUserId,
@@ -505,7 +531,9 @@ describe.runIf(runRealDbIntegration)(
         expect.arrayContaining([
           expect.objectContaining({ action: "campaign.status_changed", entityId: String(campaign.id) }),
           expect.objectContaining({ action: "task.created", entityId: String(campaignTask.id) }),
+          expect.objectContaining({ action: "task.status_changed", entityId: String(campaignTask.id) }),
           expect.objectContaining({ action: "redemption.status_changed", entityId: String(redeemed.redemption!.id) }),
+          expect.objectContaining({ action: "reward.status_changed", entityId: String(testRewardId) }),
           expect.objectContaining({ action: "risk.status_changed", entityId: String(testUserId) }),
           expect.objectContaining({ action: "comment_pool.comment_added", entityId: String(comment.id) }),
         ]),
