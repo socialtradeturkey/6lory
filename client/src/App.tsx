@@ -13,7 +13,6 @@ import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import { Route, Switch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { POST_LOGIN_PATH_KEY } from "./lib/loginBridge";
 import { useEffect } from "react";
 
 function Router() {
@@ -32,21 +31,6 @@ function PostLoginDestination() {
 
   useEffect(() => {
     if (loading || !isAuthenticated) return;
-    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    try {
-      const destination = sessionStorage.getItem(POST_LOGIN_PATH_KEY);
-      if (destination) {
-        sessionStorage.removeItem(POST_LOGIN_PATH_KEY);
-        if (destination !== currentPath) window.location.replace(destination);
-        return;
-      }
-    } catch {
-      // Session storage may be unavailable; continue with the role-based fallback.
-    }
-
-    // A management user who just completed login is otherwise left at the
-    // regular user dashboard when the provider returns to "/". Keep the
-    // explicit ?view=user escape hatch so admins can still use the consumer UI.
     if (
       MANAGEMENT_ROLES.has(user?.role ?? "") &&
       window.location.pathname === "/" &&

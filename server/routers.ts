@@ -72,6 +72,10 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
+}
+
 async function hashLocalPassword(password: string, salt = randomBytes(16).toString("hex")) {
   const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
   return { salt, hash: derivedKey.toString("hex") };
@@ -217,6 +221,7 @@ export const appRouter = router({
       .input(
         z.object({
           name: z.string().trim().min(2).max(96),
+          username: z.string().trim().min(3).max(48).regex(/^[a-zA-Z0-9_]+$/).optional(),
           email: z.string().trim().email().max(320),
           password: localPasswordInput,
         })
@@ -224,12 +229,17 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await databaseOrThrow();
         const email = normalizeEmail(input.email);
+        const username = normalizeUsername(input.username ?? `user_${nanoid(10)}`);
         const password = await hashLocalPassword(input.password);
         try {
           const user = await db.transaction(async tx => {
             const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
             if (existing) {
               throw new TRPCError({ code: "CONFLICT", message: "Bu e-posta ile zaten bir hesap bulunuyor." });
+            }
+            const [existingUsername] = await tx.select({ id: userProfiles.id }).from(userProfiles).where(eq(userProfiles.username, username)).limit(1);
+            if (existingUsername) {
+              throw new TRPCError({ code: "CONFLICT", message: "Bu kullanıcı adı zaten kullanılıyor." });
             }
             const openId = `local_${nanoid(48)}`;
             await tx.insert(users).values({
@@ -247,6 +257,12 @@ export const appRouter = router({
               passwordHash: password.hash,
               passwordSalt: password.salt,
             });
+            await tx.insert(userProfiles).values({
+              userId: created.id,
+              username,
+              displayName: input.name.trim(),
+              onboardingStatus: "completed",
+            });
             return created;
           });
           await setSessionCookie(ctx, user.openId, user.name ?? "6lory kullanıcısı");
@@ -257,16 +273,18 @@ export const appRouter = router({
         }
       }),
     login: publicProcedure
-      .input(z.object({ email: z.string().trim().email().max(320), password: z.string().min(1).max(128) }))
+      .input(z.object({ email: z.string().trim().min(3).max(320), password: z.string().min(1).max(128) }))
       .mutation(async ({ ctx, input }) => {
         const db = await databaseOrThrow();
-        const email = normalizeEmail(input.email);
-        const [credential] = await db
-          .select()
+        const identifier = input.email.trim().toLowerCase();
+        const [matched] = await db
+          .select({ credential: localAuthCredentials })
           .from(localAuthCredentials)
-          .where(eq(localAuthCredentials.email, email))
+          .leftJoin(userProfiles, eq(userProfiles.userId, localAuthCredentials.userId))
+          .where(or(eq(localAuthCredentials.email, normalizeEmail(identifier)), eq(userProfiles.username, normalizeUsername(identifier))))
           .limit(1);
-        const invalid = () => new TRPCError({ code: "UNAUTHORIZED", message: "E-posta veya parola geçersiz." });
+        const credential = matched?.credential;
+        const invalid = () => new TRPCError({ code: "UNAUTHORIZED", message: "Kullanıcı adı/e-posta veya parola geçersiz." });
         if (!credential) throw invalid();
         const now = Date.now();
         if (credential.lockedUntil && credential.lockedUntil.getTime() > now) {

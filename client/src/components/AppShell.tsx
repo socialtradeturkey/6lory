@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import { Bell, Gift, Home, LayoutDashboard, LogOut, Medal, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
@@ -46,7 +45,7 @@ export default function AppShell({ title, eyebrow, children }: { title: string; 
           </nav>
           <div className="mt-auto space-y-3 rounded-2xl border border-border/80 bg-card/65 p-3 shadow-sm">
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-teal-600 dark:text-teal-300" /> Doğrulama merkezli sistem</div>
-            {isAuthenticated ? <Button onClick={() => logout()} variant="ghost" className="w-full justify-start gap-2 text-muted-foreground"><LogOut className="size-4" /> Çıkış yap</Button> : <Button onClick={() => startLogin()} className="w-full" title="Google/Manus ile giriş yapın veya ana sayfadaki e-posta formunu kullanın">Google ile devam et</Button>}
+            {isAuthenticated ? <Button onClick={() => logout()} variant="ghost" className="w-full justify-start gap-2 text-muted-foreground"><LogOut className="size-4" /> Çıkış yap</Button> : <Link href="/#auth" className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Manuel giriş yap</Link>}
           </div>
         </aside>
 
@@ -61,11 +60,11 @@ export default function AppShell({ title, eyebrow, children }: { title: string; 
                 <Button variant="ghost" size="icon" onClick={() => toggleTheme?.()} aria-label="Temayı değiştir" className="rounded-xl text-muted-foreground"><Sun className="size-4 dark:hidden" /><Moon className="hidden size-4 dark:block" /></Button>
                 <PwaInstall />
                 {isAuthenticated && <Link href="/notifications" className="relative grid size-9 place-items-center rounded-xl border border-border/80 bg-card/70 text-muted-foreground shadow-sm" aria-label="Bildirimler"><Bell className="size-4" />{unread > 0 && <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-teal-500 text-[9px] font-bold text-slate-950">{unread > 9 ? "9+" : unread}</span>}</Link>}
-                {isAuthenticated ? <Link href="/profile" className="hidden items-center gap-2 rounded-xl border border-border/80 bg-card/70 py-1.5 pl-1.5 pr-3 shadow-sm sm:flex"><span className="grid size-6 place-items-center rounded-lg bg-slate-200 text-[10px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{user?.name?.slice(0, 1).toUpperCase() ?? "U"}</span><span className="max-w-24 truncate text-xs font-semibold">{user?.name ?? "Profil"}</span></Link> : !loading && <Button onClick={() => startLogin()} className="rounded-xl px-3 text-xs sm:px-4 sm:text-sm" title="Google/Manus ile giriş yapın veya ana sayfadaki e-posta formunu kullanın">Google ile başla</Button>}
+                {isAuthenticated ? <Link href="/profile" className="hidden items-center gap-2 rounded-xl border border-border/80 bg-card/70 py-1.5 pl-1.5 pr-3 shadow-sm sm:flex"><span className="grid size-6 place-items-center rounded-lg bg-slate-200 text-[10px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">{user?.name?.slice(0, 1).toUpperCase() ?? "U"}</span><span className="max-w-24 truncate text-xs font-semibold">{user?.name ?? "Profil"}</span></Link> : !loading && <Link href="/#auth" className="inline-flex items-center rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground sm:px-4 sm:text-sm">Manuel giriş yap</Link>}
               </div>
             </div>
           </header>
-          <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 lg:px-10 lg:pt-8">{!isAuthenticated && !loading && <div role="note" className="mb-5 rounded-2xl border border-teal-600/20 bg-teal-500/10 px-4 py-3 text-sm leading-6 text-teal-900 dark:text-teal-100"><span className="font-bold">İlk kez mi geliyorsunuz?</span> Google/Manus ile hızlıca başlayabilir veya e-posta ve parola ile yeni bir 6lory hesabı oluşturabilirsiniz.</div>}{children}</main>
+          <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 lg:px-10 lg:pt-8">{!isAuthenticated && !loading && <div role="note" className="mb-5 rounded-2xl border border-teal-600/20 bg-teal-500/10 px-4 py-3 text-sm leading-6 text-teal-900 dark:text-teal-100"><span className="font-bold">İlk kez mi geliyorsunuz?</span> E-posta ve parola ile yeni bir 6lory hesabı oluşturabilir veya mevcut hesabınıza manuel giriş yapabilirsiniz.</div>}{children}</main>
           {isAuthenticated && <div className="fixed bottom-5 right-5 z-20 hidden rounded-2xl border border-border/80 bg-card/90 px-4 py-3 shadow-xl shadow-slate-950/10 backdrop-blur-xl lg:block"><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Kullanılabilir bakiye</p><p className="mt-0.5 font-display text-lg font-bold text-teal-700 dark:text-teal-300">{formatPoints(availablePoints)} <span className="text-xs">puan</span></p></div>}
         </div>
       </div>

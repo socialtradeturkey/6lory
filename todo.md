@@ -170,3 +170,10 @@
 - [ ] Görev görünürlük düzeltmesinin test/build ve DB veri düzeltmesi tamamlandı; canlı önizleme ve gerçek kullanıcı oturumunda görev başlatma doğrulaması bekliyor.
 - [x] Kullanıcı yeniden bildirdi: ana sayfada görev görünürken Görevler sekmesi hâlâ boş; canlı API ve veritabanı kontrolünde aktif görevlerin geçmiş `endsAt` tarihi nedeniyle listeden elendiği doğrulandı ve düzeltildi.
 - [ ] Görev kartı sayısı ile görev listesi arasında gerçek kullanıcı oturumunda eşleşme kanıtı üret; API görünürlük ve geçmiş bitiş tarihi düzeltmesi yayımlandı, kullanıcı tarayıcı doğrulaması bekliyor.
+- [ ] Kullanıcı geri bildirimi: görevleri sırayla bitirme akışında sonraki görev açılmıyor ve account/oturum engeli görülüyor; görev start/verify/session akışını gerçek kullanıcı kimliğiyle incele.
+- [ ] Görev tamamlanınca sıradaki görevin açılmasını ve account/session hatalarının kullanıcıya doğru aktarılmasını düzelt; IDOR ve güvenli oturum kurallarını koru.
+- [ ] Sıralı görev akışını test, build, canlı yayın ve gerçek kullanıcı doğrulamasıyla kapat.
+- [x] Google/Manus OAuth giriş düğmelerini, otomatik OAuth yönlendirmelerini ve OAuth bridge bağımlılıklarını kaldır; manuel auth tek giriş yolu olsun.
+- [x] Manuel e-posta/kullanıcı adı + parola kayıt/login akışını, güvenli session cookie devamlılığını ve duplicate e-posta korumasını koru.
+- [x] Manuel login sonrası role göre kullanıcı dashboard’u veya `/admin` yönlendirmesini çalışır tut; mevcut admin hesaplarını koru.
+- [ ] OAuth kaldırma sonrası testler ve production build başarılı; GitHub/Vercel senkronizasyonu ile manuel auth canlı doğrulaması bekliyor.

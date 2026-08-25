@@ -22,12 +22,8 @@ describe("Vercel API application", () => {
     );
   });
 
-  it("serves the OAuth callback route without requiring a listening production server", async () => {
+  it("does not expose the removed OAuth callback route", async () => {
     const response = await fetch(`${baseUrl}/api/oauth/callback`);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "code and state are required",
-    });
+    expect(response.status).toBe(404);
   });
 });
