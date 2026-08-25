@@ -391,6 +391,9 @@ describe.runIf(runRealDbIntegration)(
         .from(tasks)
         .where(eq(tasks.id, campaignTask.id));
       expect(archivedCampaignTask[0]).toMatchObject({ status: "archived" });
+      await expect(caller.tasks.detail({ taskId: campaignTask.id })).rejects.toMatchObject({
+        code: "NOT_FOUND",
+      });
 
       testRedemptionIds.push(redeemed.redemption!.id);
       await admin.admin.processRewardRedemption({

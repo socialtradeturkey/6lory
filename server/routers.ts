@@ -175,7 +175,7 @@ export const appRouter = router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(COOKIE_NAME, cookieOptions);
       return { success: true } as const;
     }),
   }),
@@ -335,15 +335,23 @@ export const appRouter = router({
       .input(z.object({ taskId: z.number().int().positive() }))
       .query(async ({ input }) => {
         const db = await databaseOrThrow();
+        const now = new Date();
         const [task] = await db
           .select()
           .from(tasks)
-          .where(eq(tasks.id, input.taskId))
+          .where(
+            and(
+              eq(tasks.id, input.taskId),
+              eq(tasks.status, "active"),
+              or(isNull(tasks.startsAt), lte(tasks.startsAt, now)),
+              or(isNull(tasks.endsAt), gte(tasks.endsAt, now)),
+            ),
+          )
           .limit(1);
         if (!task)
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Görev bulunamadı.",
+            message: "Görev bulunamadı veya artık kullanılamıyor.",
           });
         return task;
       }),

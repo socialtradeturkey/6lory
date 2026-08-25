@@ -119,3 +119,13 @@
 - [x] Tespit edilen Google giriş arızasını güvenlik kurallarını koruyarak düzeltmek ve başarısızlık durumunu kullanıcıya görünür kılmak.
 - [x] Vercel ve yönetilen alanlarda Google girişini hesap seçici → callback → oturum → hedef rota sonuna kadar tekrar doğrulamak.
 - [x] Google giriş düzeltmesini managed checkpoint ve Vercel production dağıtımıyla yayımlamak.
+
+- [x] Kapsamlı yeniden denetim: Vercel ve managed giriş, tüm kullanıcı rotaları, admin rotaları, API yanıtları ve DB sağlık durumunu kontrol etmek.
+- [x] Giriş akışını ve auth loading/error durumlarını farklı rotalarda tekrar doğrulayıp kalan UX veya güvenlik sorunlarını düzeltmek.
+- [x] Görev listesi/detayı, Secret Code doğrulama, puan ledger, ödül ve bildirim akışlarını gerçek oturumla yeniden test etmek.
+- [x] Yönetici merkezinin görev, kampanya, ödül, doğrulama, risk, yorum ve audit işlevlerini görünüm ve yetki bazında yeniden denetlemek.
+- [x] API/DB bütünlüğünü test, fixture temizliği, idempotency ve immutable ledger kontrolleriyle yeniden doğrulamak.
+- [x] Mobil/tablet/desktop görünümleri, PWA service worker ve yükleme/boş/hata durumlarını görsel olarak denetlemek.
+- [ ] Denetim sonucundaki düzeltmeleri test ederek managed checkpoint ve Vercel production’a yayımlamak.
+- [x] Canlı denetimde görülen arşivlenmiş görev ayrıntısı erişimini düzeltmek: kullanıcıya arşiv durumunu gösterip başlatmayı engellemek veya güvenli biçimde bulunamadı ekranına yönlendirmek.
+- [x] Express clearCookie deprecation uyarısını giderip güvenli oturum çıkışını test etmek.
