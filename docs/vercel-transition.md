@@ -67,6 +67,12 @@ Vercel projesinin GitHub bağlantısı doğrulandı: `socialtradeturkey/6lory` d
 
 Vercel’de uygulama kabuğu ve API Function yönlendirmesi artık çalışmaktadır. Kimlik doğrulama, veritabanı işlemleri ve ödül akışlarının bu alanda üretim kullanımına açılması için `DATABASE_URL`, `JWT_SECRET`, OAuth ortam değişkenleri ve Vercel alan adının izinli OAuth callback kaydı ayrıca yapılandırılmalıdır. Bu değerler kaynak koda veya GitHub’a yazılmamalıdır.[1] [2] [3]
 
+## OAuth alan adı sınırı ve güvenli giriş davranışı
+
+OAuth sağlayıcısı, uygulamanın mevcut kayıtlı yapılandırmasında `https://6lory.vercel.app/api/oauth/callback` adresini izinli redirect URI olarak kabul etmemektedir. Bu nedenle Vercel alan adında doğrudan OAuth callback başlatmak yerine sağlayıcı tarafından zaten izin verilen yönetilen uygulama alanına (`https://6loryapp-pernhdey.manus.space`) yönlendirme uygulanır. Bu seçim, izinli olmayan callback kullanımını ve farklı origin’ler arasında güvenli biçimde paylaşılamayacak oturum çerezleri hakkında yanlış bir beklenti oluşturmayı önler.
+
+Vercel, açık kullanıcı deneyimini, rotaları ve API Function yapısını sunmaya devam eder. Ancak bu sürümde **giriş işlemi yönetilen uygulama alanında tamamlanır**. Vercel üzerinde bağımsız kullanıcı oturumu ancak OAuth sağlayıcısında Vercel callback alan adı proje bazında izinli hâle getirildiğinde ve ilgili oturum/veritabanı secret’ları ayrı olarak yapılandırıldığında açılmalıdır.
+
 ## Dağıtım öncesi kontrol
 
 ```bash

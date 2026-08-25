@@ -80,3 +80,5 @@
 - [x] Vercel projesinin mevcut bağlantısını ve full-stack dağıtım uyumluluğunu doğrulamak; güvenli değilse yanıltıcı dağıtım yapmadan uygulanabilir geçiş yolunu netleştirmek.
 - [x] Vercel dağıtımında ana sayfanın HTML/PWA kabuğunu, SPA rota fallback’ini ve tam yığın API yönlendirmesini çalışır hâle getirerek canlı alan adında doğrulamak.
 - [x] Vercel canlı alan adında en az bir tRPC endpoint’inin başarılı HTTP yanıtını doğrulayarak API yönlendirmesi kanıtını tamamlamak.
+- [ ] Vercel alan adındaki OAuth girişinin callback, izinli yönlendirme ve ortam yapılandırmasını güvenli biçimde tamamlayıp canlı oturum açma akışıyla doğrulamak.
+- [ ] OAuth sağlayıcısının `6lory.vercel.app` redirect URI reddini, izinli domain kaydı veya güvenli desteklenen oturum stratejisiyle çözmek.
