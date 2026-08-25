@@ -12,30 +12,11 @@ import Rewards from "./pages/Rewards";
 import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import { Route, Switch } from "wouter";
-import { startLogin } from "./const";
-import { useEffect } from "react";
 
 function Router() {
   return <Switch><Route path="/" component={Home} /><Route path="/tasks" component={Tasks} /><Route path="/tasks/:id" component={TaskDetail} /><Route path="/rewards" component={Rewards} /><Route path="/leaderboard" component={Leaderboard} /><Route path="/profile" component={Profile} /><Route path="/notifications" component={Notifications} /><Route path="/admin" component={Admin} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
-function ManagedLoginStart() {
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const requestedLogin = url.searchParams.get("login") === "1" || url.searchParams.get("auth") === "vercel";
-    if (!requestedLogin) return;
-
-    // Remove the bridge flag before OAuth begins so a callback to / cannot
-    // restart login accidentally. The nonce is minted only by startLogin().
-    url.searchParams.delete("login");
-    url.searchParams.delete("auth");
-    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-    startLogin();
-  }, []);
-
-  return null;
-}
-
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><ManagedLoginStart /><Toaster /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><Toaster /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }

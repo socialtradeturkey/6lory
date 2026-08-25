@@ -73,6 +73,12 @@ OAuth sağlayıcısı, uygulamanın mevcut kayıtlı yapılandırmasında `https
 
 Vercel, açık kullanıcı deneyimini, rotaları ve API Function yapısını sunmaya devam eder. Ancak bu sürümde **giriş işlemi yönetilen uygulama alanında tamamlanır**. Vercel üzerinde bağımsız kullanıcı oturumu ancak OAuth sağlayıcısında Vercel callback alan adı proje bazında izinli hâle getirildiğinde ve ilgili oturum/veritabanı secret’ları ayrı olarak yapılandırıldığında açılmalıdır.
 
+### Giriş köprüsü ve ilk kullanıcı kaydı
+
+Vercel ziyaretçisinin giriş isteği önce `https://6loryapp-pernhdey.manus.space/?login=1` adresine taşınır. Yönetilen uygulama bu kısa ömürlü köprü işaretini tarayıcı geçmişinden temizler, tek kullanımlık nonce üreten standart OAuth başlangıcını çalıştırır ve sonuçta kullanıcıyı uygulamaya döndürür. Böylece önceki 404 hedefi ile izinli olmayan Vercel callback’i kullanılmaz.
+
+6lory, ayrı bir e-posta/şifre kayıt formu kullanmaz. Kullanıcı, OAuth sağlayıcısındaki **Başka bir hesap kullan** seçeneğiyle Google/Manus hesabını seçer; başarılı ilk girişte güvenli sunucu tarafı kullanıcı kaydı oluşturulur. Bu yaklaşımda parola, parola sıfırlama veya doğrulanmamış istemci tarafı kayıt akışı bulunmaz.
+
 ## Dağıtım öncesi kontrol
 
 ```bash

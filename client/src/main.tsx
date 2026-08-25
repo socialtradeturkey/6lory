@@ -6,6 +6,16 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import { startLogin } from "./const";
+import { consumeLoginBridgeUrl } from "./lib/loginBridge";
+
+const bridgeTarget = consumeLoginBridgeUrl(window.location.href);
+if (bridgeTarget) {
+  // This runs before React mounts, ensuring a Vercel bridge request cannot
+  // remain on the landing page because of render or hydration timing.
+  window.history.replaceState(null, "", bridgeTarget);
+  startLogin();
+}
 
 const queryClient = new QueryClient();
 
