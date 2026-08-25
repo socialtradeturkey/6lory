@@ -156,4 +156,4 @@
 - [x] `murathand08@gmail.com` için users kaydı, loginMethod/openId/email eşleşmesini salt-okunur incelemek; admin yetkisini yalnız doğrulanmış identity üzerinden düzeltmek.
 - [ ] Admin hesabının `/admin` rotasına açıldığını ve normal kullanıcı hesabının admin yetkisi almadığını canlı test etmek.
 - [x] Kayıt ekranı düzeltmesini GitHub main’e senkronize etmek ve `murathand08@gmail.com` admin identity düzeltmesini DB’de uygulamak; Vercel deploy sonrası canlı kullanıcı doğrulaması ayrı açık tutuluyor.
-- [ ] OAuth callback’te aynı doğrulanmış e-posta için mevcut local kullanıcıyla farklı openId hesabının duplicate normal kullanıcı oluşturmasını engellemek; mevcut admin rolünü güvenli biçimde koruyan account-link kuralı ve test eklemek.
+- [x] OAuth callback’te aynı doğrulanmış e-posta için mevcut local kullanıcıyla farklı openId hesabının duplicate normal kullanıcı oluşturmasını engellemek; mevcut admin rolünü güvenli biçimde koruyan account-link kuralı ve test eklemek.
