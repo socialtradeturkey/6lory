@@ -12,3 +12,10 @@ export function resolveLoginOrigin(currentOrigin: string): string {
 
   return current.origin;
 }
+
+export function getManagedLoginStartUrl(currentOrigin: string): string | null {
+  const managedOrigin = resolveLoginOrigin(currentOrigin);
+  if (managedOrigin === new URL(currentOrigin).origin) return null;
+
+  return `${managedOrigin}/?login=1`;
+}

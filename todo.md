@@ -82,3 +82,5 @@
 - [x] Vercel canlı alan adında en az bir tRPC endpoint’inin başarılı HTTP yanıtını doğrulayarak API yönlendirmesi kanıtını tamamlamak.
 - [x] Kapsam kararı: OAuth sağlayıcısının Vercel callback alan adını kabul etmediği doğrulandı. Vercel’de bağımsız oturum yerine kullanıcıyı izinli yönetilen uygulama alanında güvenli girişe yönlendirmek bu sürümde uygulandı; Vercel callback kaydı daha sonra sağlayıcı düzeyinde açılırsa bağımsız oturum ayrıca doğrulanacak.
 - [x] OAuth sağlayıcısının `6lory.vercel.app` redirect URI reddi, izinli olmayan callback’i hiç başlatmayan ve yönetilen giriş alanına yönlendiren güvenli desteklenen oturum stratejisiyle çözüldü.
+- [ ] Vercel giriş fallback’inin 404 üreten hedefini doğru desteklenen OAuth başlangıç noktasına yönlendirip Google hesabıyla canlı erişimi doğrulamak.
+- [ ] Mevcut OAuth tabanlı sistemde yeni kullanıcıların Google/Manus hesabını seçerek otomatik oluşturulduğunu arayüzde açıkça belirtmek; ek kayıt formu gereksinimini güvenlik ve ürün akışı açısından netleştirmek.

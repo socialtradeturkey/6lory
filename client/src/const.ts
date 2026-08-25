@@ -1,5 +1,5 @@
 import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
-import { resolveLoginOrigin } from "@/lib/loginOrigin";
+import { getManagedLoginStartUrl, resolveLoginOrigin } from "@/lib/loginOrigin";
 
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
@@ -22,14 +22,16 @@ export const startLogin = () => {
   if (loginNavigationStarted) return;
   loginNavigationStarted = true;
 
-  const loginOrigin = resolveLoginOrigin(window.location.origin);
-  if (loginOrigin !== window.location.origin) {
+  const managedLoginStartUrl = getManagedLoginStartUrl(window.location.origin);
+  if (managedLoginStartUrl) {
     // Do not send an unallowlisted Vercel callback URI to Manus OAuth. The
     // provider rejects it before authentication, and a cross-origin session
     // cookie could not be shared back securely in any case.
-    window.location.assign(`${loginOrigin}/?auth=vercel`);
+    window.location.assign(managedLoginStartUrl);
     return;
   }
+
+  const loginOrigin = resolveLoginOrigin(window.location.origin);
 
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;

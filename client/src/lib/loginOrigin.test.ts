@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MANAGED_AUTH_ORIGIN, resolveLoginOrigin } from "./loginOrigin";
+import {
+  getManagedLoginStartUrl,
+  MANAGED_AUTH_ORIGIN,
+  resolveLoginOrigin,
+} from "./loginOrigin";
 
 describe("resolveLoginOrigin", () => {
   it("keeps the current origin for a supported managed application domain", () => {
@@ -16,5 +20,15 @@ describe("resolveLoginOrigin", () => {
     expect(
       resolveLoginOrigin("https://6lory-git-main-socialtradeturkey-7533s-projects.vercel.app"),
     ).toBe(MANAGED_AUTH_ORIGIN);
+  });
+
+  it("creates an explicit managed login start URL for Vercel visitors", () => {
+    expect(getManagedLoginStartUrl("https://6lory.vercel.app")).toBe(
+      `${MANAGED_AUTH_ORIGIN}/?login=1`,
+    );
+  });
+
+  it("does not redirect an already managed visitor before OAuth starts", () => {
+    expect(getManagedLoginStartUrl(MANAGED_AUTH_ORIGIN)).toBeNull();
   });
 });
