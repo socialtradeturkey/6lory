@@ -39,6 +39,7 @@ import {
   resolveVerification,
 } from "./domain.js";
 import { buildOperationsAnalytics } from "./operationsAnalytics.js";
+import { isEligibleAudienceUser, planAudienceAssignments } from "./taskAudience.js";
 import {
   assertRedemptionTransition,
   needsRedemptionRefund,
@@ -436,10 +437,10 @@ export const appRouter = router({
   }),
 
   tasks: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await databaseOrThrow();
       const now = new Date();
-      return db
+      const visibleTasks = await db
         .select()
         .from(tasks)
         .where(
@@ -450,10 +451,20 @@ export const appRouter = router({
           )
         )
         .orderBy(desc(tasks.priority), desc(tasks.createdAt));
+      const assignedRows = await db
+        .select({ taskId: taskAssignments.taskId, status: taskAssignments.status })
+        .from(taskAssignments)
+        .where(eq(taskAssignments.userId, ctx.user.id));
+      const assignedTaskIds = new Set(
+        assignedRows
+          .filter(row => row.status === "assigned" || row.status === "started")
+          .map(row => row.taskId),
+      );
+      return visibleTasks.filter(task => task.audienceMode === "open" || assignedTaskIds.has(task.id));
     }),
     detail: protectedProcedure
       .input(z.object({ taskId: z.number().int().positive() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const db = await databaseOrThrow();
         const now = new Date();
         const [task] = await db
@@ -473,6 +484,21 @@ export const appRouter = router({
             code: "NOT_FOUND",
             message: "Görev bulunamadı veya artık kullanılamıyor.",
           });
+        if (task.audienceMode === "assigned") {
+          const [assignment] = await db
+            .select({ id: taskAssignments.id })
+            .from(taskAssignments)
+            .where(
+              and(
+                eq(taskAssignments.taskId, task.id),
+                eq(taskAssignments.userId, ctx.user.id),
+                or(eq(taskAssignments.status, "assigned"), eq(taskAssignments.status, "started")),
+              ),
+            )
+            .limit(1);
+          if (!assignment)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Bu görev size atanmamış veya artık kullanılamıyor." });
+        }
         return task;
       }),
     start: protectedProcedure
@@ -1157,6 +1183,103 @@ export const appRouter = router({
       const db = await databaseOrThrow();
       return db.select().from(tasks).orderBy(desc(tasks.createdAt));
     }),
+    taskAudiencePreview: adminProcedure
+      .input(z.object({ taskId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.read");
+        const db = await databaseOrThrow();
+        const [task] = await db.select().from(tasks).where(eq(tasks.id, input.taskId)).limit(1);
+        if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+        const audienceRows = await db
+          .select({ id: users.id, role: users.role, trustStatus: trustScores.status })
+          .from(users)
+          .leftJoin(trustScores, eq(trustScores.userId, users.id));
+        const eligibleUsers = audienceRows.filter(isEligibleAudienceUser);
+        const existingAssignments = await db
+          .select({ userId: taskAssignments.userId, status: taskAssignments.status })
+          .from(taskAssignments)
+          .where(eq(taskAssignments.taskId, task.id));
+        const existingIds = new Set(existingAssignments.map(row => row.userId));
+        return {
+          taskId: task.id,
+          audienceMode: task.audienceMode,
+          assignmentTargetCount: task.assignmentTargetCount,
+          eligibleUserCount: eligibleUsers.length,
+          assignedUserCount: existingAssignments.length,
+          availableUserCount: eligibleUsers.filter(user => !existingIds.has(user.id)).length,
+          claimedQuota: task.claimedQuota,
+          totalQuota: task.totalQuota,
+        };
+      }),
+    assignTaskToActiveUsers: adminProcedure
+      .input(
+        z.object({
+          taskId: z.number().int().positive(),
+          targetCount: z.number().int().positive().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.write");
+        const db = await databaseOrThrow();
+        return db.transaction(async tx => {
+          const [task] = await tx.select().from(tasks).where(eq(tasks.id, input.taskId)).limit(1);
+          if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+          if (task.status === "archived" || task.status === "ended") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Arşivlenmiş veya sona ermiş göreve atama yapılamaz." });
+          }
+            const audienceRows = await tx
+            .select({ id: users.id, role: users.role, trustStatus: trustScores.status })
+            .from(users)
+            .leftJoin(trustScores, eq(trustScores.userId, users.id));
+          const eligibleUsers = audienceRows.filter(isEligibleAudienceUser);
+          const existing = await tx
+            .select({ userId: taskAssignments.userId })
+            .from(taskAssignments)
+            .where(eq(taskAssignments.taskId, task.id));
+          const plan = planAudienceAssignments({
+            eligibleUserIds: eligibleUsers.map(user => user.id),
+            assignedUserIds: existing.map(row => row.userId),
+            targetCount: input.targetCount,
+            totalQuota: task.totalQuota,
+            claimedQuota: task.claimedQuota,
+          });
+          const targetCount = plan.targetCount;
+          if (targetCount < 1) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Atanabilecek uygun aktif kullanıcı bulunamadı." });
+          }
+          const selected = plan.selectedUserIds.map(userId => ({ id: userId }));
+          if (selected.length) {
+            await tx.insert(taskAssignments).values(
+              selected.map(user => ({ taskId: task.id, userId: user.id, expiresAt: task.endsAt })),
+            );
+            await tx.insert(notifications).values(
+              selected.map(user => ({
+                userId: user.id,
+                type: "task_assigned",
+                title: "Yeni görev atandı",
+                body: `Size yeni bir görev atandı: ${task.title}`,
+                destination: `/tasks/${task.id}`,
+              })),
+            );
+          }
+          await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: targetCount }).where(eq(tasks.id, task.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "task.audience_assigned",
+            entityType: "task",
+            entityId: String(task.id),
+            beforeState: { audienceMode: task.audienceMode, assignmentTargetCount: task.assignmentTargetCount },
+            afterState: { audienceMode: "assigned", assignmentTargetCount: targetCount, inserted: selected.length },
+          });
+          return {
+            success: true,
+            eligibleUserCount: plan.eligibleUserCount,
+            targetCount,
+            insertedCount: selected.length,
+            alreadyAssignedCount: Math.min(plan.assignedUserCount, targetCount),
+          };
+        });
+      }),
     listRewards: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "rewards.read");
       const db = await databaseOrThrow();

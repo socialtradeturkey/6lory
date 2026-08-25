@@ -148,6 +148,8 @@ export const tasks = mysqlTable(
     totalQuota: int("total_quota").notNull(),
     claimedQuota: int("claimed_quota").default(0).notNull(),
     perUserLimit: int("per_user_limit").default(1).notNull(),
+    audienceMode: mysqlEnum("audience_mode", ["open", "assigned"]).default("open").notNull(),
+    assignmentTargetCount: int("assignment_target_count"),
     status: mysqlEnum("status", ["draft", "scheduled", "active", "paused", "ended", "archived"]).default("draft").notNull(),
     priority: int("priority").default(0).notNull(),
     verificationMethod: mysqlEnum("verification_method", ["web_signals", "secret_code", "manual_review", "platform_api", "platform_api_manual_fallback"]).notNull(),

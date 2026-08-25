@@ -161,3 +161,7 @@
 - [x] Admin oturumundaki yanlış kullanıcı eşleşmesini giderip Google/local login sonrası role bilgisinin `/admin` rotasına yansımasını regresyon testiyle kanıtla.
 - [ ] Kullanıcı yeni geri bildirimi: `murathand08@gmail.com` hâlâ normal kullanıcı görüyor; tüm kullanıcı/identity kayıtlarını yeniden incele ve rolü canlı oturumla eşleştir.
 - [ ] Yanlış session identity’sini temizleme, doğru admin rolünü koruma ve `/admin` erişimini kullanıcı doğrulamasıyla kapatma.
+- [x] Yönetici için aktif kullanıcı sayısını ve görev kapasitesini temel alan görev atama modeli tasarla; adminin toplam hedef, kullanıcı başına limit ve dağıtım biçimini belirleyebilmesini sağla.
+- [x] Görev atamasını yalnızca aktif, uygun ve kısıtlanmamış kullanıcılara sunucu transaction’ı ile uygula; kota, tekrar atama ve IDOR kontrollerini ekle.
+- [x] Yönetici görev ekranına aktif kullanıcı sayısı, tahmini erişim, kapasite ayarları, dağıtım önizlemesi ve atama işlemi ekle.
+- [ ] Kapasite/atama migration’ını uygula; Vitest ve build kontrolleri başarılı; gerçek DB opt-in atama ve canlı yönetici arayüzü kontrolü bekliyor.
