@@ -135,8 +135,8 @@
 - [ ] Gerekliyse Google OAuth istemcisi, callback URI’leri, secret/env değerleri ve güvenli oturum entegrasyonunu uygulamak; gerekmiyorsa mevcut akıştaki gerçek blokajı düzeltmek.
 - [ ] Google girişini yeni kullanıcı oluşturma, mevcut kullanıcı oturumu, callback, cookie ve hedef rota ile canlıda doğrulamak; başarısızlığı bitmiş kabul etmemek.
 - [ ] Giriş düzeltmesini test edip managed ve Vercel production’a yayımlamak; kullanıcı doğrulaması tamamlanmadan kapanış teslimi yapmamak.
-- [ ] GitHub deposu ile yerel doğrulanmış kaynak arasındaki farkı ve kimlik doğrulama durumunu güvenli biçimde incelemek.
-- [ ] Secret, build ve geçici dosyaları dışarıda bırakarak doğrulanmış kaynak değişikliklerini GitHub ana dalına senkronize etmek.
+- [x] GitHub deposu ile yerel doğrulanmış kaynak arasındaki farkı ve kimlik doğrulama durumunu güvenli biçimde incelemek.
+- [x] Secret, build ve geçici dosyaları dışarıda bırakarak doğrulanmış kaynak değişikliklerini GitHub ana dalına senkronize etmek.
 - [ ] Vercel’in GitHub kaynak bağlantısını veya güvenli alternatif production dağıtımını doğrulamak ve aynı sürümün yayımlandığını kanıtlamak.
-- [ ] Manus GitHub yazma connector’ı bulunmadığı için GitHub’a push yapılamadığını belgelemek ve kullanıcıya güvenli seçenekleri sunmak: GitHub web oturumu üzerinden kullanıcı commit’i veya açıkça sağlanan fine-grained token ile tek seferlik push.
-- [ ] Kullanıcı isteğiyle Vercel deploy’ını kullanıcıya bırakıp doğrulanmış kaynak değişikliklerini yalnız GitHub `main` dalına senkronize etmek ve remote commit’i doğrulamak.
+- [x] Manus GitHub yazma connector’ı bulunmadığı için GitHub’a push yapılamadığını belgelemek ve kullanıcıya güvenli seçenekleri sunmak: GitHub web oturumu üzerinden kullanıcı commit’i veya açıkça sağlanan fine-grained token ile tek seferlik push.
+- [x] Kullanıcı isteğiyle Vercel deploy’ını kullanıcıya bırakıp doğrulanmış kaynak değişikliklerini yalnız GitHub `main` dalına senkronize etmek ve remote commit’i doğrulamak.
