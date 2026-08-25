@@ -151,3 +151,9 @@
 - [x] Vercel auth çağrılarının `/api/trpc` ve OAuth callback yönlendirmesiyle uyumunu runtime seviyesinde test etmek.
 - [ ] Gerekli düzeltmeyi GitHub main’e push edip kullanıcıya manuel Vercel deploy sonrası tek adımlı canlı giriş testi yaptırmak; kullanıcı doğrulaması olmadan kapanış yapmamak.
 - [x] Vercel ile managed alan arasındaki host-only oturum farkını giriş ekranında açıkça anlatmak; kullanıcıyı login sonrası doğru canonical managed alanda tutmak.
+
+- [x] Vercel’de kayıt ekranının görünmemesi sorununu aktif HTML/bundle, cache ve deployment commit’iyle teşhis etmek.
+- [x] `murathand08@gmail.com` için users kaydı, loginMethod/openId/email eşleşmesini salt-okunur incelemek; admin yetkisini yalnız doğrulanmış identity üzerinden düzeltmek.
+- [ ] Admin hesabının `/admin` rotasına açıldığını ve normal kullanıcı hesabının admin yetkisi almadığını canlı test etmek.
+- [x] Kayıt ekranı düzeltmesini GitHub main’e senkronize etmek ve `murathand08@gmail.com` admin identity düzeltmesini DB’de uygulamak; Vercel deploy sonrası canlı kullanıcı doğrulaması ayrı açık tutuluyor.
+- [ ] OAuth callback’te aynı doğrulanmış e-posta için mevcut local kullanıcıyla farklı openId hesabının duplicate normal kullanıcı oluşturmasını engellemek; mevcut admin rolünü güvenli biçimde koruyan account-link kuralı ve test eklemek.
