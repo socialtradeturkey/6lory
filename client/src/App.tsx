@@ -20,22 +20,41 @@ function Router() {
   return <Switch><Route path="/" component={Home} /><Route path="/tasks" component={Tasks} /><Route path="/tasks/:id" component={TaskDetail} /><Route path="/rewards" component={Rewards} /><Route path="/leaderboard" component={Leaderboard} /><Route path="/profile" component={Profile} /><Route path="/notifications" component={Notifications} /><Route path="/admin" component={Admin} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
+const MANAGEMENT_ROLES = new Set([
+  "admin",
+  "moderator",
+  "verification_reviewer",
+  "reward_manager",
+]);
+
 function PostLoginDestination() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
   useEffect(() => {
     if (loading || !isAuthenticated) return;
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     try {
       const destination = sessionStorage.getItem(POST_LOGIN_PATH_KEY);
-      if (!destination) return;
-      sessionStorage.removeItem(POST_LOGIN_PATH_KEY);
-      if (destination !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
-        window.location.replace(destination);
+      if (destination) {
+        sessionStorage.removeItem(POST_LOGIN_PATH_KEY);
+        if (destination !== currentPath) window.location.replace(destination);
+        return;
       }
     } catch {
-      // Session storage may be unavailable; the user remains on the safe home route.
+      // Session storage may be unavailable; continue with the role-based fallback.
     }
-  }, [isAuthenticated, loading]);
+
+    // A management user who just completed login is otherwise left at the
+    // regular user dashboard when the provider returns to "/". Keep the
+    // explicit ?view=user escape hatch so admins can still use the consumer UI.
+    if (
+      MANAGEMENT_ROLES.has(user?.role ?? "") &&
+      window.location.pathname === "/" &&
+      !window.location.search
+    ) {
+      window.location.replace("/admin");
+    }
+  }, [isAuthenticated, loading, user?.role]);
 
   return null;
 }

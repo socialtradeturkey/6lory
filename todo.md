@@ -157,3 +157,7 @@
 - [ ] Admin hesabının `/admin` rotasına açıldığını ve normal kullanıcı hesabının admin yetkisi almadığını canlı test etmek.
 - [x] Kayıt ekranı düzeltmesini GitHub main’e senkronize etmek ve `murathand08@gmail.com` admin identity düzeltmesini DB’de uygulamak; Vercel deploy sonrası canlı kullanıcı doğrulaması ayrı açık tutuluyor.
 - [x] OAuth callback’te aynı doğrulanmış e-posta için mevcut local kullanıcıyla farklı openId hesabının duplicate normal kullanıcı oluşturmasını engellemek; mevcut admin rolünü güvenli biçimde koruyan account-link kuralı ve test eklemek.
+- [ ] Kullanıcı geri bildirimi: `murathand08@gmail.com` giriş sonrası hâlâ normal kullanıcı dashboard’una düşüyor; gerçek oturum identity’sinin admin kaydıyla eşleşmesini ve `/admin` yönlendirmesini canlıda doğrula.
+- [x] Admin oturumundaki yanlış kullanıcı eşleşmesini giderip Google/local login sonrası role bilgisinin `/admin` rotasına yansımasını regresyon testiyle kanıtla.
+- [ ] Kullanıcı yeni geri bildirimi: `murathand08@gmail.com` hâlâ normal kullanıcı görüyor; tüm kullanıcı/identity kayıtlarını yeniden incele ve rolü canlı oturumla eşleştir.
+- [ ] Yanlış session identity’sini temizleme, doğru admin rolünü koruma ve `/admin` erişimini kullanıcı doğrulamasıyla kapatma.

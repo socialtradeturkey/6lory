@@ -28,7 +28,7 @@ import {
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Operasyon merkezi", path: "/admin" },
-  { icon: ArrowLeft, label: "Kullanıcı uygulaması", path: "/" },
+  { icon: ArrowLeft, label: "Kullanıcı uygulaması", path: "/?view=user" },
 ];
 const managementRoles = [
   "admin",
