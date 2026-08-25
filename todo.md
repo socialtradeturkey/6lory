@@ -100,6 +100,12 @@
 - [x] Ödül talebinin onay → hazırlık → kargo → teslim durum geçişlerini, audit ve bildirim etkileriyle izole fixture kullanarak doğrulamak.
 - [x] Risk durumu güncellemesinin kullanıcı bildirimi kaydı oluşturduğunu izole fixture ile doğrulamak.
 - [x] Risk hızlı erişim kartını içeren genel bakış görünümünü canlı yönetici tarayıcısında doğrulamak.
-- [ ] Vercel ve yönetilen alanlardan başlayan Google/Manus OAuth girişinin callback, oturum ve hedef rota dönüşünü canlıda yeniden üretip hata nedenini düzeltmek.
-- [ ] Giriş, kullanıcı görev akışı, doğrulama, ödül talebi, bildirim merkezi ve yönetici operasyon merkezi kritik yollarını canlıda yeniden test etmek.
-- [ ] İlk uygulama paketi yüklenirken veya OAuth yönlendirmesi başlarken boş ekran algısını önleyen görünür başlangıç durumunu eklemek ve canlıda doğrulamak.
+- [x] Vercel ve yönetilen alanlardan başlayan Google/Manus OAuth girişinin callback, oturum ve hedef rota dönüşünü canlıda yeniden üretip hata nedenini düzeltmek.
+- [x] Giriş, kullanıcı görev akışı, doğrulama, ödül talebi, bildirim merkezi ve yönetici operasyon merkezi kritik yollarını canlıda yeniden test etmek.
+- [x] İlk uygulama paketi yüklenirken veya OAuth yönlendirmesi başlarken boş ekran algısını önleyen görünür başlangıç durumunu eklemek ve canlıda doğrulamak.
+- [x] Canlıda bir görev için görev başlatma → doğrulama gönderme/sonuç alma akışını güvenli bir test fixture’ıyla uçtan uca çalıştırıp sonucu doğrulamak.
+- [x] Canlıda aktif bir test ödülü yayınlayıp kullanıcı hesabında gerçek ödül talebi oluşturmak ve yönetici merkezinde talep işlem zincirini doğrulamak.
+- [x] Vercel ve yönetilen girişten sonra canlı kritik yol test sonuçlarını kısa bir doğrulama notunda kalıcı olarak kaydetmek.
+- [ ] Canlı tarayıcıda aktif bir test ödülü oluşturup kullanıcı hesabında talep başlatmak ve aynı talebi yönetici merkezi UI içinden izinli bir durum geçişiyle işleyerek sonucu doğrulamak.
+- [ ] Canlı tarayıcı kanıtı ile izole gerçek veritabanı canary kanıtını doğrulama notunda ayrı satırlar olarak ayrıştırmak.
+- [ ] Secret Code doğrulama yönteminin görev ayrıntısı ekranında kod isteme, tek kullanımlık kod girme ve doğrulama sonucu alma akışını güvenli biçimde sunmak.
