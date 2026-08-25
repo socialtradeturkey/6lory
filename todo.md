@@ -86,3 +86,9 @@
 - [x] `?login=1` otomatik OAuth başlangıcı için regresyon testi veya görünür çalıştırılabilir kanıt eklemek.
 - [x] Ana sayfa giriş alanında, ayrı kayıt formu yerine ilk Google/Manus girişinde hesabın oluşturulduğunu görünür metinle açıklamak ve davranışı dokümantasyonda doğrulamak.
 - [x] Yönetici rolündeki oturumun `/admin` rotasında kullanıcı dashboard’u yerine capability-korumalı yönetici merkezini açmasını canlıda doğrulamak ve gerekirse düzeltmek.
+- [ ] Yönetici merkezindeki kampanya/görev, ödül, doğrulama, risk, yorum ve audit sekmelerinin sayaç yerine gerçek uygulama içi operasyon akışlarını görünür ve tamamlanabilir biçimde sunduğunu yeniden denetlemek ve eksikleri tamamlamak.
+- [ ] Yönetici ana ekranında yalnız sayaç göstermek yerine kampanya oluşturma, görev yayınlama, ödül yönetimi, inceleme ve risk işlemlerine doğrudan erişilen bir operasyon çalışma alanı sunmak.
+- [ ] Kampanya oluşturma, aktif/pasif durum yönetimi ve kampanyaya bağlı görev oluşturma akışını yönetici arayüzünde tamamlamak.
+- [ ] Ödül taleplerini yönetici tarafından inceleme, onaylama veya reddetme; teslimat durumunu güncelleme ve audit kaydı oluşturma akışını eklemek.
+- [ ] Risk merkezinde kullanıcı risk durumunu gerekçeyle güncelleme, kısıtlama/askıya alma kararlarını audit kaydına bağlama ve güvenli kullanıcı geri bildirimini eklemek.
+- [ ] Yorum havuzlarına içerik, ağırlık ve kullanım bağlamı ekleme akışını yönetici arayüzünde tamamlamak.

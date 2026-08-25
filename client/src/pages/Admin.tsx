@@ -142,12 +142,20 @@ export default function Admin() {
   const rewards = trpc.admin.listRewards.useQuery(undefined, {
     enabled: can("rewards.read"),
   });
+  const rewardRequests = trpc.admin.rewardRequests.useQuery(undefined, {
+    enabled: can("redemptions.read"),
+  });
   const reviews = trpc.admin.verificationQueue.useQuery(undefined, {
     enabled: can("verification.decide"),
   });
   const pools = trpc.admin.listCommentPools.useQuery(undefined, {
     enabled: can("comment_pools.read"),
   });
+  const [activePoolId, setActivePoolId] = useState<number | null>(null);
+  const poolComments = trpc.admin.listComments.useQuery(
+    { poolId: activePoolId ?? 0 },
+    { enabled: can("comment_pools.read") && Boolean(activePoolId) }
+  );
   const audit = trpc.admin.auditLog.useQuery(undefined, {
     enabled: can("audit.read"),
   });
@@ -160,18 +168,38 @@ export default function Admin() {
     campaigns.refetch();
     taskList.refetch();
     rewards.refetch();
+    rewardRequests.refetch();
     reviews.refetch();
     pools.refetch();
+    poolComments.refetch();
     audit.refetch();
     risk.refetch();
   };
   const createTask = trpc.admin.createTask.useMutation({
     onSuccess: invalidateOperations,
   });
+  const createCampaign = trpc.admin.createCampaign.useMutation({
+    onSuccess: invalidateOperations,
+  });
+  const setCampaignStatus = trpc.admin.setCampaignStatus.useMutation({
+    onSuccess: invalidateOperations,
+  });
   const createReward = trpc.admin.createReward.useMutation({
     onSuccess: invalidateOperations,
   });
+  const processRedemption = trpc.admin.processRewardRedemption.useMutation({
+    onSuccess: invalidateOperations,
+  });
+  const updateRiskStatus = trpc.admin.updateRiskStatus.useMutation({
+    onSuccess: invalidateOperations,
+  });
   const createPool = trpc.admin.createCommentPool.useMutation({
+    onSuccess: data => {
+      setActivePoolId(data.id);
+      invalidateOperations();
+    },
+  });
+  const addComment = trpc.admin.addComment.useMutation({
     onSuccess: invalidateOperations,
   });
   const decideReview = trpc.admin.decideReview.useMutation({
@@ -198,10 +226,21 @@ export default function Admin() {
   const [instructionsText, setInstructionsText] = useState(
     "Görevi açın\nTalimatları izleyin\nDoğrulama isteği gönderin"
   );
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignDescription, setCampaignDescription] = useState("");
+  const [campaignBudget, setCampaignBudget] = useState("");
+  const [campaignStartsAt, setCampaignStartsAt] = useState("");
+  const [campaignEndsAt, setCampaignEndsAt] = useState("");
   const [rewardName, setRewardName] = useState("");
   const [rewardPoints, setRewardPoints] = useState("1000");
   const [rewardStock, setRewardStock] = useState("10");
   const [poolName, setPoolName] = useState("");
+  const [commentBody, setCommentBody] = useState("");
+  const [commentWeight, setCommentWeight] = useState("1");
+  const [redemptionNotes, setRedemptionNotes] = useState<Record<number, string>>({});
+  const [riskUserId, setRiskUserId] = useState("");
+  const [riskStatus, setRiskStatus] = useState("watch");
+  const [riskReason, setRiskReason] = useState("");
   const visibleTabs = tabs.filter(item => can(item.requiredPermission));
   useEffect(() => {
     if (
@@ -290,9 +329,19 @@ export default function Admin() {
                 </div>
               </div>
               <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
-                <h2 className="font-display text-lg font-bold">
-                  Hızlı yönlendirme
-                </h2>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold">
+                      Operasyon çalışma alanı
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Sayaçlar yalnızca durum özetidir. Aşağıdaki alanlardan işlemleri uygulama içinde başlatın.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-teal-500/10 px-2.5 py-1 text-[11px] font-bold text-teal-700 dark:text-teal-300">
+                    Dahili işlemler etkin
+                  </span>
+                </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {can("tasks.write") && (
                     <button
@@ -318,6 +367,30 @@ export default function Admin() {
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         Manuel kararlar sunucu tarafında ledger akışını
                         tetikler.
+                      </p>
+                    </button>
+                  )}
+                  {can("campaigns.write") && (
+                    <button
+                      onClick={() => setTab("tasks")}
+                      className="rounded-2xl border border-border/80 p-4 text-left hover:bg-muted"
+                    >
+                      <Layers3 className="size-4 text-teal-700 dark:text-teal-300" />
+                      <p className="mt-3 text-sm font-bold">Kampanya oluştur</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Bütçe ve yayın zamanlamasını tanımlayın.
+                      </p>
+                    </button>
+                  )}
+                  {can("rewards.write") && (
+                    <button
+                      onClick={() => setTab("rewards")}
+                      className="rounded-2xl border border-border/80 p-4 text-left hover:bg-muted"
+                    >
+                      <Gift className="size-4 text-teal-700 dark:text-teal-300" />
+                      <p className="mt-3 text-sm font-bold">Ödül ve teslimat</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Katalog yayınlayın, talepleri işlem sırasına alın.
                       </p>
                     </button>
                   )}
@@ -449,6 +522,83 @@ export default function Admin() {
           <section
             className={`grid gap-5 ${can("tasks.write") ? "xl:grid-cols-[0.95fr_1.05fr]" : "max-w-4xl"}`}
           >
+            {can("campaigns.write") && (
+              <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm xl:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold">Kampanya çalışma alanı</h2>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Kampanyayı önce oluşturun; ardından görev formundan kampanyaya bağlayın. Durum değişiklikleri audit kaydına yazılır.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                    {campaigns.data?.length ?? 0} kampanya
+                  </span>
+                </div>
+                <form
+                  onSubmit={event => {
+                    event.preventDefault();
+                    createCampaign.mutate({
+                      name: campaignName,
+                      description: campaignDescription || undefined,
+                      pointBudget: campaignBudget ? Number(campaignBudget) : undefined,
+                      startsAt: campaignStartsAt ? new Date(campaignStartsAt) : undefined,
+                      endsAt: campaignEndsAt ? new Date(campaignEndsAt) : undefined,
+                    });
+                  }}
+                  className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+                >
+                  <label className="text-xs font-bold xl:col-span-2">
+                    Kampanya adı
+                    <Input value={campaignName} onChange={event => setCampaignName(event.target.value)} className="mt-1.5" placeholder="Örn. Sonbahar video kampanyası" />
+                  </label>
+                  <label className="text-xs font-bold">
+                    Puan bütçesi
+                    <Input value={campaignBudget} onChange={event => setCampaignBudget(event.target.value)} className="mt-1.5" inputMode="numeric" placeholder="İsteğe bağlı" />
+                  </label>
+                  <label className="text-xs font-bold">
+                    Başlangıç
+                    <Input type="datetime-local" value={campaignStartsAt} onChange={event => setCampaignStartsAt(event.target.value)} className="mt-1.5" />
+                  </label>
+                  <label className="text-xs font-bold">
+                    Bitiş
+                    <Input type="datetime-local" value={campaignEndsAt} onChange={event => setCampaignEndsAt(event.target.value)} className="mt-1.5" />
+                  </label>
+                  <label className="text-xs font-bold md:col-span-2 xl:col-span-4">
+                    Açıklama
+                    <Input value={campaignDescription} onChange={event => setCampaignDescription(event.target.value)} className="mt-1.5" placeholder="Kapsam, hedef ve içerik notları" />
+                  </label>
+                  <Button disabled={createCampaign.isPending || campaignName.trim().length < 3} className="self-end rounded-xl">
+                    Kampanya oluştur
+                  </Button>
+                </form>
+                {createCampaign.error && <p className="mt-3 text-xs text-destructive">{createCampaign.error.message}</p>}
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {campaigns.data?.map(campaign => (
+                    <div key={campaign.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 p-4">
+                      <div>
+                        <p className="text-sm font-bold">{campaign.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {campaign.pointBudget ? `${new Intl.NumberFormat("tr-TR").format(campaign.pointBudget)} puan bütçesi` : "Bütçe tanımlanmadı"} · {campaign.status}
+                        </p>
+                      </div>
+                      <select
+                        value={campaign.status}
+                        disabled={setCampaignStatus.isPending}
+                        onChange={event => setCampaignStatus.mutate({ campaignId: campaign.id, status: event.target.value as "draft" | "scheduled" | "active" | "paused" | "archived" })}
+                        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="draft">Taslak</option>
+                        <option value="scheduled">Planlandı</option>
+                        <option value="active">Aktif</option>
+                        <option value="paused">Duraklatıldı</option>
+                        <option value="archived">Arşivlendi</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <form
               onSubmit={event => {
                 event.preventDefault();
@@ -897,6 +1047,62 @@ export default function Admin() {
                 )}
               </div>
             </div>
+            {can("redemptions.write") && (
+              <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm xl:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold">Ödül talepleri ve teslimat</h2>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      İşlem sırası sunucuda korunur. Reddedilen veya iptal edilen bekleyen talepte puan iadesi tekil ledger kaydıyla yapılır.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">{rewardRequests.data?.length ?? 0} talep</span>
+                </div>
+                {!rewardRequests.data?.length ? (
+                  <div className="mt-4"><EmptyState icon={Gift} title="Henüz ödül talebi yok" description="Kullanıcı bir ödül talep ettiğinde inceleme ve teslimat işlemleri burada yönetilir." /></div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {rewardRequests.data.map(request => {
+                      const note = redemptionNotes[request.id] ?? "";
+                      const options = request.status === "requested"
+                        ? [["under_review", "İncelemeye al"], ["approved", "Onayla"], ["rejected", "Reddet"], ["cancelled", "İptal et"]]
+                        : request.status === "under_review"
+                          ? [["approved", "Onayla"], ["rejected", "Reddet"], ["cancelled", "İptal et"]]
+                          : request.status === "approved"
+                            ? [["preparing", "Hazırlanıyor yap"]]
+                            : request.status === "preparing"
+                              ? [["shipped", "Kargoya ver"]]
+                              : request.status === "shipped"
+                                ? [["delivered", "Teslim edildi"]]
+                                : [];
+                      return (
+                        <article key={request.id} className="rounded-2xl border border-border/80 p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-bold">{request.rewardName}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">{request.displayName || request.username || `Kullanıcı #${request.userId}`} · {new Intl.NumberFormat("tr-TR").format(request.pointsCost)} puan</p>
+                            </div>
+                            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">{request.status}</span>
+                          </div>
+                          {options.length > 0 && (
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                              <Input value={note} onChange={event => setRedemptionNotes(current => ({ ...current, [request.id]: event.target.value }))} placeholder="İşlem notu (kullanıcıya bildirilir)" />
+                              <div className="flex flex-wrap gap-2">
+                                {options.map(([status, label]) => (
+                                  <Button key={status} type="button" size="sm" variant={status === "rejected" || status === "cancelled" ? "outline" : "default"} disabled={processRedemption.isPending || note.trim().length < 3} onClick={() => processRedemption.mutate({ redemptionId: request.id, status: status as "under_review" | "approved" | "preparing" | "shipped" | "delivered" | "rejected" | "cancelled", note })} className="rounded-xl">{label}</Button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {request.fulfillmentData && typeof request.fulfillmentData.lastNote === "string" && <p className="mt-3 rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">Son not: {request.fulfillmentData.lastNote}</p>}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+                {processRedemption.error && <p className="mt-3 text-xs text-destructive">{processRedemption.error.message}</p>}
+              </div>
+            )}
           </section>
         )}
         {tab === "verification" && (
@@ -984,6 +1190,35 @@ export default function Admin() {
                 sunucu tarafında engeller.
               </p>
             </div>
+            {can("risk.write") && (
+              <form
+                onSubmit={event => {
+                  event.preventDefault();
+                  updateRiskStatus.mutate({
+                    userId: Number(riskUserId),
+                    status: riskStatus as "normal" | "watch" | "review" | "restricted" | "suspended",
+                    reason: riskReason,
+                  });
+                }}
+                className="mb-5 rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm"
+              >
+                <h3 className="font-display text-base font-bold">Gerekçeli risk aksiyonu</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Bu işlem kullanıcının ödül uygunluğunu etkileyebilir; karar gerekçesi risk olayı ve audit log’a yazılır.</p>
+                <div className="mt-4 grid gap-3 md:grid-cols-[0.7fr_1fr_2fr_auto]">
+                  <Input value={riskUserId} onChange={event => setRiskUserId(event.target.value)} inputMode="numeric" placeholder="Kullanıcı ID" />
+                  <select value={riskStatus} onChange={event => setRiskStatus(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="normal">Normal</option>
+                    <option value="watch">İzleme</option>
+                    <option value="review">İnceleme</option>
+                    <option value="restricted">Kısıtlı</option>
+                    <option value="suspended">Askıya alındı</option>
+                  </select>
+                  <Input value={riskReason} onChange={event => setRiskReason(event.target.value)} placeholder="Karar gerekçesi" />
+                  <Button disabled={updateRiskStatus.isPending || !/^\d+$/.test(riskUserId) || riskReason.trim().length < 3} className="rounded-xl">Durumu güncelle</Button>
+                </div>
+                {updateRiskStatus.error && <p className="mt-3 text-xs text-destructive">{updateRiskStatus.error.message}</p>}
+              </form>
+            )}
             {!risk.data?.length ? (
               <EmptyState
                 icon={UsersRound}
@@ -1017,6 +1252,7 @@ export default function Admin() {
                       >
                         {entry.status}
                       </span>
+                      {can("risk.write") && <Button type="button" size="sm" variant="outline" onClick={() => { setRiskUserId(String(entry.userId)); setRiskStatus(entry.status); }} className="rounded-xl">İşlem seç</Button>}
                     </div>
                   </div>
                 ))}
@@ -1081,11 +1317,51 @@ export default function Admin() {
                       <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
                         {pool.isActive ? "aktif" : "pasif"}
                       </span>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setActivePoolId(pool.id)} className="rounded-xl">İçerikleri yönet</Button>
                     </div>
                   ))
                 )}
               </div>
             </div>
+            {can("comment_pools.write") && (
+              <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm xl:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold">Yorum içerik çalışma alanı</h2>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">İçerikler yalnız uygulama içinde havuza kaydedilir; hiçbir sosyal platforma otomatik gönderilmez.</p>
+                  </div>
+                  <select value={activePoolId ?? ""} onChange={event => setActivePoolId(event.target.value ? Number(event.target.value) : null)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="">Havuz seçin</option>
+                    {pools.data?.map(pool => <option key={pool.id} value={pool.id}>{pool.name}</option>)}
+                  </select>
+                </div>
+                {activePoolId ? (
+                  <>
+                    <form onSubmit={event => { event.preventDefault(); addComment.mutate({ poolId: activePoolId, body: commentBody, weight: Number(commentWeight) }); }} className="mt-4 grid gap-3 md:grid-cols-[1fr_140px_auto]">
+                      <Input value={commentBody} onChange={event => setCommentBody(event.target.value)} placeholder="Kullanıcının kopyalayabileceği yorum metni" />
+                      <Input value={commentWeight} onChange={event => setCommentWeight(event.target.value)} inputMode="numeric" placeholder="Ağırlık" />
+                      <Button disabled={addComment.isPending || commentBody.trim().length < 3 || Number(commentWeight) < 1} className="rounded-xl">İçerik ekle</Button>
+                    </form>
+                    <div className="mt-4 space-y-2">
+                      {!poolComments.data?.length ? (
+                        <EmptyState icon={Boxes} title="Bu havuz henüz boş" description="İlk yorum içeriğini ekleyerek kullanım kurallarına uygun havuzu oluşturun." />
+                      ) : poolComments.data.map(comment => (
+                        <article key={comment.id} className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border/80 p-4">
+                          <p className="max-w-3xl text-sm leading-6">{comment.body}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-1">ağırlık {comment.weight}</span>
+                            <span className="rounded-full bg-muted px-2 py-1">kullanım {comment.usedCount}</span>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                    {addComment.error && <p className="mt-3 text-xs text-destructive">{addComment.error.message}</p>}
+                  </>
+                ) : (
+                  <p className="mt-4 rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">İçerik eklemek için önce bir yorum havuzu seçin veya oluşturun.</p>
+                )}
+              </div>
+            )}
           </section>
         )}
         {tab === "audit" && (

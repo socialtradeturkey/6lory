@@ -14,6 +14,7 @@ import {
   rewardRedemptions,
   rewards,
   rolePermissions,
+  riskEvents,
   socialAccounts,
   taskAssignments,
   taskSessions,
@@ -34,6 +35,11 @@ import {
   resolveVerification,
 } from "./domain.js";
 import { buildOperationsAnalytics } from "./operationsAnalytics.js";
+import {
+  assertRedemptionTransition,
+  needsRedemptionRefund,
+  type RedemptionStatus,
+} from "./adminWorkflows.js";
 import { getDb } from "./db.js";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
@@ -952,6 +958,40 @@ export const appRouter = router({
       const db = await databaseOrThrow();
       return db.select().from(campaigns).orderBy(desc(campaigns.createdAt));
     }),
+    setCampaignStatus: adminProcedure
+      .input(
+        z.object({
+          campaignId: z.number().int().positive(),
+          status: z.enum(["draft", "scheduled", "active", "paused", "archived"]),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "campaigns.write");
+        const db = await databaseOrThrow();
+        const [campaign] = await db
+          .select()
+          .from(campaigns)
+          .where(eq(campaigns.id, input.campaignId))
+          .limit(1);
+        if (!campaign) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Kampanya bulunamadı." });
+        }
+        await db.transaction(async tx => {
+          await tx
+            .update(campaigns)
+            .set({ status: input.status })
+            .where(eq(campaigns.id, campaign.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "campaign.status_changed",
+            entityType: "campaign",
+            entityId: String(campaign.id),
+            beforeState: { status: campaign.status },
+            afterState: { status: input.status },
+          });
+        });
+        return { success: true };
+      }),
     listTasks: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "tasks.read");
       const db = await databaseOrThrow();
@@ -966,10 +1006,125 @@ export const appRouter = router({
       await requireAdminCapability(ctx.user, "redemptions.read");
       const db = await databaseOrThrow();
       return db
-        .select()
+        .select({
+          id: rewardRedemptions.id,
+          rewardId: rewardRedemptions.rewardId,
+          userId: rewardRedemptions.userId,
+          pointsCost: rewardRedemptions.pointsCost,
+          status: rewardRedemptions.status,
+          riskSnapshot: rewardRedemptions.riskSnapshot,
+          fulfillmentData: rewardRedemptions.fulfillmentData,
+          processedBy: rewardRedemptions.processedBy,
+          processedAt: rewardRedemptions.processedAt,
+          createdAt: rewardRedemptions.createdAt,
+          rewardName: rewards.name,
+          username: userProfiles.username,
+          displayName: userProfiles.displayName,
+        })
         .from(rewardRedemptions)
+        .innerJoin(rewards, eq(rewards.id, rewardRedemptions.rewardId))
+        .leftJoin(userProfiles, eq(userProfiles.userId, rewardRedemptions.userId))
         .orderBy(desc(rewardRedemptions.createdAt));
     }),
+    processRewardRedemption: adminProcedure
+      .input(
+        z.object({
+          redemptionId: z.number().int().positive(),
+          status: z.enum([
+            "under_review",
+            "approved",
+            "preparing",
+            "shipped",
+            "delivered",
+            "rejected",
+            "cancelled",
+          ]),
+          note: z.string().trim().min(3).max(1000),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "redemptions.write");
+        const db = await databaseOrThrow();
+        return db.transaction(async tx => {
+          const [redemption] = await tx
+            .select()
+            .from(rewardRedemptions)
+            .where(eq(rewardRedemptions.id, input.redemptionId))
+            .limit(1);
+          if (!redemption) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Ödül talebi bulunamadı." });
+          }
+
+          const currentStatus = redemption.status as RedemptionStatus;
+          const nextStatus = input.status as RedemptionStatus;
+          try {
+            assertRedemptionTransition(currentStatus, nextStatus);
+          } catch {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Bu ödül talebi için seçilen durum geçişine izin verilmiyor.",
+            });
+          }
+
+          const shouldRefund = needsRedemptionRefund(currentStatus, nextStatus);
+          if (shouldRefund) {
+            const [balance] = await tx
+              .select()
+              .from(pointBalances)
+              .where(eq(pointBalances.userId, redemption.userId))
+              .limit(1);
+            const refundKey = `refund:redemption:${redemption.id}`;
+            const [existingRefund] = await tx
+              .select({ id: pointLedger.id })
+              .from(pointLedger)
+              .where(eq(pointLedger.idempotencyKey, refundKey))
+              .limit(1);
+            if (!existingRefund) {
+              const nextBalance = (balance?.availablePoints ?? 0) + redemption.pointsCost;
+              await tx
+                .update(pointBalances)
+                .set({ availablePoints: nextBalance, lifetimeSpent: Math.max(0, (balance?.lifetimeSpent ?? 0) - redemption.pointsCost) })
+                .where(eq(pointBalances.userId, redemption.userId));
+              await tx.insert(pointLedger).values({
+                idempotencyKey: refundKey,
+                userId: redemption.userId,
+                type: "reversal",
+                amount: redemption.pointsCost,
+                rewardRedemptionId: redemption.id,
+                balanceAfter: nextBalance,
+                reason: "Reddedilen veya iptal edilen ödül talebi iadesi",
+                createdBy: ctx.user.id,
+              });
+            }
+          }
+
+          await tx
+            .update(rewardRedemptions)
+            .set({
+              status: nextStatus,
+              processedBy: ctx.user.id,
+              processedAt: new Date(),
+              fulfillmentData: { ...(redemption.fulfillmentData ?? {}), lastNote: input.note },
+            })
+            .where(eq(rewardRedemptions.id, redemption.id));
+          await tx.insert(notifications).values({
+            userId: redemption.userId,
+            type: "reward_status_updated",
+            title: "Ödül talebiniz güncellendi",
+            body: input.note,
+            destination: "/rewards",
+          });
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "redemption.status_changed",
+            entityType: "reward_redemption",
+            entityId: String(redemption.id),
+            beforeState: { status: currentStatus },
+            afterState: { status: nextStatus, refunded: shouldRefund, note: input.note },
+          });
+          return { success: true, refunded: shouldRefund };
+        });
+      }),
     listCommentPools: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "comment_pools.read");
       const db = await databaseOrThrow();
@@ -1005,6 +1160,54 @@ export const appRouter = router({
         .orderBy(desc(trustScores.updatedAt))
         .limit(100);
     }),
+    updateRiskStatus: adminProcedure
+      .input(
+        z.object({
+          userId: z.number().int().positive(),
+          status: z.enum(["normal", "watch", "review", "restricted", "suspended"]),
+          reason: z.string().trim().min(3).max(1000),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "risk.write");
+        const db = await databaseOrThrow();
+        return db.transaction(async tx => {
+          const [current] = await tx
+            .select()
+            .from(trustScores)
+            .where(eq(trustScores.userId, input.userId))
+            .limit(1);
+          if (!current) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Kullanıcı risk kaydı bulunamadı." });
+          }
+          await tx
+            .update(trustScores)
+            .set({ status: input.status, updatedAt: new Date() })
+            .where(eq(trustScores.userId, input.userId));
+          await tx.insert(riskEvents).values({
+            userId: input.userId,
+            type: "admin_risk_status_change",
+            severity: input.status === "suspended" ? "critical" : input.status === "restricted" ? "high" : input.status === "review" ? "medium" : "low",
+            details: { from: current.status, to: input.status, reason: input.reason, actorUserId: ctx.user.id },
+          });
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "risk.status_changed",
+            entityType: "trust_score",
+            entityId: String(input.userId),
+            beforeState: { status: current.status, score: current.score },
+            afterState: { status: input.status, reason: input.reason },
+          });
+          await tx.insert(notifications).values({
+            userId: input.userId,
+            type: "account_risk_status_updated",
+            title: "Hesap durumunuz güncellendi",
+            body: input.status === "restricted" || input.status === "suspended" ? "Hesabınız için işlem kısıtlaması uygulanmıştır. Ayrıntılar için destek ile iletişime geçebilirsiniz." : "Hesap durumunuz gözden geçirildi.",
+            destination: "/profile",
+          });
+          return { success: true };
+        });
+      }),
     createCampaign: adminProcedure
       .input(
         z.object({
@@ -1164,6 +1367,17 @@ export const appRouter = router({
           afterState: { poolId: input.poolId },
         });
         return { id: commentId };
+      }),
+    listComments: adminProcedure
+      .input(z.object({ poolId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "comment_pools.read");
+        const db = await databaseOrThrow();
+        return db
+          .select()
+          .from(comments)
+          .where(eq(comments.poolId, input.poolId))
+          .orderBy(desc(comments.createdAt));
       }),
     verificationQueue: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "verification.decide");
