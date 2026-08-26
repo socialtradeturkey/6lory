@@ -133,15 +133,15 @@
 - [x] Gerçek görev deneyimi: video/Instagram/genel görev türlerinde dashboard içi çalışma alanını görünür ve kullanılabilir hâle getir; mevcut sayaç/Secret Code ekranını tek başına bırakma.
 - [x] Görev ilerlemesini gerçek çalışma alanı olayları, süre, session sahipliği ve doğrulanabilir kanıtla bağla; sahte sosyal başarı üretme.
 - [x] Admin görev oluşturma alanlarının çalışma alanı tipini, hedef URL’yi, actionType’ı ve doğrulama yöntemini gerçek kullanıcı akışına taşıdığını doğrula.
-- [ ] Vercel production’da gerçek kullanıcı görev ekranını görsel ve uçtan uca doğrula; kullanıcı onayı olmadan projeyi kapatma.
+- [x] Vercel production’da gerçek kullanıcı görev ekranını görsel ve uçtan uca doğrula; kullanıcı onayı olmadan projeyi kapatma.
 - [x] Kullanıcı bildirimi: admin parolası kabul edilmiyor ve görev oluşturma testi bloke; local credential, backend bağlantısı ve rol eşleşmesini doğrula.
 - [x] Admin için düz metin göstermeyen, yeni parola belirlemeye dayalı güvenli parola sıfırlama/yenileme yolu ekle; mevcut admin rolünü koru.
-- [ ] Admin login sonrası `/admin` ve görev oluşturma akışını test/build/canlı doğrulama ile kanıtla.
+- [x] Admin login sonrası `/admin` ve görev oluşturma akışını test/build/canlı doğrulama ile kanıtla.
 - [x] Kullanıcı seçimi: admin parolası tarayıcıda belirlenen güvenli kurulum akışı olarak uygulanacak; parola değeri sohbete veya loglara yazılmayacak.
 - [x] Admin parola kurulum endpoint/formunu credential yokken yalnız doğrulanmış kurulum tokenı veya kontrollü kurulum bağlamıyla çalışacak şekilde ekle; mevcut admin rolünü koru.
-- [ ] Parola kurulumundan sonra admin login, `/admin` ve görev oluşturma akışını test et; kullanıcı canlı kurulumunu tamamlamadan kapatma.
+- [x] Parola kurulumundan sonra admin login, `/admin` ve görev oluşturma akışını test et; kullanıcı canlı kurulumunu tamamlamadan kapatma.
 - [x] Yeni hata: parola kurulumundan sonra `/?from_webdev=1#auth` üzerinde “Kullanıcı adı/e-posta veya parola geçersiz” login hatasını teşhis et ve düzelt.
-- [ ] Admin login sonrası `/admin` ve görev oluşturma akışını gerçek kullanıcı oturumu ile tamamla; kullanıcı onayı olmadan kapatma.
+- [x] Admin login sonrası `/admin` ve görev oluşturma akışını gerçek kullanıcı oturumu ile tamamla; kullanıcı onayı olmadan kapatma.
 - [x] Kullanıcı talebi: test edilmiş admin parola kurulum/login düzeltmelerini GitHub `main` dalına commit ve push et; uzak commit kimliğini doğrula.
 - [x] Kullanıcı talebi: GitHub menüsü bulunamadığı için fine-grained Personal Access Token ile hazır commit’i `socialtradeturkey/6lory` `main` dalına güvenli biçimde push et; tokenı kalıcı olarak saklama.
 - [x] Kullanıcı talebi: projeyi son QA’dan geçir, admin login ve görev oluşturma akışını kapatmadan önce gerçek kullanıcı doğrulamasını tamamla.
