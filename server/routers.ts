@@ -841,19 +841,25 @@ export const appRouter = router({
             method: task.verificationMethod,
             webSignals: {
               ...input.signals,
-              requiredSeconds: task.estimatedDurationSeconds,
+              requiredSeconds: task.requiredWatchSeconds ?? task.estimatedDurationSeconds,
             },
             secretCodeValid,
           });
+          // Secret Code yalnızca görevin kullanıcı tarafından tamamlandığını kanıtlar.
+          // Puan, yönetici kararı verilene kadar hiçbir koşulda ledger'a yazılmaz.
+          const verificationStatus = secretCodeValid ? "manual_review" : decision.status;
+          const verificationReason = secretCodeValid
+            ? "Secret Code doğru; yönetici onayı bekleniyor."
+            : decision.reason;
           const inserted = await tx.insert(verificationAttempts).values({
             idempotencyKey: input.idempotencyKey,
             taskId: task.id,
             userId: ctx.user.id,
             sessionId: session.id,
             adapter: task.verificationMethod,
-            status: decision.status,
+            status: verificationStatus,
             score: decision.score,
-            reason: decision.reason,
+            reason: verificationReason,
             completedAt: new Date(),
           });
           const verificationAttemptId = Number(inserted[0].insertId);
@@ -865,9 +871,27 @@ export const appRouter = router({
               score: typeof value === "number" ? Math.round(value) : null,
             }))
           );
-          if (decision.status === "manual_review")
+          if (verificationStatus === "manual_review") {
             await tx.insert(manualReviews).values({ verificationAttemptId });
-          if (decision.status === "pass") {
+            let [balance] = await tx
+              .select()
+              .from(pointBalances)
+              .where(eq(pointBalances.userId, ctx.user.id))
+              .limit(1);
+            if (!balance) {
+              await tx.insert(pointBalances).values({ userId: ctx.user.id });
+              [balance] = await tx
+                .select()
+                .from(pointBalances)
+                .where(eq(pointBalances.userId, ctx.user.id))
+                .limit(1);
+            }
+            await tx
+              .update(pointBalances)
+              .set({ pendingPoints: (balance?.pendingPoints ?? 0) + task.rewardPoints })
+              .where(eq(pointBalances.userId, ctx.user.id));
+          }
+          if (verificationStatus === "pass") {
             await writeTaskReward(tx, {
               userId: ctx.user.id,
               taskId: task.id,
@@ -902,15 +926,19 @@ export const appRouter = router({
               .update(taskSessions)
               .set({
                 status:
-                  decision.status === "manual_review"
+                  verificationStatus === "manual_review"
                     ? "pending_verification"
                     : "rejected",
                 verificationState:
-                  decision.status === "manual_review"
+                  verificationStatus === "manual_review"
                     ? "manual_review"
-                    : decision.status === "unavailable"
+                    : verificationStatus === "unavailable"
                       ? "unavailable"
                       : "failed",
+                secretCodeUsedAt:
+                  verificationStatus === "manual_review" && task.verificationMethod === "secret_code"
+                    ? new Date()
+                    : session.secretCodeUsedAt,
               })
               .where(eq(taskSessions.id, session.id));
           }
@@ -1835,8 +1863,24 @@ export const appRouter = router({
       await requireAdminCapability(ctx.user, "verification.decide");
       const db = await databaseOrThrow();
       return db
-        .select()
+        .select({
+          id: manualReviews.id,
+          verificationAttemptId: manualReviews.verificationAttemptId,
+          status: manualReviews.status,
+          createdAt: manualReviews.createdAt,
+          taskId: verificationAttempts.taskId,
+          userId: verificationAttempts.userId,
+          taskTitle: tasks.title,
+          rewardPoints: tasks.rewardPoints,
+          username: userProfiles.username,
+          displayName: userProfiles.displayName,
+          attemptReason: verificationAttempts.reason,
+          attemptScore: verificationAttempts.score,
+        })
         .from(manualReviews)
+        .innerJoin(verificationAttempts, eq(verificationAttempts.id, manualReviews.verificationAttemptId))
+        .innerJoin(tasks, eq(tasks.id, verificationAttempts.taskId))
+        .leftJoin(userProfiles, eq(userProfiles.userId, verificationAttempts.userId))
         .where(eq(manualReviews.status, "pending"))
         .orderBy(desc(manualReviews.createdAt));
     }),
@@ -1881,17 +1925,25 @@ export const appRouter = router({
               decidedAt: new Date(),
             })
             .where(eq(manualReviews.id, review.id));
+          const [task] = await tx
+            .select()
+            .from(tasks)
+            .where(eq(tasks.id, attempt.taskId))
+            .limit(1);
+          if (!task)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+          const [balance] = await tx
+            .select()
+            .from(pointBalances)
+            .where(eq(pointBalances.userId, attempt.userId))
+            .limit(1);
+          if (balance) {
+            await tx
+              .update(pointBalances)
+              .set({ pendingPoints: Math.max(0, balance.pendingPoints - task.rewardPoints) })
+              .where(eq(pointBalances.userId, attempt.userId));
+          }
           if (input.decision === "approved") {
-            const [task] = await tx
-              .select()
-              .from(tasks)
-              .where(eq(tasks.id, attempt.taskId))
-              .limit(1);
-            if (!task)
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Görev bulunamadı.",
-              });
             await tx
               .update(verificationAttempts)
               .set({
@@ -1923,15 +1975,43 @@ export const appRouter = router({
                   eq(taskAssignments.userId, attempt.userId)
                 )
               );
+            await tx.insert(notifications).values({
+              userId: attempt.userId,
+              type: "points_earned",
+              title: "Görev onaylandı, puanınız cüzdanınıza eklendi",
+              body: `Yönetici onayıyla +${task.rewardPoints} puan kazandınız.`,
+              destination: "/",
+            });
           } else {
             await tx
               .update(verificationAttempts)
               .set({
-                status: "fail",
+                status: input.decision === "retry_requested" ? "manual_review" : "fail",
                 reason: input.reason,
                 completedAt: new Date(),
               })
               .where(eq(verificationAttempts.id, attempt.id));
+            if (input.decision !== "retry_requested") {
+              await tx
+                .update(taskSessions)
+                .set({ status: "rejected", verificationState: "failed", completedAt: new Date() })
+                .where(eq(taskSessions.id, attempt.sessionId));
+              await tx.insert(notifications).values({
+                userId: attempt.userId,
+                type: "task_verification_rejected",
+                title: "Görev doğrulaması reddedildi",
+                body: input.reason,
+                destination: `/tasks/${attempt.taskId}`,
+              });
+            } else {
+              await tx.insert(notifications).values({
+                userId: attempt.userId,
+                type: "task_verification_retry",
+                title: "Görev doğrulaması yeniden isteniyor",
+                body: input.reason,
+                destination: `/tasks/${attempt.taskId}`,
+              });
+            }
           }
           await tx.insert(auditLogs).values({
             actorUserId: ctx.user.id,

@@ -104,7 +104,7 @@ describe("kritik görev prosedürleri", () => {
     expect(updates).toHaveLength(1);
   });
 
-  it("tasks.verify geçerli Secret Code ile ledger ve bakiye kaydı üretir", async () => {
+  it("tasks.verify geçerli Secret Code ile admin onayı bekleyen görev ve pending puan kaydı üretir", async () => {
     const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("123456"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
     const task = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60, rewardPoints: 100 };
     const balance = { availablePoints: 50, lifetimeEarned: 0 };
@@ -118,8 +118,8 @@ describe("kritik görev prosedürleri", () => {
 
     expect(result.idempotent).toBe(false);
     expect(replay).toEqual({ verification, idempotent: true });
-    expect(updates).toContainEqual({ availablePoints: 150, lifetimeEarned: 100 });
-    expect(inserts.filter(value => typeof value === "object" && value && "idempotencyKey" in value && (value as { idempotencyKey: string }).idempotencyKey === "task:70")).toHaveLength(1);
+    expect(updates).toContainEqual({ pendingPoints: 100 });
+    expect(inserts.filter(value => typeof value === "object" && value && "idempotencyKey" in value && (value as { idempotencyKey: string }).idempotencyKey === "task:70")).toHaveLength(0);
   });
 
   it("tasks.verify geçersiz Secret Code ile puan veya ledger kaydı oluşturmaz", async () => {
@@ -199,7 +199,7 @@ describe("kritik ödül prosedürleri", () => {
 });
 
 describe("kullanıcı kazanım yolculuğu", () => {
-  it("görev başlatma, doğrulama ile ledger oluşturma ve ödül talebini tek kullanıcı sözleşmesinde tamamlar", async () => {
+  it("görev başlatma, Secret Code doğrulaması ve ödül talebini tek kullanıcı sözleşmesinde tamamlar", async () => {
     const startTask = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 0, totalQuota: 2, sessionDurationSeconds: 900 };
     const assignment = { id: 17, status: "claimed" };
     const startedSession = { id: 21, publicId: "journey-session-0001", status: "active" };
@@ -230,7 +230,7 @@ describe("kullanıcı kazanım yolculuğu", () => {
     expect(sessionResult.reused).toBe(false);
     expect(verificationResult.idempotent).toBe(false);
     expect(redemptionResult.idempotent).toBe(false);
-    expect(verify.inserts).toContainEqual(expect.objectContaining({ type: "task_reward", amount: 100 }));
+    expect(verify.inserts).not.toContainEqual(expect.objectContaining({ type: "task_reward", amount: 100 }));
     expect(redeem.inserts).toContainEqual(expect.objectContaining({ type: "reward_redemption", amount: -100 }));
   });
 });

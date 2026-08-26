@@ -172,3 +172,6 @@
 - [x] YouTube seek/ileri sarma hareketini tespit et; ileri sarıldığında izleme kanıtı süresini düşür veya oturumu doğrulamaya kapat.
 - [x] Admin görev formuna Secret Code görünme süresi ve rastgele gösterim min/max zaman ayarlarını ekle; şema/migration ve backend doğrulamasına bağla.
 - [x] Mobil Secret Code overlay ve giriş alanını responsive, erişilebilir ve dokunmatik kullanıma uygun hâle getir; mobil screenshot/test ile doğrula.
+- [x] Secret Code doğrulamasını `pending admin approval` durumuna geçir; verify anında point ledger/cüzdan puanı yazılmasını kaldır.
+- [x] Admin doğrulama merkezine görev onayla/reddet akışı ekle; onayda idempotent ledger ve bakiye güncellemesi, redde bildirim uygula.
+- [x] Kullanıcı ekranındaki “inceleme talebi oluştur” metnini tamamlandı/onay bekliyor durumuna çevir; cüzdan ve bildirim güncellemesini test et.

@@ -1304,7 +1304,7 @@ export default function Admin() {
               <EmptyState
                 icon={ClipboardCheck}
                 title="Bekleyen manuel inceleme yok"
-                description="Platform API’si kullanılamayan veya sinyalleri kesin olmayan görevler burada görünür."
+                description="Secret Code ile tamamlanan görevler ve ek inceleme gereken doğrulamalar burada görünür. Onay, puanı kullanıcının cüzdanına aktarır."
               />
             ) : (
               <div className="space-y-3">
@@ -1316,14 +1316,18 @@ export default function Admin() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-bold">
-                          İnceleme #{review.id}
+                          {review.taskTitle ?? "Görev doğrulaması"}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Doğrulama denemesi #{review.verificationAttemptId}
+                          İnceleme #{review.id} · Deneme #{review.verificationAttemptId}
                         </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Kullanıcı: {review.displayName || review.username || `#${review.userId}`} · Ödül: <strong className="text-foreground">+{review.rewardPoints} puan</strong>
+                        </p>
+                        {review.attemptReason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{review.attemptReason}</p>}
                       </div>
                       <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-300">
-                        pending
+                        Onay bekliyor
                       </span>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -1339,7 +1343,7 @@ export default function Admin() {
                         }
                         className="rounded-xl"
                       >
-                        Onayla
+                        Onayla ve puanı cüzdana aktar
                       </Button>
                       <Button
                         size="sm"

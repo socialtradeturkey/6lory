@@ -147,8 +147,10 @@ export default function TaskDetail() {
       const status = result.verification?.status ?? "pending";
       setVerificationStatus(status);
       await utils.tasks.list.invalidate();
-      if (status === "pass") {
-        toast.success("Doğrulama tamamlandı; puan kaydı güvenle oluşturuldu.");
+      if (status === "manual_review") {
+        toast.success("Görev tamamlandı. Yönetici onayı bekleniyor; onaydan sonra puanınız cüzdanınıza eklenecek.");
+      } else if (status === "pass") {
+        toast.success("Doğrulama tamamlandı; puanınız cüzdanınıza eklendi.");
       } else {
         toast.success("Doğrulama sonucu kaydedildi. Bildirim merkezinden takip edebilirsiniz.");
       }
@@ -458,7 +460,7 @@ export default function TaskDetail() {
                     className="w-full rounded-xl"
                   >
                     <KeyRound className="mr-2 size-4" />
-                    {issuedSecretCode ? "Kodu yenile" : "Kodu şimdi iste"}
+                    {issuedSecretCode ? "Kodu yeniden göster" : "Kodu göster"}
                   </Button>
 
                   {issuedSecretCode && (
@@ -489,6 +491,8 @@ export default function TaskDetail() {
                   <Button
                     disabled={
                       verify.isPending ||
+                      verificationStatus === "manual_review" ||
+                      verificationStatus === "pass" ||
                       isSessionExpired ||
                       secretCodeInput.trim().length < 4
                     }
@@ -502,7 +506,7 @@ export default function TaskDetail() {
                     }
                     className="w-full rounded-xl"
                   >
-                    Kodu doğrula
+                    {verificationStatus === "manual_review" ? "Tamamlandı — onay bekleniyor" : "Kodu gönder"}
                   </Button>
                 </div>
               ) : supportsManualRequest ? (
@@ -538,7 +542,10 @@ export default function TaskDetail() {
 
               {verificationStatus && (
                 <>
-                  <p className="mt-3 rounded-2xl bg-muted/65 p-3 text-xs font-semibold text-muted-foreground">Son doğrulama sonucu: {verificationStatus === "pass" ? "başarılı" : verificationStatus}</p>
+                  <p className="mt-3 rounded-2xl bg-muted/65 p-3 text-xs font-semibold text-muted-foreground">
+                    Son doğrulama sonucu: {verificationStatus === "pass" ? "onaylandı ve puan cüzdana eklendi" : verificationStatus === "manual_review" ? "görev tamamlandı — yönetici onayı bekleniyor" : verificationStatus}
+                  </p>
+                  {verificationStatus === "manual_review" && <p className="rounded-2xl bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">Puanınız admin onayından sonra cüzdanınıza yansıyacaktır.</p>}
                   {verificationStatus === "pass" && nextTask && <Link href={`/tasks/${nextTask.id}`} className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Sıradaki görevi aç</Link>}
                 </>
               )}
