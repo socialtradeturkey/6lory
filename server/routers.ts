@@ -242,10 +242,27 @@ export const appRouter = router({
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Bu parola kurulum bağlantısı geçersiz veya süresi dolmuş." });
         }
         const [existing] = await db.select({ id: localAuthCredentials.id }).from(localAuthCredentials).where(eq(localAuthCredentials.userId, admin.id)).limit(1);
-        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Bu admin hesabı için parola zaten kurulmuş." });
         const password = await hashLocalPassword(input.password);
         await db.transaction(async tx => {
-          await tx.insert(localAuthCredentials).values({ userId: admin.id, email: "murathand08@gmail.com", passwordHash: password.hash, passwordSalt: password.salt });
+          if (existing) {
+            await tx
+              .update(localAuthCredentials)
+              .set({
+                email: "murathand08@gmail.com",
+                passwordHash: password.hash,
+                passwordSalt: password.salt,
+                failedAttempts: 0,
+                lockedUntil: null,
+              })
+              .where(eq(localAuthCredentials.id, existing.id));
+          } else {
+            await tx.insert(localAuthCredentials).values({
+              userId: admin.id,
+              email: "murathand08@gmail.com",
+              passwordHash: password.hash,
+              passwordSalt: password.salt,
+            });
+          }
           const [profile] = await tx.select({ id: userProfiles.id }).from(userProfiles).where(eq(userProfiles.userId, admin.id)).limit(1);
           if (!profile) {
             await tx.insert(userProfiles).values({ userId: admin.id, username: "murathand08", displayName: admin.name ?? "6lory yöneticisi", onboardingStatus: "completed" });

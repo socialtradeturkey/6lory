@@ -156,3 +156,8 @@
 - [ ] Düzeltilen production ortamında admin login, `/admin` ve görev oluşturma akışını kullanıcı parolası açığa çıkmadan doğrula.
 - [x] Vercel API Function’ını managed 6lory API’ye güvenli proxy olacak şekilde yapılandır; session cookie ve tRPC GET/POST gövdelerini koruyarak Vercel login’deki DB unavailable hatasını gider.
 - [x] Vercel managed API proxy’si için URL/origin ve query aktarım regresyon testi ekle; ardından test/build/push/deployment doğrulamasını tamamla.
+- [ ] Yeni blokaj: Vercel production’da kullanıcı login olamıyor; gerçek login isteği ile managed API credential/session yanıtını ayrıştırıp düzelt.
+- [ ] Kullanıcı parolası açığa çıkmadan login sonrası `/admin` yönlendirmesini ve görev oluşturma akışını yeniden doğrula.
+- [ ] Yeni blokaj: “Kullanıcı adı/e-posta veya parola geçersiz” hatasında login sorgusu, credential varlığı ve preview/production DB eşleşmesini parola içeriğini açmadan doğrula.
+- [x] Gerekirse admin için yeni tek kullanımlık parola kurulum akışını doğru ortamda uygula ve login sonrası `/admin` yönlendirmesini doğrula.
+- [x] Credential mevcut ve kilitli değil; admin tokenlı parola kurulumunu mevcut credential için güvenli parola yenilemeye genişlet, deneme/kilit sayaçlarını sıfırla ve yeni linkle login’i tekrar doğrula.
