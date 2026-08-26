@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { BadgeCheck, Link2, ShieldCheck, UserRound } from "lucide-react";
+import {
+  BadgeCheck,
+  KeyRound,
+  Link2,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 
 export default function Profile() {
   const { isAuthenticated } = useAuth();
@@ -22,8 +28,18 @@ export default function Profile() {
   const addSocial = trpc.profile.addSocialAccount.useMutation({
     onSuccess: () => socialQuery.refetch(),
   });
+  const changePassword = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      setCurrentPassword("");
+      setNewPassword("");
+      setPasswordConfirmation("");
+    },
+  });
   const [username, setUsername] = useState("");
   const [social, setSocial] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
 
   if (!isAuthenticated)
     return (
@@ -100,6 +116,75 @@ export default function Profile() {
               )}
             </form>
           )}
+        </section>
+        <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-lg font-bold">Parolayı değiştir</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Mevcut parolanızı doğrulayarak hesabınız için yeni bir parola belirleyin.
+              </p>
+            </div>
+            <KeyRound className="size-5 text-teal-700 dark:text-teal-300" />
+          </div>
+          <form
+            className="mt-4 grid gap-3"
+            onSubmit={event => {
+              event.preventDefault();
+              if (newPassword !== passwordConfirmation) return;
+              changePassword.mutate({ currentPassword, newPassword });
+            }}
+          >
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={event => setCurrentPassword(event.target.value)}
+              placeholder="Mevcut parola"
+              autoComplete="current-password"
+              aria-label="Mevcut parola"
+            />
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={event => setNewPassword(event.target.value)}
+              placeholder="Yeni parola (en az 10 karakter, harf ve rakam)"
+              autoComplete="new-password"
+              aria-label="Yeni parola"
+            />
+            <Input
+              type="password"
+              value={passwordConfirmation}
+              onChange={event => setPasswordConfirmation(event.target.value)}
+              placeholder="Yeni parola tekrarı"
+              autoComplete="new-password"
+              aria-label="Yeni parola tekrarı"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="submit"
+                disabled={
+                  changePassword.isPending ||
+                  !currentPassword ||
+                  newPassword.length < 10 ||
+                  newPassword !== passwordConfirmation
+                }
+                className="rounded-xl"
+              >
+                Parolayı güncelle
+              </Button>
+              {newPassword && newPassword !== passwordConfirmation && (
+                <p className="text-xs text-destructive">Yeni parolalar eşleşmiyor.</p>
+              )}
+            </div>
+            {changePassword.isSuccess && (
+              <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
+                Parolanız güvenli biçimde güncellendi.
+              </p>
+            )}
+            {changePassword.error && (
+              <p className="text-sm text-destructive">{changePassword.error.message}</p>
+            )}
+          </form>
         </section>
         <aside className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
           <h2 className="font-display text-lg font-bold">Puan özeti</h2>

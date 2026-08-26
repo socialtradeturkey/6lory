@@ -92,12 +92,12 @@ function isValidAdminSetupToken(token: string, userId: number) {
   return signature.length === expected.length && timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
-async function hashLocalPassword(password: string, salt = randomBytes(16).toString("hex")) {
+export async function hashLocalPassword(password: string, salt = randomBytes(16).toString("hex")) {
   const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
   return { salt, hash: derivedKey.toString("hex") };
 }
 
-async function verifyLocalPassword(password: string, salt: string, storedHash: string) {
+export async function verifyLocalPassword(password: string, salt: string, storedHash: string) {
   const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
   const expected = Buffer.from(storedHash, "hex");
   return expected.length === derivedKey.length && timingSafeEqual(expected, derivedKey);
@@ -363,6 +363,50 @@ export const appRouter = router({
         if (!user) throw invalid();
         await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
         await setSessionCookie(ctx, user.openId, user.name ?? "6lory kullanıcısı");
+        return { success: true } as const;
+      }),
+    changePassword: protectedProcedure
+      .input(
+        z.object({
+          currentPassword: z.string().min(1).max(128),
+          newPassword: localPasswordInput,
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await databaseOrThrow();
+        const [credential] = await db
+          .select()
+          .from(localAuthCredentials)
+          .where(eq(localAuthCredentials.userId, ctx.user.id))
+          .limit(1);
+        if (!credential) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Bu hesap için parola kaydı bulunamadı.",
+          });
+        }
+        const valid = await verifyLocalPassword(
+          input.currentPassword,
+          credential.passwordSalt,
+          credential.passwordHash
+        );
+        if (!valid) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Mevcut parola geçersiz.",
+          });
+        }
+        const password = await hashLocalPassword(input.newPassword);
+        await db
+          .update(localAuthCredentials)
+          .set({
+            passwordHash: password.hash,
+            passwordSalt: password.salt,
+            failedAttempts: 0,
+            lockedUntil: null,
+          })
+          .where(eq(localAuthCredentials.id, credential.id));
+        await setSessionCookie(ctx, ctx.user.openId, ctx.user.name ?? "6lory kullanıcısı");
         return { success: true } as const;
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
