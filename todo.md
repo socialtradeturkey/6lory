@@ -179,3 +179,7 @@
 - [x] Admin görev yapan kullanıcı istatistikleri menüsü ekle; başlangıç, tamamlanma, onay, red ve kazanılan puan metriklerini göster.
 - [x] Görev oluşturulunca ayrı atama menüsü olmadan tüm uygun aktif kullanıcılara otomatik atama ve bildirim yap.
 - [x] Admin görev silme/arsivleme akışını ilişkisel bütünlüğü ve audit kaydını koruyarak ekle.
+- [x] Liderlik ekranında kullanıcı adlarını ve kişisel ayrıntıları anonim maskele; tam isim/e-posta gösterme.
+- [x] Profil modeline ve formuna cep telefonu, il, yaş, cinsiyet ve kayıt tarihini ekle; eksik profil için görünür puan riski uyarısı göster.
+- [x] Admin kullanıcı listesi ve katılımcı istatistiklerine isim/e-posta araması ve filtreleme ekle.
+- [x] Kullanıcı engelleme ve silme işlemlerini gerçek onay modalı ile koru; yanlış tıklamayı engelle ve sonucu açıkça bildir.

@@ -25,6 +25,7 @@ export default function Profile() {
   const setup = trpc.profile.setup.useMutation({
     onSuccess: () => profileQuery.refetch(),
   });
+  const updateProfile = trpc.profile.update.useMutation({ onSuccess: () => profileQuery.refetch() });
   const addSocial = trpc.profile.addSocialAccount.useMutation({
     onSuccess: () => socialQuery.refetch(),
   });
@@ -36,6 +37,10 @@ export default function Profile() {
     },
   });
   const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [province, setProvince] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState<"female" | "male" | "non_binary" | "prefer_not_to_say">("prefer_not_to_say");
   const [social, setSocial] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -117,6 +122,21 @@ export default function Profile() {
             </form>
           )}
         </section>
+        {profileQuery.data?.profile && (
+          <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
+            <h2 className="font-display text-lg font-bold">Profil bilgileri</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Hesabınızı ve görev uygunluğunuzu güncel tutun.</p>
+            {(!profileQuery.data.profile.phoneNumber || !profileQuery.data.profile.province || !profileQuery.data.profile.age || !profileQuery.data.profile.gender) && <div className="mt-4 rounded-2xl bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">Profiliniz eksik. Eksik bilgiler ileride görev uygunluğunuzu ve kazanılmış puanların korunmasını etkileyebilir.</div>}
+            <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); updateProfile.mutate({ phoneNumber: phoneNumber || undefined, province: province || undefined, age: age ? Number(age) : undefined, gender }); }}>
+              <Input placeholder="Cep telefonu" value={phoneNumber || profileQuery.data.profile.phoneNumber || ""} onChange={event => setPhoneNumber(event.target.value)} />
+              <Input placeholder="Bulunduğunuz il" value={province || profileQuery.data.profile.province || ""} onChange={event => setProvince(event.target.value)} />
+              <Input type="number" min="13" max="120" placeholder="Yaş" value={age || (profileQuery.data.profile.age ? String(profileQuery.data.profile.age) : "")} onChange={event => setAge(event.target.value)} />
+              <select value={gender} onChange={event => setGender(event.target.value as typeof gender)} className="h-9 rounded-md border border-input bg-background px-3 text-sm"><option value="prefer_not_to_say">Belirtmek istemiyorum</option><option value="female">Kadın</option><option value="male">Erkek</option><option value="non_binary">Non-binary</option></select>
+              <p className="text-xs text-muted-foreground sm:col-span-2">E-posta: {profileQuery.data.user.email || "-"} · Kayıt tarihi: {new Date(profileQuery.data.user.createdAt).toLocaleDateString("tr-TR")}</p>
+              <Button disabled={updateProfile.isPending} className="rounded-xl sm:col-span-2">Profil bilgilerini kaydet</Button>
+            </form>
+          </section>
+        )}
         <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>

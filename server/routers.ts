@@ -476,6 +476,15 @@ export const appRouter = router({
           });
         }
       }),
+    update: protectedProcedure
+      .input(z.object({ phoneNumber: z.string().trim().min(7).max(32).optional(), province: z.string().trim().min(2).max(64).optional(), age: z.number().int().min(13).max(120).optional(), gender: z.enum(["female", "male", "non_binary", "prefer_not_to_say"]).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await databaseOrThrow();
+        const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.userId, ctx.user.id)).limit(1);
+        if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Önce kullanıcı adınızı belirleyin." });
+        await db.update(userProfiles).set({ ...input, onboardingStatus: "completed" }).where(eq(userProfiles.userId, ctx.user.id));
+        return { success: true };
+      }),
     socialAccounts: protectedProcedure.query(async ({ ctx }) => {
       const db = await databaseOrThrow();
       return db
