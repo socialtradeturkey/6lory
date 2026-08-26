@@ -175,3 +175,7 @@
 - [x] Secret Code doğrulamasını `pending admin approval` durumuna geçir; verify anında point ledger/cüzdan puanı yazılmasını kaldır.
 - [x] Admin doğrulama merkezine görev onayla/reddet akışı ekle; onayda idempotent ledger ve bakiye güncellemesi, redde bildirim uygula.
 - [x] Kullanıcı ekranındaki “inceleme talebi oluştur” metnini tamamlandı/onay bekliyor durumuna çevir; cüzdan ve bildirim güncellemesini test et.
+- [x] Admin kullanıcı yönetimi: kullanıcıları listele/görüntüle, engelleme durumunu değiştir ve güvenli silme akışı ekle.
+- [x] Admin görev yapan kullanıcı istatistikleri menüsü ekle; başlangıç, tamamlanma, onay, red ve kazanılan puan metriklerini göster.
+- [x] Görev oluşturulunca ayrı atama menüsü olmadan tüm uygun aktif kullanıcılara otomatik atama ve bildirim yap.
+- [x] Admin görev silme/arsivleme akışını ilişkisel bütünlüğü ve audit kaydını koruyarak ekle.

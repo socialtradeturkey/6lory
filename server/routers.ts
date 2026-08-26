@@ -360,7 +360,9 @@ export const appRouter = router({
           .set({ failedAttempts: 0, lockedUntil: null })
           .where(eq(localAuthCredentials.id, credential.id));
         const [user] = await db.select().from(users).where(eq(users.id, credential.userId)).limit(1);
-        if (!user) throw invalid();
+        if (!user || user.accountStatus !== "active") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Bu hesap aktif değil veya erişimi engellenmiş." });
+        }
         await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
         await setSessionCookie(ctx, user.openId, user.name ?? "6lory kullanıcısı");
         return { success: true } as const;
@@ -1324,11 +1326,111 @@ export const appRouter = router({
         });
         return { success: true, unchanged: false };
       }),
+    listUsers: adminProcedure.query(async ({ ctx }) => {
+      await requireAdminCapability(ctx.user, "operations.read");
+      const db = await databaseOrThrow();
+      return db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+          accountStatus: users.accountStatus,
+          createdAt: users.createdAt,
+          lastSignedIn: users.lastSignedIn,
+          username: userProfiles.username,
+          displayName: userProfiles.displayName,
+          availablePoints: pointBalances.availablePoints,
+          pendingPoints: pointBalances.pendingPoints,
+        })
+        .from(users)
+        .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
+        .leftJoin(pointBalances, eq(pointBalances.userId, users.id))
+        .orderBy(desc(users.createdAt));
+    }),
+    setUserStatus: adminProcedure
+      .input(z.object({ userId: z.number().int().positive(), status: z.enum(["active", "blocked", "deleted"]), reason: z.string().trim().min(3).max(500) }))
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "operations.write");
+        if (input.userId === ctx.user.id || input.status === "deleted" && input.userId === ctx.user.id) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Kendi yönetici hesabınızın durumunu bu işlemle değiştiremezsiniz." });
+        }
+        const db = await databaseOrThrow();
+        return db.transaction(async tx => {
+          const [target] = await tx.select().from(users).where(eq(users.id, input.userId)).limit(1);
+          if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Kullanıcı bulunamadı." });
+          await tx.update(users).set({ accountStatus: input.status }).where(eq(users.id, target.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: `user.${input.status}`,
+            entityType: "user",
+            entityId: String(target.id),
+            beforeState: { accountStatus: target.accountStatus },
+            afterState: { accountStatus: input.status, reason: input.reason },
+          });
+          await tx.insert(notifications).values({
+            userId: target.id,
+            type: "account_status_updated",
+            title: input.status === "blocked" ? "Hesabınız engellendi" : input.status === "deleted" ? "Hesabınız kapatıldı" : "Hesabınız yeniden aktifleştirildi",
+            body: input.reason,
+            destination: "/profile",
+          });
+          return { success: true };
+        });
+      }),
+    taskParticipantStats: adminProcedure.query(async ({ ctx }) => {
+      await requireAdminCapability(ctx.user, "operations.read");
+      const db = await databaseOrThrow();
+      const [userRows, sessions, attempts, ledger] = await Promise.all([
+        db.select({ id: users.id, name: users.name, email: users.email, username: userProfiles.username }).from(users).leftJoin(userProfiles, eq(userProfiles.userId, users.id)).where(eq(users.accountStatus, "active")),
+        db.select().from(taskSessions),
+        db.select().from(verificationAttempts),
+        db.select().from(pointLedger).where(eq(pointLedger.type, "task_reward")),
+      ]);
+      return userRows.map(user => {
+        const userSessions = sessions.filter(row => row.userId === user.id);
+        const userAttempts = attempts.filter(row => row.userId === user.id);
+        return {
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          started: userSessions.length,
+          completed: userSessions.filter(row => row.status === "verified" || row.status === "pending_verification").length,
+          approved: userAttempts.filter(row => row.status === "pass").length,
+          pendingApproval: userAttempts.filter(row => row.status === "manual_review").length,
+          rejected: userAttempts.filter(row => row.status === "fail").length,
+          earnedPoints: ledger.filter(row => row.userId === user.id).reduce((sum, row) => sum + row.amount, 0),
+        };
+      }).sort((a, b) => b.earnedPoints - a.earnedPoints || b.started - a.started);
+    }),
     listTasks: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "tasks.read");
       const db = await databaseOrThrow();
       return db.select().from(tasks).orderBy(desc(tasks.createdAt));
     }),
+    deleteTask: adminProcedure
+      .input(z.object({ taskId: z.number().int().positive(), reason: z.string().trim().min(3).max(500) }))
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.write");
+        const db = await databaseOrThrow();
+        return db.transaction(async tx => {
+          const [task] = await tx.select().from(tasks).where(eq(tasks.id, input.taskId)).limit(1);
+          if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+          if (task.status === "archived") return { success: true, unchanged: true };
+          await tx.update(tasks).set({ status: "archived" }).where(eq(tasks.id, task.id));
+          await tx.update(taskAssignments).set({ status: "cancelled" }).where(eq(taskAssignments.taskId, task.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "task.deleted",
+            entityType: "task",
+            entityId: String(task.id),
+            beforeState: { status: task.status, title: task.title },
+            afterState: { status: "archived", reason: input.reason },
+          });
+          return { success: true, unchanged: false };
+        });
+      }),
     taskAudiencePreview: adminProcedure
       .input(z.object({ taskId: z.number().int().positive() }))
       .query(async ({ ctx, input }) => {
@@ -1756,21 +1858,44 @@ export const appRouter = router({
           input.startsAt && input.startsAt > new Date()
             ? "scheduled"
             : "active";
-        const created = await db
-          .insert(tasks)
-          .values({ ...input, status, createdBy: ctx.user.id });
-        const taskId = Number(created[0].insertId);
-        await db.insert(auditLogs).values({
-          actorUserId: ctx.user.id,
-          action: "task.created",
-          entityType: "task",
-          entityId: String(taskId),
-          afterState: {
-            title: input.title,
-            verificationMethod: input.verificationMethod,
-          },
+        return db.transaction(async tx => {
+          const created = await tx
+            .insert(tasks)
+            .values({ ...input, status, createdBy: ctx.user.id });
+          const taskId = Number(created[0].insertId);
+          const [createdTask] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
+          const activeUsers = await tx
+            .select({ id: users.id })
+            .from(users)
+            .where(and(eq(users.accountStatus, "active"), eq(users.role, "user")));
+          if (activeUsers.length) {
+            await tx.insert(taskAssignments).values(
+              activeUsers.map(user => ({ taskId, userId: user.id, expiresAt: input.endsAt })),
+            );
+            await tx.insert(notifications).values(
+              activeUsers.map(user => ({
+                userId: user.id,
+                type: "task_assigned",
+                title: "Yeni görev yayınlandı",
+                body: `Size yeni bir görev atandı: ${input.title}`,
+                destination: `/tasks/${taskId}`,
+              })),
+            );
+            await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: activeUsers.length, claimedQuota: activeUsers.length, totalQuota: Math.max(input.totalQuota, activeUsers.length) }).where(eq(tasks.id, taskId));
+          }
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "task.created",
+            entityType: "task",
+            entityId: String(taskId),
+            afterState: {
+              title: input.title,
+              verificationMethod: input.verificationMethod,
+              autoAssignedUserCount: activeUsers.length,
+            },
+          });
+          return { id: createdTask?.id ?? taskId, status, assignedCount: activeUsers.length };
         });
-        return { id: taskId, status };
       }),
     createReward: adminProcedure
       .input(

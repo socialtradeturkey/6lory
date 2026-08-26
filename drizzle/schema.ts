@@ -23,6 +23,7 @@ export const users = mysqlTable("users", {
   role: mysqlEnum("role", ["user", "admin", "moderator", "verification_reviewer", "reward_manager"])
     .default("user")
     .notNull(),
+  accountStatus: mysqlEnum("account_status", ["active", "blocked", "deleted"]).default("active").notNull(),
   createdAt: utcTimestamp().defaultNow().notNull(),
   updatedAt: utcTimestamp().defaultNow().onUpdateNow().notNull(),
   lastSignedIn: utcTimestamp().defaultNow().notNull(),

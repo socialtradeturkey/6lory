@@ -20,11 +20,16 @@ import {
   ShieldAlert,
   Target,
   UsersRound,
+  UserRound,
+  Ban,
+  Trash2,
 } from "lucide-react";
 
 type AdminTab =
   | "overview"
   | "analytics"
+  | "participants"
+  | "users"
   | "tasks"
   | "rewards"
   | "verification"
@@ -47,6 +52,18 @@ const tabs: {
     id: "analytics",
     label: "Analitik",
     icon: UsersRound,
+    requiredPermission: "operations.read",
+  },
+  {
+    id: "participants",
+    label: "Katılımcı istatistikleri",
+    icon: UsersRound,
+    requiredPermission: "operations.read",
+  },
+  {
+    id: "users",
+    label: "Kullanıcılar",
+    icon: UserRound,
     requiredPermission: "operations.read",
   },
   {
@@ -139,6 +156,8 @@ export default function Admin() {
   const taskList = trpc.admin.listTasks.useQuery(undefined, {
     enabled: can("tasks.read"),
   });
+  const users = trpc.admin.listUsers.useQuery(undefined, { enabled: can("operations.read") });
+  const participantStats = trpc.admin.taskParticipantStats.useQuery(undefined, { enabled: can("operations.read") });
   const rewards = trpc.admin.listRewards.useQuery(undefined, {
     enabled: can("rewards.read"),
   });
@@ -167,6 +186,8 @@ export default function Admin() {
     analytics.refetch();
     campaigns.refetch();
     taskList.refetch();
+    users.refetch();
+    participantStats.refetch();
     rewards.refetch();
     rewardRequests.refetch();
     reviews.refetch();
@@ -190,6 +211,8 @@ export default function Admin() {
   const setTaskStatus = trpc.admin.setTaskStatus.useMutation({
     onSuccess: invalidateOperations,
   });
+  const deleteTask = trpc.admin.deleteTask.useMutation({ onSuccess: invalidateOperations });
+  const setUserStatus = trpc.admin.setUserStatus.useMutation({ onSuccess: invalidateOperations });
   const [assignmentTargetDrafts, setAssignmentTargetDrafts] = useState<Record<number, string>>({});
   const [selectedAudienceTaskId, setSelectedAudienceTaskId] = useState<number | null>(null);
   const taskAudience = trpc.admin.taskAudiencePreview.useQuery(
@@ -431,6 +454,23 @@ export default function Admin() {
                 </div>
               </div>
             </div>
+          </section>
+        )}
+        {tab === "participants" && (
+          <section className="space-y-5">
+            <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
+              <h2 className="font-display text-lg font-bold">Görev yapan kullanıcı istatistikleri</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Başlatılan, tamamlanan, onaylanan, reddedilen görevler ve kazanılan puanlar kullanıcı bazında izlenir.</p>
+            </div>
+            <div className="overflow-x-auto rounded-3xl border border-border/80 bg-card/75 shadow-sm">
+              <table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border/80 text-xs text-muted-foreground"><tr><th className="p-4">Kullanıcı</th><th className="p-4">Başlatılan</th><th className="p-4">Tamamlanan</th><th className="p-4">Onaylanan</th><th className="p-4">Bekleyen</th><th className="p-4">Reddedilen</th><th className="p-4">Kazanılan puan</th></tr></thead><tbody>{participantStats.data?.map(row => <tr key={row.userId} className="border-b border-border/60 last:border-0"><td className="p-4"><strong>{row.name || row.username || `#${row.userId}`}</strong><span className="block text-xs text-muted-foreground">{row.email}</span></td><td className="p-4">{row.started}</td><td className="p-4">{row.completed}</td><td className="p-4 text-teal-700 dark:text-teal-300">{row.approved}</td><td className="p-4 text-amber-700 dark:text-amber-300">{row.pendingApproval}</td><td className="p-4">{row.rejected}</td><td className="p-4 font-bold">{row.earnedPoints}</td></tr>)}</tbody></table>
+            </div>
+          </section>
+        )}
+        {tab === "users" && (
+          <section className="space-y-5">
+            <div className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm"><h2 className="font-display text-lg font-bold">Kullanıcı yönetimi</h2><p className="mt-1 text-sm text-muted-foreground">Hesapları görüntüleyin, gerektiğinde geçici olarak engelleyin veya güvenli soft-delete ile kapatın.</p></div>
+            <div className="space-y-3">{users.data?.map(user => <article key={user.id} className="rounded-2xl border border-border/80 bg-card/75 p-4 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold">{user.displayName || user.name || user.username || `Kullanıcı #${user.id}`}</p><p className="text-xs text-muted-foreground">{user.email} · @{user.username || "-"}</p><p className="mt-1 text-xs text-muted-foreground">Durum: <strong>{user.accountStatus}</strong> · Cüzdan: {user.availablePoints ?? 0} · Bekleyen: {user.pendingPoints ?? 0}</p></div><div className="flex flex-wrap gap-2">{user.accountStatus === "blocked" || user.accountStatus === "deleted" ? <Button size="sm" variant="outline" className="rounded-xl" disabled={setUserStatus.isPending} onClick={() => setUserStatus.mutate({ userId: user.id, status: "active", reason: "Yönetici tarafından hesap yeniden aktifleştirildi." })}><UserRound className="mr-1 size-4" /> Aktifleştir</Button> : <Button size="sm" variant="outline" className="rounded-xl" disabled={setUserStatus.isPending} onClick={() => setUserStatus.mutate({ userId: user.id, status: "blocked", reason: "Yönetici tarafından geçici olarak engellendi." })}><Ban className="mr-1 size-4" /> Engelle</Button>} {user.accountStatus !== "deleted" && <Button size="sm" variant="destructive" className="rounded-xl" disabled={setUserStatus.isPending} onClick={() => { if (window.confirm("Bu kullanıcı hesabı kapatılsın mı?")) setUserStatus.mutate({ userId: user.id, status: "deleted", reason: "Yönetici tarafından hesap kapatıldı." }); }}><Trash2 className="mr-1 size-4" /> Sil</Button>}</div></div></article>)}</div>
           </section>
         )}
         {tab === "analytics" && (
@@ -1047,6 +1087,11 @@ export default function Admin() {
                           <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
                             {task.status}
                           </span>
+                        )}
+                        {can("tasks.write") && task.status !== "archived" && (
+                          <Button type="button" size="sm" variant="destructive" className="h-8 rounded-full px-3 text-[11px]" disabled={deleteTask.isPending} onClick={() => { if (window.confirm(`“${task.title}” görevi arşivlenip kullanıcı atamaları kapatılsın mı?`)) deleteTask.mutate({ taskId: task.id, reason: "Yönetici tarafından görev silme işlemi." }); }}>
+                            <Trash2 className="mr-1 size-3.5" /> Sil
+                          </Button>
                         )}
                       </div>
                       <p className="mt-3 text-sm font-semibold text-teal-700 dark:text-teal-300">
