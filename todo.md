@@ -166,3 +166,6 @@
 - [x] Parola değişikliği için backend/UI regresyon testlerini yaz, mobil görünümü doğrula ve yayımla.
 - [x] YouTube görevlerinde video oynatıcı kontrolünü ele al; görevi başlatınca videoyu otomatik oynat ve oturum sayacını yalnızca video oynatılırken (`PLAYING`) ilerlet.
 - [x] Video durdurulduğunda, sekmeden ayrılındığında veya video bittiğinde sayaç ilerlemesini durdur ve bu sinyalleri doğrulama için kaydet.
+- [x] YouTube görevinde video oynarken süreli secret kod göster; kullanıcı kodu girerek izleme kanıtı sunsun ve kodu sunucuda tek kullanımlık doğrula.
+- [x] Admin görev oluşturma formunda YouTube minimum izleme süresini saniye cinsinden belirlet; tasks.start/verify kurallarına bağla.
+- [x] Secret kod ve minimum izleme süresi için şema/migration, UI ve regresyon testlerini ekleyip GitHub/Vercel’e yayımla.

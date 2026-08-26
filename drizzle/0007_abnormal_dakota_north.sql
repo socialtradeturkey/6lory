@@ -1,0 +1,1 @@
+ALTER TABLE `tasks` ADD `required_watch_seconds` int DEFAULT 30 NOT NULL;

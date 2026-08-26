@@ -64,6 +64,7 @@ export default function TaskDetail() {
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
   const playerRef = useRef<any>(null);
+  const secretAutoRequestedRef = useRef(false);
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
@@ -73,6 +74,7 @@ export default function TaskDetail() {
       );
       setIssuedSecretCode(null);
       setSecretCodeInput("");
+      secretAutoRequestedRef.current = false;
       setVerificationStatus(null);
       toast.success(
         result.reused
@@ -103,8 +105,27 @@ export default function TaskDetail() {
       setIssuedSecretCode(result.code);
       toast.success("Tek kullanımlık doğrulama kodu oluşturuldu.");
     },
-    onError: error => toast.error(error.message),
+    onError: error => {
+      secretAutoRequestedRef.current = false;
+      toast.error(error.message);
+    },
   });
+
+  useEffect(() => {
+    const requiredWatchSeconds = task?.requiredWatchSeconds ?? task?.estimatedDurationSeconds ?? Infinity;
+    if (
+      task?.platform !== "youtube" ||
+      task.verificationMethod !== "secret_code" ||
+      !sessionId ||
+      !isPlayerPlaying ||
+      !isPageVisible ||
+      activeSeconds < requiredWatchSeconds ||
+      secretAutoRequestedRef.current ||
+      issuedSecretCode
+    ) return;
+    secretAutoRequestedRef.current = true;
+    issueSecretCode.mutate({ sessionPublicId: sessionId, signals });
+  }, [activeSeconds, isPageVisible, isPlayerPlaying, issuedSecretCode, issueSecretCode, sessionId, signals, task]);
 
   const verify = trpc.tasks.verify.useMutation({
     onSuccess: async result => {
@@ -185,6 +206,7 @@ export default function TaskDetail() {
 
     return () => {
       setIsPlayerPlaying(false);
+      secretAutoRequestedRef.current = false;
       if (player?.destroy) player.destroy();
     };
   }, [task?.platform, sessionId, embeddedTargetUrl]);
@@ -239,7 +261,7 @@ export default function TaskDetail() {
           .toString()
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
-  const isReadyForSecretCode = activeSeconds >= task.estimatedDurationSeconds;
+  const isReadyForSecretCode = activeSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
 
   return (
     <AppShell title="Görev ayrıntısı" eyebrow="Doğrulanmış akış">
@@ -294,7 +316,18 @@ export default function TaskDetail() {
             {embeddedTargetUrl ? (
               <div className="mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm">
                 {task.platform === "youtube" && sessionId ? (
-                  <div id="youtube-player" className="aspect-video w-full" />
+                  <div className="relative aspect-video w-full">
+                    <div id="youtube-player" className="h-full w-full" />
+                    {issuedSecretCode && (
+                      <div className="pointer-events-none absolute inset-0 grid place-items-center bg-slate-950/30 p-4">
+                        <div className="rounded-2xl border border-white/35 bg-slate-950/90 px-5 py-3 text-center text-white shadow-2xl backdrop-blur-sm">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300">Görev doğrulama kodu</p>
+                          <p className="mt-1 font-mono text-3xl font-black tracking-[0.35em]">{issuedSecretCode}</p>
+                          <p className="mt-1 text-[11px] text-white/75">Kodu aşağıdaki alana girin</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <iframe src={embeddedTargetUrl} title={`${task.title} görev çalışma alanı`} className="aspect-video w-full" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={() => setInteractionCount(value => Math.max(1, value))} />
                 )}
@@ -359,11 +392,11 @@ export default function TaskDetail() {
               {supportsSecretCode ? (
                 <div className="mt-3 space-y-3">
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Beklenen süre dolduktan sonra tek kullanımlık kodu isteyin. Kod yalnız bu oturum için geçerlidir ve yeniden kullanılamaz.
+                    Minimum izleme süresi dolunca tek kullanımlık kod video üzerinde otomatik görünür. Kodu aşağıdaki alana girin; kod yalnız bu oturum için geçerlidir ve yeniden kullanılamaz.
                   </p>
                   {!isReadyForSecretCode && !isSessionExpired && (
                     <p className="rounded-2xl bg-muted/65 p-3 text-xs leading-5 text-muted-foreground">
-                      Kod isteme adımı, en az {task.estimatedDurationSeconds} saniyelik güvenli oturum etkinliğinden sonra açılır.
+                      Kod, en az {task.requiredWatchSeconds ?? task.estimatedDurationSeconds} saniyelik gerçek video izleme süresinden sonra otomatik gösterilir.
                     </p>
                   )}
                   <Button
@@ -377,7 +410,7 @@ export default function TaskDetail() {
                     className="w-full rounded-xl"
                   >
                     <KeyRound className="mr-2 size-4" />
-                    {issuedSecretCode ? "Yeni kod iste" : "Tek kullanımlık kod iste"}
+                    {issuedSecretCode ? "Kodu yenile" : "Kodu şimdi iste"}
                   </Button>
 
                   {issuedSecretCode && (

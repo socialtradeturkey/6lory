@@ -29,6 +29,13 @@ describe("6lory doğrulama kuralları", () => {
     expect(isMatchingSecretCode("739242", hash)).toBe(false);
   });
 
+  it("YouTube minimum izleme süresi dolmadan Secret Code doğrulanmaz", () => {
+    const before = { sessionValid: true, activeSeconds: 59, requiredSeconds: 60, visibilityScore: 100, interactionCount: 1 };
+    const after = { ...before, activeSeconds: 60 };
+    expect(resolveVerification({ method: "secret_code", webSignals: before, secretCodeValid: true }).status).toBe("fail");
+    expect(resolveVerification({ method: "secret_code", webSignals: after, secretCodeValid: true }).status).toBe("pass");
+  });
+
   it("geçerli Secret Code ve güçlü sinyaller başarıya, geçersiz kod ise redde gider", () => {
     const signals = { sessionValid: true, activeSeconds: 60, requiredSeconds: 60, visibilityScore: 100, interactionCount: 1 };
     expect(resolveVerification({ method: "secret_code", webSignals: signals, secretCodeValid: true }).status).toBe("pass");

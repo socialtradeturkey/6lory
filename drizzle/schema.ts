@@ -155,6 +155,7 @@ export const tasks = mysqlTable(
     verificationMethod: mysqlEnum("verification_method", ["web_signals", "secret_code", "manual_review", "platform_api", "platform_api_manual_fallback"]).notNull(),
     fallbackMethod: mysqlEnum("fallback_method", ["none", "manual_review", "unavailable"]).default("none").notNull(),
     estimatedDurationSeconds: int("estimated_duration_seconds").default(30).notNull(),
+    requiredWatchSeconds: int("required_watch_seconds").default(30).notNull(),
     sessionDurationSeconds: int("session_duration_seconds").default(900).notNull(),
     instructions: json("instructions").$type<string[]>().notNull(),
     eligibilityRules: json("eligibility_rules").$type<Record<string, unknown>>(),

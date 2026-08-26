@@ -235,6 +235,7 @@ export default function Admin() {
   const [fallbackMethod, setFallbackMethod] = useState("manual_review");
   const [perUserLimit, setPerUserLimit] = useState("1");
   const [estimatedDuration, setEstimatedDuration] = useState("30");
+  const [requiredWatchSeconds, setRequiredWatchSeconds] = useState("30");
   const [sessionDuration, setSessionDuration] = useState("900");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -657,8 +658,9 @@ export default function Admin() {
                     | "none"
                     | "manual_review"
                     | "unavailable",
-                  estimatedDurationSeconds: Number(estimatedDuration),
-                  sessionDurationSeconds: Number(sessionDuration),
+                   estimatedDurationSeconds: Number(estimatedDuration),
+                   requiredWatchSeconds: Number(requiredWatchSeconds),
+                   sessionDurationSeconds: Number(sessionDuration),
                   instructions: instructionsText
                     .split("\n")
                     .map(item => item.trim())
@@ -827,6 +829,16 @@ export default function Admin() {
                     min="5"
                     value={estimatedDuration}
                     onChange={event => setEstimatedDuration(event.target.value)}
+                    className="mt-1.5"
+                  />
+                </label>
+                <label className="text-xs font-bold">
+                  YouTube minimum izleme (sn)
+                  <Input
+                    type="number"
+                    min="5"
+                    value={requiredWatchSeconds}
+                    onChange={event => setRequiredWatchSeconds(event.target.value)}
                     className="mt-1.5"
                   />
                 </label>

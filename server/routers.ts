@@ -759,7 +759,7 @@ export const appRouter = router({
           });
         const decision = evaluateWebSignals({
           ...input.signals,
-          requiredSeconds: task.estimatedDurationSeconds,
+          requiredSeconds: task.requiredWatchSeconds ?? task.estimatedDurationSeconds,
         });
         if (decision.status !== "pass")
           throw new TRPCError({
@@ -1699,6 +1699,7 @@ export const appRouter = router({
             .default("none"),
           estimatedDurationSeconds: z.number().int().min(5).max(86_400),
           sessionDurationSeconds: z.number().int().min(60).max(86_400),
+          requiredWatchSeconds: z.number().int().min(5).max(86_400).default(30),
           instructions: z.array(z.string().min(1).max(500)).min(1).max(12),
           eligibilityRules: eligibilityRuleInput.optional(),
           startsAt: z.date().optional(),
