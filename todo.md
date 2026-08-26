@@ -142,5 +142,5 @@
 - [ ] Parola kurulumundan sonra admin login, `/admin` ve görev oluşturma akışını test et; kullanıcı canlı kurulumunu tamamlamadan kapatma.
 - [x] Yeni hata: parola kurulumundan sonra `/?from_webdev=1#auth` üzerinde “Kullanıcı adı/e-posta veya parola geçersiz” login hatasını teşhis et ve düzelt.
 - [ ] Admin login sonrası `/admin` ve görev oluşturma akışını gerçek kullanıcı oturumu ile tamamla; kullanıcı onayı olmadan kapatma.
-- [ ] Kullanıcı talebi: test edilmiş admin parola kurulum/login düzeltmelerini GitHub `main` dalına commit ve push et; uzak commit kimliğini doğrula.
+- [x] Kullanıcı talebi: test edilmiş admin parola kurulum/login düzeltmelerini GitHub `main` dalına commit ve push et; uzak commit kimliğini doğrula.
 - [x] Kullanıcı talebi: GitHub menüsü bulunamadığı için fine-grained Personal Access Token ile hazır commit’i `socialtradeturkey/6lory` `main` dalına güvenli biçimde push et; tokenı kalıcı olarak saklama.
