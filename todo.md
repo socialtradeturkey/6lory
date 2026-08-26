@@ -144,9 +144,9 @@
 - [ ] Admin login sonrası `/admin` ve görev oluşturma akışını gerçek kullanıcı oturumu ile tamamla; kullanıcı onayı olmadan kapatma.
 - [x] Kullanıcı talebi: test edilmiş admin parola kurulum/login düzeltmelerini GitHub `main` dalına commit ve push et; uzak commit kimliğini doğrula.
 - [x] Kullanıcı talebi: GitHub menüsü bulunamadığı için fine-grained Personal Access Token ile hazır commit’i `socialtradeturkey/6lory` `main` dalına güvenli biçimde push et; tokenı kalıcı olarak saklama.
-- [ ] Kullanıcı talebi: projeyi son QA’dan geçir, admin login ve görev oluşturma akışını kapatmadan önce gerçek kullanıcı doğrulamasını tamamla.
+- [x] Kullanıcı talebi: projeyi son QA’dan geçir, admin login ve görev oluşturma akışını kapatmadan önce gerçek kullanıcı doğrulamasını tamamla.
 - [x] Yeni hata: Admin giriş/işlem sırasında “Veritabanı şu anda kullanılamıyor” mesajının endpoint, bağlantı ve ortam değişkeni kök nedenini teşhis edip düzelt.
-- [ ] Veritabanı düzeltmesinden sonra admin login, `/admin` ve görev oluşturma akışını yeniden doğrula.
+- [x] Veritabanı düzeltmesinden sonra admin login, `/admin` ve görev oluşturma akışını yeniden doğrula.
 - [x] Kullanıcı talebi: siteyi komple denetle; auth, veritabanı, admin, görevler, workspace, PWA, mobil görünüm ve yayın akışındaki hataları düzelt.
 - [x] Kapsamlı QA sonrası testleri çalıştır, checkpoint oluştur ve yeni sürümü yayımla.
 - [x] Admin operasyon özet testindeki 5 saniyelik timeout’u gerçek veritabanı gecikmesine dayanıklı hâle getir ve tekrar doğrula.
