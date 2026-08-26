@@ -152,7 +152,7 @@
 - [x] Admin operasyon özet testindeki 5 saniyelik timeout’u gerçek veritabanı gecikmesine dayanıklı hâle getir ve tekrar doğrula.
 - [x] Eski OAuth köprüsü ve Vercel giriş anlatımını dokümantasyondan kaldır; manuel auth ve GitHub→Vercel otomatik dağıtım akışını belgele.
 - [x] OAuth route kaldırma sonrası eski shared OAuth sabitlerini ve callback testindeki tarihi beklentiyi temizle.
-- [ ] Yeni blokaj: Production/preview girişinde “Veritabanı şu anda kullanılamıyor” hatasını ortam ve API düzeyinde kalıcı olarak düzelt.
+- [x] Yeni blokaj: Production/preview girişinde “Veritabanı şu anda kullanılamıyor” hatasını ortam ve API düzeyinde kalıcı olarak düzelt.
 - [ ] Düzeltilen production ortamında admin login, `/admin` ve görev oluşturma akışını kullanıcı parolası açığa çıkmadan doğrula.
-- [ ] Vercel API Function’ını managed 6lory API’ye güvenli proxy olacak şekilde yapılandır; session cookie ve tRPC GET/POST gövdelerini koruyarak Vercel login’deki DB unavailable hatasını gider.
+- [x] Vercel API Function’ını managed 6lory API’ye güvenli proxy olacak şekilde yapılandır; session cookie ve tRPC GET/POST gövdelerini koruyarak Vercel login’deki DB unavailable hatasını gider.
 - [x] Vercel managed API proxy’si için URL/origin ve query aktarım regresyon testi ekle; ardından test/build/push/deployment doğrulamasını tamamla.
