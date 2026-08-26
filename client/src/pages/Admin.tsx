@@ -236,6 +236,9 @@ export default function Admin() {
   const [perUserLimit, setPerUserLimit] = useState("1");
   const [estimatedDuration, setEstimatedDuration] = useState("30");
   const [requiredWatchSeconds, setRequiredWatchSeconds] = useState("30");
+  const [secretCodeDisplaySeconds, setSecretCodeDisplaySeconds] = useState("12");
+  const [secretCodeRandomMinSeconds, setSecretCodeRandomMinSeconds] = useState("30");
+  const [secretCodeRandomMaxSeconds, setSecretCodeRandomMaxSeconds] = useState("60");
   const [sessionDuration, setSessionDuration] = useState("900");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -510,7 +513,7 @@ export default function Admin() {
                 <h3 className="font-display text-lg font-bold">
                   Görev ve doğrulama
                 </h3>
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl bg-muted/60 p-3">
                     <p className="text-xl font-bold">
                       {analytics.data?.engagement.sessionsVerified ?? 0}
@@ -660,6 +663,9 @@ export default function Admin() {
                     | "unavailable",
                    estimatedDurationSeconds: Number(estimatedDuration),
                    requiredWatchSeconds: Number(requiredWatchSeconds),
+                   secretCodeDisplaySeconds: Number(secretCodeDisplaySeconds),
+                   secretCodeRandomMinSeconds: Number(secretCodeRandomMinSeconds),
+                   secretCodeRandomMaxSeconds: Number(secretCodeRandomMaxSeconds),
                    sessionDurationSeconds: Number(sessionDuration),
                   instructions: instructionsText
                     .split("\n")
@@ -790,7 +796,7 @@ export default function Admin() {
                   </select>
                 </label>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-bold">
                   Ödül puanı
                   <Input
@@ -810,7 +816,7 @@ export default function Admin() {
                   />
                 </label>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-bold">
                   Kullanıcı limiti
                   <Input
@@ -839,6 +845,37 @@ export default function Admin() {
                     min="5"
                     value={requiredWatchSeconds}
                     onChange={event => setRequiredWatchSeconds(event.target.value)}
+                    className="mt-1.5"
+                  />
+                </label>
+                <label className="text-xs font-bold">
+                  Kod ekranda kalma (sn)
+                  <Input
+                    type="number"
+                    min="3"
+                    max="120"
+                    value={secretCodeDisplaySeconds}
+                    onChange={event => setSecretCodeDisplaySeconds(event.target.value)}
+                    className="mt-1.5"
+                  />
+                </label>
+                <label className="text-xs font-bold">
+                  Rastgele kod başlangıcı (sn)
+                  <Input
+                    type="number"
+                    min="5"
+                    value={secretCodeRandomMinSeconds}
+                    onChange={event => setSecretCodeRandomMinSeconds(event.target.value)}
+                    className="mt-1.5"
+                  />
+                </label>
+                <label className="text-xs font-bold">
+                  Rastgele kod bitişi (sn)
+                  <Input
+                    type="number"
+                    min="5"
+                    value={secretCodeRandomMaxSeconds}
+                    onChange={event => setSecretCodeRandomMaxSeconds(event.target.value)}
                     className="mt-1.5"
                   />
                 </label>
@@ -1110,7 +1147,7 @@ export default function Admin() {
                   placeholder="Örn. Dijital hediye kartı"
                 />
               </label>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-bold">
                   Puan maliyeti
                   <Input

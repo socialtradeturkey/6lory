@@ -169,3 +169,6 @@
 - [x] YouTube görevinde video oynarken süreli secret kod göster; kullanıcı kodu girerek izleme kanıtı sunsun ve kodu sunucuda tek kullanımlık doğrula.
 - [x] Admin görev oluşturma formunda YouTube minimum izleme süresini saniye cinsinden belirlet; tasks.start/verify kurallarına bağla.
 - [x] Secret kod ve minimum izleme süresi için şema/migration, UI ve regresyon testlerini ekleyip GitHub/Vercel’e yayımla.
+- [x] YouTube seek/ileri sarma hareketini tespit et; ileri sarıldığında izleme kanıtı süresini düşür veya oturumu doğrulamaya kapat.
+- [x] Admin görev formuna Secret Code görünme süresi ve rastgele gösterim min/max zaman ayarlarını ekle; şema/migration ve backend doğrulamasına bağla.
+- [x] Mobil Secret Code overlay ve giriş alanını responsive, erişilebilir ve dokunmatik kullanıma uygun hâle getir; mobil screenshot/test ile doğrula.

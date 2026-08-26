@@ -58,12 +58,15 @@ export default function TaskDetail() {
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [issuedSecretCode, setIssuedSecretCode] = useState<string | null>(null);
+  const [secretCodeExpiresAt, setSecretCodeExpiresAt] = useState<number | null>(null);
   const [secretCodeInput, setSecretCodeInput] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [interactionCount, setInteractionCount] = useState(0);
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
+  const [seekPenaltySeconds, setSeekPenaltySeconds] = useState(0);
   const playerRef = useRef<any>(null);
+  const lastPlayerTimeRef = useRef<number | null>(null);
   const secretAutoRequestedRef = useRef(false);
 
   const start = trpc.tasks.start.useMutation({
@@ -73,7 +76,10 @@ export default function TaskDetail() {
         result.session?.expiresAt ? new Date(result.session.expiresAt).getTime() : null,
       );
       setIssuedSecretCode(null);
+      setSecretCodeExpiresAt(null);
       setSecretCodeInput("");
+      setSeekPenaltySeconds(0);
+      lastPlayerTimeRef.current = null;
       secretAutoRequestedRef.current = false;
       setVerificationStatus(null);
       toast.success(
@@ -95,15 +101,24 @@ export default function TaskDetail() {
     if (!task || remainingSeconds === null) return 0;
     return Math.max(0, task.sessionDurationSeconds - remainingSeconds);
   }, [remainingSeconds, task]);
+  const effectiveActiveSeconds = Math.max(0, activeSeconds - seekPenaltySeconds);
   const signals = useMemo(
-    () => ({ ...VerificationSignals, visibilityScore: embeddedTargetUrl ? 100 : 80, interactionCount: Math.max(1, interactionCount), activeSeconds }),
-    [activeSeconds, embeddedTargetUrl, interactionCount],
+    () => ({ ...VerificationSignals, visibilityScore: embeddedTargetUrl ? 100 : 80, interactionCount: Math.max(1, interactionCount), activeSeconds: effectiveActiveSeconds }),
+    [effectiveActiveSeconds, embeddedTargetUrl, interactionCount],
   );
+  const secretTriggerSeconds = useMemo(() => {
+    if (!sessionId || !task) return Infinity;
+    const required = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+    const minimum = Math.max(required, task.secretCodeRandomMinSeconds ?? required);
+    const maximum = Math.max(minimum, task.secretCodeRandomMaxSeconds ?? minimum);
+    return minimum + Math.floor(Math.random() * (maximum - minimum + 1));
+  }, [sessionId, task?.id, task?.requiredWatchSeconds, task?.estimatedDurationSeconds, task?.secretCodeRandomMinSeconds, task?.secretCodeRandomMaxSeconds]);
 
   const issueSecretCode = trpc.tasks.issueSecretCode.useMutation({
     onSuccess: result => {
       setIssuedSecretCode(result.code);
-      toast.success("Tek kullanımlık doğrulama kodu oluşturuldu.");
+      setSecretCodeExpiresAt(result.expiresAt ? new Date(result.expiresAt).getTime() : null);
+      toast.success("Tek kullanımlık doğrulama kodu video üzerinde gösterildi.");
     },
     onError: error => {
       secretAutoRequestedRef.current = false;
@@ -119,7 +134,7 @@ export default function TaskDetail() {
       !sessionId ||
       !isPlayerPlaying ||
       !isPageVisible ||
-      activeSeconds < requiredWatchSeconds ||
+      signals.activeSeconds < secretTriggerSeconds ||
       secretAutoRequestedRef.current ||
       issuedSecretCode
     ) return;
@@ -177,6 +192,7 @@ export default function TaskDetail() {
     const onPlayerStateChange = (event: any) => {
       if (event.data === 1) setIsPlayerPlaying(true); // PLAYING
       else setIsPlayerPlaying(false); // PAUSED, ENDED, etc.
+      if (event.data !== 1) lastPlayerTimeRef.current = null;
     };
 
     const initPlayer = () => {
@@ -208,8 +224,35 @@ export default function TaskDetail() {
       setIsPlayerPlaying(false);
       secretAutoRequestedRef.current = false;
       if (player?.destroy) player.destroy();
-    };
+    }
   }, [task?.platform, sessionId, embeddedTargetUrl]);
+
+  useEffect(() => {
+    if (!isPlayerPlaying || task?.platform !== "youtube") return;
+    const checkPlayerPosition = () => {
+      const current = playerRef.current?.getCurrentTime?.();
+      if (typeof current !== "number") return;
+      const previous = lastPlayerTimeRef.current;
+      if (previous !== null && current - previous > 2.5) {
+        const skipped = Math.ceil(current - previous - 1);
+        setSeekPenaltySeconds(value => value + Math.max(1, skipped));
+        toast.warning("İleri sarma tespit edildi; atlanan süre izleme kanıtından düşüldü.");
+      }
+      lastPlayerTimeRef.current = current;
+    };
+    const timer = window.setInterval(checkPlayerPosition, 1000);
+    return () => window.clearInterval(timer);
+  }, [isPlayerPlaying, task?.platform]);
+
+  useEffect(() => {
+    if (!secretCodeExpiresAt) return;
+    const timeout = window.setTimeout(() => {
+      setIssuedSecretCode(null);
+      setSecretCodeExpiresAt(null);
+      secretAutoRequestedRef.current = false;
+    }, Math.max(0, secretCodeExpiresAt - Date.now()));
+    return () => window.clearTimeout(timeout);
+  }, [secretCodeExpiresAt]);
 
   if (!isAuthenticated) {
     return (
@@ -261,7 +304,7 @@ export default function TaskDetail() {
           .toString()
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
-  const isReadyForSecretCode = activeSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
+  const isReadyForSecretCode = effectiveActiveSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
 
   return (
     <AppShell title="Görev ayrıntısı" eyebrow="Doğrulanmış akış">
@@ -322,7 +365,7 @@ export default function TaskDetail() {
                       <div className="pointer-events-none absolute inset-0 grid place-items-center bg-slate-950/30 p-4">
                         <div className="rounded-2xl border border-white/35 bg-slate-950/90 px-5 py-3 text-center text-white shadow-2xl backdrop-blur-sm">
                           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300">Görev doğrulama kodu</p>
-                          <p className="mt-1 font-mono text-3xl font-black tracking-[0.35em]">{issuedSecretCode}</p>
+                          <p className="mt-1 font-mono text-2xl font-black tracking-[0.28em] sm:text-3xl sm:tracking-[0.35em]">{issuedSecretCode}</p>
                           <p className="mt-1 text-[11px] text-white/75">Kodu aşağıdaki alana girin</p>
                         </div>
                       </div>
@@ -394,9 +437,14 @@ export default function TaskDetail() {
                   <p className="text-sm leading-6 text-muted-foreground">
                     Minimum izleme süresi dolunca tek kullanımlık kod video üzerinde otomatik görünür. Kodu aşağıdaki alana girin; kod yalnız bu oturum için geçerlidir ve yeniden kullanılamaz.
                   </p>
+                  <div className="rounded-2xl bg-muted/65 p-3 text-xs leading-5 text-muted-foreground" aria-live="polite">
+                    <span className="font-semibold text-foreground">İzleme durumu:</span>{" "}
+                    {isPlayerPlaying ? "Video oynuyor." : "Video duraklatıldı; sayaç ilerlemiyor."}
+                    {seekPenaltySeconds > 0 && ` İleri sarma nedeniyle ${seekPenaltySeconds} saniye düşüldü.`}
+                  </div>
                   {!isReadyForSecretCode && !isSessionExpired && (
                     <p className="rounded-2xl bg-muted/65 p-3 text-xs leading-5 text-muted-foreground">
-                      Kod, en az {task.requiredWatchSeconds ?? task.estimatedDurationSeconds} saniyelik gerçek video izleme süresinden sonra otomatik gösterilir.
+                      Kod, en az {task.requiredWatchSeconds ?? task.estimatedDurationSeconds} saniyelik gerçek izleme sonrasında, görev ayarındaki rastgele aralık içinde otomatik gösterilir.
                     </p>
                   )}
                   <Button
@@ -433,7 +481,10 @@ export default function TaskDetail() {
                     onChange={event => setSecretCodeInput(event.target.value.toUpperCase())}
                     placeholder="Kodu girin"
                     autoComplete="one-time-code"
-                    className="rounded-xl font-mono"
+                    inputMode="numeric"
+                    maxLength={6}
+                    aria-label="Tek kullanımlık Secret Code"
+                    className="h-12 rounded-xl text-center font-mono text-lg tracking-[0.28em]"
                   />
                   <Button
                     disabled={

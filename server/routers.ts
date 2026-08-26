@@ -768,7 +768,10 @@ export const appRouter = router({
           });
         const code = createSecretCode();
         const expiresAt = new Date(
-          Math.min(session.expiresAt.getTime(), Date.now() + 5 * 60 * 1000)
+          Math.min(
+            session.expiresAt.getTime(),
+            Date.now() + (task.secretCodeDisplaySeconds ?? 12) * 1000,
+          )
         );
         await db
           .update(taskSessions)
@@ -1700,12 +1703,18 @@ export const appRouter = router({
           estimatedDurationSeconds: z.number().int().min(5).max(86_400),
           sessionDurationSeconds: z.number().int().min(60).max(86_400),
           requiredWatchSeconds: z.number().int().min(5).max(86_400).default(30),
+          secretCodeDisplaySeconds: z.number().int().min(3).max(120).default(12),
+          secretCodeRandomMinSeconds: z.number().int().min(5).max(86_400).default(30),
+          secretCodeRandomMaxSeconds: z.number().int().min(5).max(86_400).default(60),
           instructions: z.array(z.string().min(1).max(500)).min(1).max(12),
           eligibilityRules: eligibilityRuleInput.optional(),
           startsAt: z.date().optional(),
           endsAt: z.date().optional(),
           priority: z.number().int().min(-10).max(10).default(0),
-        })
+        }).refine(
+          value => value.secretCodeRandomMaxSeconds >= value.secretCodeRandomMinSeconds,
+          { path: ["secretCodeRandomMaxSeconds"], message: "Secret Code rastgele bitişi başlangıçtan küçük olamaz." },
+        )
       )
       .mutation(async ({ ctx, input }) => {
         await requireAdminCapability(ctx.user, "tasks.write");
