@@ -11,6 +11,9 @@ export default function AuthPanel() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [setupPassword, setSetupPassword] = useState("");
+  const [setupPasswordConfirmation, setSetupPasswordConfirmation] = useState("");
+  const setupToken = new URLSearchParams(window.location.search).get("setupAdmin");
   const utils = trpc.useUtils();
   const login = trpc.auth.login.useMutation({
     onSuccess: async () => {
@@ -26,7 +29,16 @@ export default function AuthPanel() {
     },
     onError: error => setMessage(error.message),
   });
-  const pending = login.isPending || register.isPending;
+  const setupAdminPassword = trpc.auth.setupAdminPassword.useMutation({
+    onSuccess: () => {
+      window.history.replaceState({}, "", "/");
+      setMessage("Admin parolanız oluşturuldu. Şimdi e-posta ve parolanızla giriş yapabilirsiniz.");
+      setSetupPassword("");
+      setSetupPasswordConfirmation("");
+    },
+    onError: error => setMessage(error.message),
+  });
+  const pending = login.isPending || register.isPending || setupAdminPassword.isPending;
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -34,6 +46,33 @@ export default function AuthPanel() {
     if (mode === "login") login.mutate({ email: email.trim(), password });
     else register.mutate({ name: name.trim(), username: username.trim(), email: email.trim(), password });
   };
+
+  const submitAdminSetup = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessage(null);
+    if (!setupToken) return;
+    if (setupPassword !== setupPasswordConfirmation) {
+      setMessage("Parola tekrarı eşleşmiyor.");
+      return;
+    }
+    setupAdminPassword.mutate({ token: setupToken, password: setupPassword });
+  };
+
+  if (setupToken) {
+    return (
+      <div className="rounded-[2rem] border border-border/80 bg-card/90 p-5 shadow-2xl shadow-slate-950/10 backdrop-blur-xl sm:p-7">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">Güvenli hesap kurulumu</p>
+        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight">Admin parolanızı belirleyin</h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">Bu bağlantı yalnızca admin hesabının ilk parolasını oluşturmak içindir. Parolanız tarayıcıdan doğrudan sunucuya gider ve düz metin olarak saklanmaz.</p>
+        <form className="mt-5 space-y-4" onSubmit={submitAdminSetup}>
+          <div className="space-y-2"><Label htmlFor="setup-password">Yeni parola</Label><Input id="setup-password" type="password" value={setupPassword} onChange={event => setSetupPassword(event.target.value)} autoComplete="new-password" minLength={10} maxLength={128} required placeholder="En az 10 karakter" /></div>
+          <div className="space-y-2"><Label htmlFor="setup-password-confirmation">Yeni parola tekrarı</Label><Input id="setup-password-confirmation" type="password" value={setupPasswordConfirmation} onChange={event => setSetupPasswordConfirmation(event.target.value)} autoComplete="new-password" minLength={10} maxLength={128} required placeholder="Parolayı tekrar girin" /></div>
+          {message && <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm leading-5 text-amber-900 dark:text-amber-200">{message}</p>}
+          <Button className="w-full rounded-xl" type="submit" disabled={pending}>{pending ? "Parola oluşturuluyor…" : "Admin parolasını oluştur"}</Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-[2rem] border border-border/80 bg-card/90 p-5 shadow-2xl shadow-slate-950/10 backdrop-blur-xl sm:p-7">

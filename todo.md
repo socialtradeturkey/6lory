@@ -134,3 +134,9 @@
 - [x] Görev ilerlemesini gerçek çalışma alanı olayları, süre, session sahipliği ve doğrulanabilir kanıtla bağla; sahte sosyal başarı üretme.
 - [x] Admin görev oluşturma alanlarının çalışma alanı tipini, hedef URL’yi, actionType’ı ve doğrulama yöntemini gerçek kullanıcı akışına taşıdığını doğrula.
 - [ ] Vercel production’da gerçek kullanıcı görev ekranını görsel ve uçtan uca doğrula; kullanıcı onayı olmadan projeyi kapatma.
+- [ ] Kullanıcı bildirimi: admin parolası kabul edilmiyor ve görev oluşturma testi bloke; local credential, backend bağlantısı ve rol eşleşmesini doğrula.
+- [ ] Admin için düz metin göstermeyen, yeni parola belirlemeye dayalı güvenli parola sıfırlama/yenileme yolu ekle; mevcut admin rolünü koru.
+- [ ] Admin login sonrası `/admin` ve görev oluşturma akışını test/build/canlı doğrulama ile kanıtla.
+- [x] Kullanıcı seçimi: admin parolası tarayıcıda belirlenen güvenli kurulum akışı olarak uygulanacak; parola değeri sohbete veya loglara yazılmayacak.
+- [x] Admin parola kurulum endpoint/formunu credential yokken yalnız doğrulanmış kurulum tokenı veya kontrollü kurulum bağlamıyla çalışacak şekilde ekle; mevcut admin rolünü koru.
+- [ ] Parola kurulumundan sonra admin login, `/admin` ve görev oluşturma akışını test et; kullanıcı canlı kurulumunu tamamlamadan kapatma.

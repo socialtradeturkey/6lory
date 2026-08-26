@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { promisify } from "node:util";
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -74,6 +74,22 @@ function normalizeEmail(email: string) {
 
 function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
+}
+
+function adminSetupSignature(userId: number, expiresAt: number) {
+  return createHmac("sha256", process.env.JWT_SECRET ?? "").update(`admin-setup:${userId}:${expiresAt}`).digest("base64url");
+}
+
+export function createAdminSetupToken(userId: number, expiresAt = Date.now() + 15 * 60 * 1000) {
+  return `${userId}.${expiresAt}.${adminSetupSignature(userId, expiresAt)}`;
+}
+
+function isValidAdminSetupToken(token: string, userId: number) {
+  const [tokenUserId, expiresAtText, signature] = token.split(".");
+  const expiresAt = Number(expiresAtText);
+  if (Number(tokenUserId) !== userId || !Number.isSafeInteger(expiresAt) || expiresAt < Date.now() || !signature) return false;
+  const expected = adminSetupSignature(userId, expiresAt);
+  return signature.length === expected.length && timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
 async function hashLocalPassword(password: string, salt = randomBytes(16).toString("hex")) {
@@ -217,6 +233,26 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    setupAdminPassword: publicProcedure
+      .input(z.object({ token: z.string().min(32).max(512), password: localPasswordInput }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await databaseOrThrow();
+        const [admin] = await db.select().from(users).where(and(eq(users.email, "murathand08@gmail.com"), eq(users.role, "admin"))).limit(1);
+        if (!admin || !isValidAdminSetupToken(input.token, admin.id)) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Bu parola kurulum bağlantısı geçersiz veya süresi dolmuş." });
+        }
+        const [existing] = await db.select({ id: localAuthCredentials.id }).from(localAuthCredentials).where(eq(localAuthCredentials.userId, admin.id)).limit(1);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Bu admin hesabı için parola zaten kurulmuş." });
+        const password = await hashLocalPassword(input.password);
+        await db.transaction(async tx => {
+          await tx.insert(localAuthCredentials).values({ userId: admin.id, email: "murathand08@gmail.com", passwordHash: password.hash, passwordSalt: password.salt });
+          const [profile] = await tx.select({ id: userProfiles.id }).from(userProfiles).where(eq(userProfiles.userId, admin.id)).limit(1);
+          if (!profile) {
+            await tx.insert(userProfiles).values({ userId: admin.id, username: "murathand08", displayName: admin.name ?? "6lory yöneticisi", onboardingStatus: "completed" });
+          }
+        });
+        return { success: true } as const;
+      }),
     register: publicProcedure
       .input(
         z.object({
