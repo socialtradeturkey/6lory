@@ -183,3 +183,6 @@
 - [x] Profil modeline ve formuna cep telefonu, il, yaş, cinsiyet ve kayıt tarihini ekle; eksik profil için görünür puan riski uyarısı göster.
 - [x] Admin kullanıcı listesi ve katılımcı istatistiklerine isim/e-posta araması ve filtreleme ekle.
 - [x] Kullanıcı engelleme ve silme işlemlerini gerçek onay modalı ile koru; yanlış tıklamayı engelle ve sonucu açıkça bildir.
+- [ ] Son checkpoint ile çalışma ağacını ve canlı deployment’ı karşılaştır; özelliklerin gerçekten bundle’a girdiğini doğrula.
+- [ ] Canlıda görünmeyen Liderlik, Profil, admin arama ve kritik işlem modalı akışlarını route bazında düzelt ve yeniden bağla.
+- [ ] Yeni yayında kullanıcı/admin akışlarını browser ve build/test ile doğrula; checkpoint’i güncelle.
