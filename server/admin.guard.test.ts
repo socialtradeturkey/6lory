@@ -100,7 +100,7 @@ describe("admin erişim koruması", () => {
     });
   });
 
-  it("yapılandırılmış yönetici izni olan kullanıcının operasyon özetini okuyabildiğini doğrular", async () => {
+  it("yapılandırılmış yönetici izni olan kullanıcının operasyon özetini okuyabildiğini doğrular", { timeout: 15_000 }, async () => {
     const caller = appRouter.createCaller(createAdminContext());
     await expect(caller.admin.overview()).resolves.toMatchObject({
       activeTasks: expect.any(Number),

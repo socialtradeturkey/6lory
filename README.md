@@ -46,7 +46,7 @@ Tarayıcı sinyalleri tek başına otomatik puan onayı vermez. Resmî platform 
 | Grup | Örnekler | Kural |
 | --- | --- | --- |
 | Veri ve oturum | `DATABASE_URL`, `JWT_SECRET` | Sadece sunucuda saklanır; kaynak kontrolüne eklenmez. |
-| Kimlik | `OAUTH_SERVER_URL`, `VITE_OAUTH_PORTAL_URL`, `VITE_APP_ID` | Domain değiştiğinde callback URL ayarı ayrıca güncellenir. |
+| Kimlik | `JWT_SECRET`, `GITHUB_PUSH_TOKEN` (yalnızca bakım ortamı) | Kullanıcı auth’ı manuel parola ve güvenli session cookie ile çalışır; GitHub tokenı uygulama runtime’ına bağlanmaz. |
 | İstemci görünürlüğü | `VITE_*` | Bu önekli değişkenler build çıktısına dahil olabileceği için gizli veri içermez. |
 
 ## Doğrulama sınırlamaları
@@ -55,4 +55,4 @@ Platform API’si, izin kapsamı veya güvenilir adapter bulunmayan sosyal göre
 
 ## Geçici Vercel kullanımı
 
-Geçici Vercel dağıtımı için teknik geçiş planı, gerekli ortam değişkenleri, OAuth yönlendirme notları ve geri dönüş prosedürü [`docs/vercel-transition.md`](docs/vercel-transition.md) dosyasındadır. Vercel’e aktarırken gizli anahtarları, kullanıcı verilerini ve yerel günlükleri GitHub’a göndermeyin.
+Geçici Vercel dağıtımı için teknik geçiş planı, gerekli ortam değişkenleri, GitHub bağlantısı ve geri dönüş prosedürü [`docs/vercel-transition.md`](docs/vercel-transition.md) dosyasındadır. Vercel’e aktarırken gizli anahtarları, kullanıcı verilerini ve yerel günlükleri GitHub’a göndermeyin.

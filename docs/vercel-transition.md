@@ -1,99 +1,32 @@
-# 6lory: Geçici Vercel Geçiş Planı
+# Vercel dağıtım ve üretim çalışma modeli
 
-## Amaç ve kapsam
+6lory’nin kaynak deposu `https://github.com/socialtradeturkey/6lory.git` adresindedir. Vercel projesi bu GitHub deposunun `main` dalına bağlıdır. `main` dalına başarılı bir push geldiğinde Vercel yeni bir production deployment oluşturur; build tamamlandığında deployment durumu Vercel panelinden izlenebilir.
 
-Bu belge, 6lory’nin **geçici Vercel kullanımı** için güvenli geçiş sınırlarını tanımlar. Proje şu anda React/Vite istemcisi ile Express/tRPC sunucusunu birlikte çalıştırır. Bu nedenle yalnızca statik dosyaları dağıtmak, görev doğrulaması, point ledger, ödül redemption, bildirim merkezi ve yönetici operasyonlarını çalıştırmak için yeterli değildir.
+## Uygulama ve API sınırı
 
-Vercel Express uygulamalarını bir Vercel Function olarak çalıştırabilir; ancak Function yaşam döngüsüne uygun giriş noktası, statik varlık düzeni ve ortam değişkenleri gerekir.[1] Vite tek sayfa uygulamalarında derin bağlantılar için ayrıca fallback rewrite tanımlanmalıdır.[2]
+Vercel alan adı kullanıcı arayüzünü ve `/api/*` Function yönlendirmesini sunar. Uygulamanın güvenilir veri ve oturum katmanı yönetilen 6lory sunucusundadır. Production ortamında `DATABASE_URL` ve `JWT_SECRET` gibi değerler yalnızca sunucu tarafında yapılandırılmalı; GitHub’a, tarayıcı bundle’ına veya loglara yazılmamalıdır.
 
-| Dağıtım profili | Ne çalışır | Sınır |
-| --- | --- | --- |
-| **Statik önizleme** | UI, tasarım, PWA kabuğu ve oturum açmamış ekranlar | tRPC API, OAuth, doğrulama, ledger ve ödül işlemleri çalışmaz. Ürün kullanımı için uygun değildir. |
-| **Tam yığın Vercel** | İstemci + Express/tRPC Function + harici DB | Mevcut dahili OAuth ve platform servislerinin eşdeğerlerinin Vercel ortamında yapılandırılması gerekir. |
-| **Mevcut yönetilen dağıtım** | Projenin mevcut kimlik ve sunucu bütünleşmeleri | Geçici Vercel ihtiyacı bittiğinde en az uyarlama gerektiren geri dönüş yoludur. |
+## Kimlik doğrulama
 
-## Önerilen geçici akış
+Kullanıcı erişimi yalnızca uygulama içindeki **kullanıcı adı/e-posta ve parola** formuyla yapılır. Google, Manus veya başka bir harici sağlayıcı üzerinden kullanıcı girişi yoktur. Parolalar scrypt ve benzersiz salt ile hashlenir; oturumlar güvenli host-only session cookie ile sürdürülür. Admin kullanıcısı başarılı girişten sonra `/admin` alanına yönlendirilir ve sunucu tarafındaki rol/izin kontrolleri tüm yönetim prosedürlerinde uygulanır.
 
-1. GitHub deposunu Vercel’e bağlayın ve önce bir **Preview Deployment** oluşturun. Preview ortamı, ana üretim dalından farklı dallar için ayrı ortam değişkenleri destekler.[3]
-2. Önce UI ve rota davranışını kontrol edin. Tam yığın işlevsellik için aşağıdaki ortam değişkenleri ve OAuth adapter çalışması tamamlanmadan üretime yönlendirme yapmayın.
-3. Vercel domaini netleştiğinde OAuth callback URL’sini `https://<vercel-domain>/api/oauth/callback` olarak ilgili kimlik sağlayıcısında izinli redirect URI listesine ekleyin.
-4. Geçiş boyunca veritabanı migrasyonlarını Vercel Function içinde otomatik çalıştırmayın; migrasyonlar sürümlenmiş SQL ile kontrollü olarak uygulanmalıdır.
-5. Geri dönüş gerektiğinde Vercel’in deployment rollback özelliğini kullanın veya domaini önceki barındırma hedefine geri yönlendirin.[1]
+## Görev ve veri güvenliği
 
-## Vercel uyarlama kontrol listesi
+Görev başlatma, workspace sinyalleri, doğrulama, immutable ledger ve ödül işlemleri sunucu tarafında yürütülür. Tarayıcıdaki iframe veya video görünürlüğü tek başına başarılı doğrulama sayılmaz. Sağlayıcı API’si bulunmayan sosyal görevler `UNAVAILABLE` veya manuel inceleme sonucuna gider; sahte başarı, puan veya kullanıcı yorumu üretilmez.
 
-| Konu | Gereken çalışma | Durum |
-| --- | --- | --- |
-| Express Function girişi | Express uygulamasını port dinlemeyen, varsayılan export veren bir `server.ts` veya `src/server.ts` girişine ayırmak | Geçici adaptasyon gerektiğinde uygulanacak |
-| Vite build | `pnpm build` ile istemci varlıklarını üretmek | Mevcut komut hazır |
-| SPA deep link | API yollarını Function’a, kullanıcı rotalarını `index.html` fallback’ine yönlendirmek | `vercel.json` adaptasyonunda eklenecek |
-| Statik varlıklar | Vercel’de `public/**` ile CDN servis edildiğini dikkate almak | PWA manifest/service worker varlıkları kontrol edilecek |
-| OAuth | Vercel domain callback URL’si, cookie SameSite/Secure politikası ve sağlayıcı sırları | Domain netleştiğinde zorunlu |
-| Veritabanı | Vercel Function’a erişebilen TLS destekli MySQL/TiDB bağlantısı | Üretim öncesi zorunlu |
-| Uygulama içi bildirimler | Veritabanı erişimi ve kullanıcı oturumu | Mevcut tRPC akışıyla çalışır; ek cihaz anahtarı gerektirmez |
-
-## Ortam değişkenleri
-
-Vercel ortam değişkenlerini Project Settings üzerinden Production ve Preview ortamları için ayrı tanımlayın. Değişiklikler yalnızca sonraki deployment’larda uygulanır.[3] `VITE_` ile başlayan değişkenler istemci derleme çıktısına dahil olabileceğinden gizli değerleri bu önekle tanımlamayın.[2]
-
-| Değişken | Vercel’de gerekli mi? | Not |
-| --- | --- | --- |
-| `DATABASE_URL` | Evet | TLS destekli, Function’dan erişilebilir MySQL/TiDB bağlantısı |
-| `JWT_SECRET` | Evet | Her ortamda yüksek entropili ve ayrı değer |
-| `OAUTH_SERVER_URL`, `VITE_OAUTH_PORTAL_URL`, `VITE_APP_ID` | OAuth adapter’a bağlı | Mevcut sağlayıcının Vercel uyumluluğu doğrulanmalı; aksi durumda sağlayıcı değiştirilir |
-| `BUILT_IN_FORGE_API_*` | Özellik kullanımına bağlı | Vercel dışında erişim ve yetkilendirme eşdeğeri sağlanmadan varsayılmamalı |
-
-## GitHub ve secret güvenliği
-
-Paylaşılan depo: `https://github.com/socialtradeturkey/6lory.git`.
-
-GitHub deposuna `.env`, veritabanı bağlantı metni, JWT, OAuth secret, gerçek kullanıcı kaydı veya uygulama günlüğü göndermeyin. Vercel, ortam değişkenlerini proje ayarlarında şifreli saklar; bu değerleri kaynak koda yazmak yerine ilgili ortamda yapılandırın.[3]
-
-## 24 Ağustos 2026 bağlantı doğrulaması
-
-Vercel projesinin GitHub bağlantısı doğrulanmıştır. Ancak GitHub CLI yetkilendirmesi yerel ortamda tamamlanamadığı için en son OAuth/yönetici dönüş düzeltmeleri kaynak depoya henüz gönderilememiş olabilir. Bu süre boyunca doğrulanan kaynak sürümü doğrudan Vercel production dağıtımı ve yönetilen uygulama checkpoint’i üzerinden korunur; GitHub erişimi yenilendiğinde `main` dalı aynı sürümle eşitlenmelidir.
-
-İlk dağıtımda kök alan adı HTML uygulama kabuğu yerine paketlenmiş sunucu JavaScript’i döndürüyor, `/api/oauth/callback` ise `404 NOT_FOUND` ile yanıtlanıyordu. Bu hata, Vite istemci çıktısı ile Express girişinin aynı dağıtım çıktısında yanlış algılanmasından kaynaklandı. Düzeltmede port dinlemeyen bir Express Function girişi, `/api/**` yönlendirmesi, Vite çıktı dizini ve SPA fallback’i tanımlandı. Function’ın ESM yerel modül çözümlemesi de `.js` yollarıyla Vercel çalışma zamanına uygun hâle getirildi.
-
-| Doğrulanan konu | Bulgular | Karar |
-| --- | --- | --- |
-| GitHub ↔ Vercel bağlantısı | `main` dalındaki güncel commit otomatik olarak production hedefli dağıtıma alınmış | Bağlantı güncel |
-| Kök rota | `https://6lory.vercel.app/` artık `200 text/html` ve React/PWA uygulama kabuğu döndürüyor | Ana sayfa çalışır |
-| SPA derin bağlantı | `/tasks` artık `200 text/html` ile `index.html` fallback’ine yönleniyor | Kullanıcı rotaları yenilemede korunur |
-| OAuth API rotası | `/api/oauth/callback` artık Express Function üzerinden beklenen eksik parametre yanıtını (`400`) döndürüyor | API Function route’u çalışır |
-| tRPC API rotası | `/api/trpc/auth.me?batch=1` anonim istek için `200 application/json` ve beklenen `null` oturum zarfını döndürüyor | tRPC middleware ve API yönlendirmesi canlıda doğrulandı |
-| Kritik iş kuralları | tRPC/Express Function yönlendirmesi çalışır; veritabanı ve OAuth işlemleri Vercel ortam değişkenleri ile izinli callback kaydına bağlıdır | Gizli değerler yapılandırılmadan canlı işlem onayı verilmez |
-| Güvenli canlı hedef | Yönetilen tam-yığın dağıtım: `https://6loryapp-pernhdey.manus.space` | Vercel production hedefiyle birlikte korunur |
-
-Vercel’de uygulama kabuğu ve API Function yönlendirmesi artık çalışmaktadır. Kimlik doğrulama, veritabanı işlemleri ve ödül akışlarının bu alanda üretim kullanımına açılması için `DATABASE_URL`, `JWT_SECRET`, OAuth ortam değişkenleri ve Vercel alan adının izinli OAuth callback kaydı ayrıca yapılandırılmalıdır. Bu değerler kaynak koda veya GitHub’a yazılmamalıdır.[1] [2] [3]
-
-## OAuth alan adı sınırı ve güvenli giriş davranışı
-
-OAuth sağlayıcısı, uygulamanın mevcut kayıtlı yapılandırmasında `https://6lory.vercel.app/api/oauth/callback` adresini izinli redirect URI olarak kabul etmemektedir. Bu nedenle Vercel alan adında doğrudan OAuth callback başlatmak yerine sağlayıcı tarafından zaten izin verilen yönetilen uygulama alanına (`https://6loryapp-pernhdey.manus.space`) yönlendirme uygulanır. Bu seçim, izinli olmayan callback kullanımını ve farklı origin’ler arasında güvenli biçimde paylaşılamayacak oturum çerezleri hakkında yanlış bir beklenti oluşturmayı önler.
-
-Vercel, açık kullanıcı deneyimini, rotaları ve API Function yapısını sunmaya devam eder. Ancak bu sürümde **giriş işlemi yönetilen uygulama alanında tamamlanır**. Vercel üzerinde bağımsız kullanıcı oturumu ancak OAuth sağlayıcısında Vercel callback alan adı proje bazında izinli hâle getirildiğinde ve ilgili oturum/veritabanı secret’ları ayrı olarak yapılandırıldığında açılmalıdır.
-
-### Giriş köprüsü ve ilk kullanıcı kaydı
-
-Vercel ziyaretçisinin giriş isteği önce `https://6loryapp-pernhdey.manus.space/?login=1` adresine taşınır. Yönetilen uygulama bu kısa ömürlü köprü işaretini tarayıcı geçmişinden temizler, tek kullanımlık nonce üreten standart OAuth başlangıcını çalıştırır ve sonuçta kullanıcıyı uygulamaya döndürür. Böylece önceki 404 hedefi ile izinli olmayan Vercel callback’i kullanılmaz.
-
-6lory, ayrı bir e-posta/şifre kayıt formu kullanmaz. Kullanıcı, OAuth sağlayıcısındaki **Başka bir hesap kullan** seçeneğiyle Google/Manus hesabını seçer; başarılı ilk girişte güvenli sunucu tarafı kullanıcı kaydı oluşturulur. Bu yaklaşımda parola, parola sıfırlama veya doğrulanmamış istemci tarafı kayıt akışı bulunmaz.
-
-### Yönetici girişinin kesin davranışı
-
-`https://6lory.vercel.app/admin` adresindeki **Güvenli giriş yap** eylemi, Vercel üzerinde bağımsız bir oturum oluşturmaya çalışmaz. Güvenli köprü, yalnızca host-bound bir kısa ömürlü dönüş işaretiyle izinli yönetilen OAuth alanına geçer. Callback başarıyla tamamlandığında sunucu yalnızca sabit iç hedef olan `/admin` yolunu kabul eder; harici URL’ler, farklı uygulama yolları ve açık yönlendirme denemeleri ana sayfaya düşer.
-
-Bu nedenle başarılı Vercel yönetici girişi şu adreste tamamlanır: `https://6loryapp-pernhdey.manus.space/admin`. Bu beklenen davranıştır: güvenli oturum çerezi origin’ler arasında paylaşılmaz. `socialtradeturkey@gmail.com` kimliği yönetici rolündeyse burada **6LORY CONTROL** operasyon merkezi açılır; görev ve kampanya işlemleri bu yönetilen yönetici merkezi üzerinden yürütülür.
-
-## Dağıtım öncesi kontrol
+## Yayın öncesi kontrol
 
 ```bash
 pnpm check
-pnpm test
+pnpm test -- --run
 pnpm build
 ```
 
-Tam yığın geçiş tamamlanmadan yalnızca tasarım ve statik önizleme için Vercel kullanın. Doğrulama, puan ve ödül işlemleri erişilemezse kullanıcıya başarı sonucu göstermek yerine açık bir bakım/uygun değil durumu sunun.
+GitHub tokenı yalnızca push veya bakım işlemi için güvenli ortam değişkeni olarak kullanılmalıdır. Token uygulama koduna, `.env` dosyasına veya commit geçmişine eklenmemelidir. Vercel ortam değişkenleri Project Settings içinde Production ve Preview için ayrıca kontrol edilmelidir; yerel başarı, eksik production env değerlerinin yerine geçmez.
+
+## Geri dönüş
+
+Bir deployment hata verirse önce Vercel build ve runtime logları incelenir. Sorun kaynak değişikliğinden kaynaklanıyorsa son doğrulanmış checkpoint’e geri dönülür ve yeni bir commit ile `main` dalı güncellenir. Veritabanında destructive migration veya kullanıcı verisi silme işlemi geri dönüş yöntemi olarak kullanılmaz.
 
 ## Kaynaklar
 

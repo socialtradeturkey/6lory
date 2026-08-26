@@ -1,4 +1,4 @@
-import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS, decodeOAuthState } from "../../shared/const.js";
+import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import { ForbiddenError } from "../../shared/_core/errors.js";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
@@ -8,9 +8,6 @@ import type { User } from "../../drizzle/schema.js";
 import * as db from "../db.js";
 import { ENV } from "./env.js";
 import type {
-  ExchangeTokenRequest,
-  ExchangeTokenResponse,
-  GetUserInfoResponse,
   GetUserInfoWithJwtRequest,
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes.js";
@@ -24,56 +21,7 @@ export type SessionPayload = {
   name: string;
 };
 
-const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
-const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
-
-class OAuthService {
-  constructor(private client: ReturnType<typeof axios.create>) {
-    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
-      console.error(
-        "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
-      );
-    }
-  }
-
-  private decodeState(state: string): string {
-    return decodeOAuthState(state).redirectUri;
-  }
-
-  async getTokenByCode(
-    code: string,
-    state: string
-  ): Promise<ExchangeTokenResponse> {
-    const payload: ExchangeTokenRequest = {
-      clientId: ENV.appId,
-      grantType: "authorization_code",
-      code,
-      redirectUri: this.decodeState(state),
-    };
-
-    const { data } = await this.client.post<ExchangeTokenResponse>(
-      EXCHANGE_TOKEN_PATH,
-      payload
-    );
-
-    return data;
-  }
-
-  async getUserInfoByToken(
-    token: ExchangeTokenResponse
-  ): Promise<GetUserInfoResponse> {
-    const { data } = await this.client.post<GetUserInfoResponse>(
-      GET_USER_INFO_PATH,
-      {
-        accessToken: token.accessToken,
-      }
-    );
-
-    return data;
-  }
-}
 
 const createOAuthHttpClient = (): AxiosInstance =>
   axios.create({
@@ -83,11 +31,8 @@ const createOAuthHttpClient = (): AxiosInstance =>
 
 class SDKServer {
   private readonly client: AxiosInstance;
-  private readonly oauthService: OAuthService;
-
   constructor(client: AxiosInstance = createOAuthHttpClient()) {
     this.client = client;
-    this.oauthService = new OAuthService(this.client);
   }
 
   private deriveLoginMethod(
@@ -110,38 +55,6 @@ class SDKServer {
     if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
     const first = Array.from(set)[0];
     return first ? first.toLowerCase() : null;
-  }
-
-  /**
-   * Exchange OAuth authorization code for access token
-   * @example
-   * const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-   */
-  async exchangeCodeForToken(
-    code: string,
-    state: string
-  ): Promise<ExchangeTokenResponse> {
-    return this.oauthService.getTokenByCode(code, state);
-  }
-
-  /**
-   * Get user information using access token
-   * @example
-   * const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-   */
-  async getUserInfo(accessToken: string): Promise<GetUserInfoResponse> {
-    const data = await this.oauthService.getUserInfoByToken({
-      accessToken,
-    } as ExchangeTokenResponse);
-    const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null
-    );
-    return {
-      ...(data as any),
-      platform: loginMethod,
-      loginMethod,
-    } as GetUserInfoResponse;
   }
 
   private parseCookies(cookieHeader: string | undefined) {

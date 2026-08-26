@@ -1,22 +1,29 @@
-# Canlı Kritik Yol Doğrulaması
+# Canlı kritik yol doğrulaması
 
-Bu not iki ayrı kanıt türünü birbirine karıştırmadan kaydeder. İlk bölüm, yetkili yönetici hesabıyla kullanıcı arayüzünde yürütülen ve kalıcı, denetlenebilir business kayıtları bırakan canlı canary’dir. İkinci bölüm, yalnız `itest_` ön ekli fixture kayıtlarıyla çalışan ve test sonunda temizlenen gerçek veritabanı entegrasyon testidir.
+Bu belge 6lory’nin mevcut manuel kimlik doğrulama ve görev operasyonu akışını kaydeder. Kullanıcı parolaları, tokenlar ve hassas oturum değerleri bu belgede tutulmaz.
 
-| Alan | Kanıt | Sonuç |
+| Alan | Kontrol | Sonuç |
 | --- | --- | --- |
-| Yönetilen OAuth | `login=1` köprüsü, hesap seçici, callback, host-only nonce ve yönetilen oturum | Başarılı |
-| Vercel giriş noktası | `6lory.vercel.app` güvenli giriş eylemi, izinli yönetilen OAuth köprüsüne geçer | Başarılı |
-| Yönetici dönüşü | OAuth sonrası yalnız güvenli `/admin` hedefi kabul edilir ve `socialtrade` yönetici merkezi açılır | Başarılı |
-| Kullanıcı arayüzü | Ana sayfa, görev listesi/detayı, ödüller, bildirimler, profil ve liderlik ekranları oturumlu görünümde yüklendi | Başarılı |
-| Yönetici arayüzü | Genel bakış ile kampanya/görev, ödül/talep, doğrulama, risk, yorum ve audit çalışma alanları görüntülendi | Başarılı |
-| Canlı UI canary — görev | Kullanıcı onayıyla görev `180001`, `CANARY - Secret Code canlı doğrulama`: başlatma → süre eşiği → Secret Code alma → tek kullanımlık doğrulama → `+1` immutable ledger kaydı | Başarılı; görev daha sonra yönetici UI’sinden `archived` yapıldı |
-| Canlı UI canary — ödül | Ödül `150001`, `CANARY - 1 puanlık test ödülü`: 1 puanlık talep → `requested` → `under_review` → `approved` → `preparing` → `shipped` → `delivered` | Başarılı; ödül daha sonra yönetici UI’sinden `archived` yapıldı, redemption `150001` teslim edilmiş olarak korundu |
-| Canlı UI canary — görünürlük | Arşivden sonra `/tasks` ekranı canary görevi, `/rewards` ekranı canary ödülü sunmaz; yönetici envanteri ve teslimat kaydı denetim için saklanır | Başarılı |
-| İzole gerçek DB fixture — görev doğrulama | `itest_` kullanıcısında task start → Secret Code → doğrulama → idempotent ledger zinciri | Başarılı |
-| İzole gerçek DB fixture — ödül ve operasyon | Aynı fixture kullanıcıda ödül talebi, teslimat durum geçişi, ret/iade, stok, katalog arşivleme ve audit/bildirim etkileri | Başarılı |
+| Manuel auth | Kullanıcı adı/e-posta + parola formu, scrypt hash ve güvenli session cookie | Uygulandı |
+| Admin kurulumu | Credential yokken kısa ömürlü imzalı kurulum tokenı ile parola belirleme | Uygulandı; token tek kullanımlık ve parola loglanmıyor |
+| Admin yetkisi | Admin rolü, rol izinleri ve sunucu tarafı yönetim prosedürü kontrolleri | Uygulandı |
+| Görev kataloğu | Aktif görevlerin ana sayfa ve Görevler sekmesinde aynı API sonucu ile gösterilmesi | Uygulandı |
+| Görev kitlesi | Aktif kayıtlı kullanıcılar, kapasite ve atama kotasıyla güvenli toplu atama | Uygulandı |
+| Workspace | Video, Instagram/Web ve genel görevlerin dashboard içinde açılması; başlatma ve doğrulama sinyalleri | Uygulandı |
+| Veri bütünlüğü | Task Session, doğrulama, idempotency, immutable ledger, bildirim ve audit kayıtları | Testlerle doğrulandı |
+| PWA/mobil | Manifest, kurulabilir kabuk, responsive dashboard ve mobil öncelikli layout | Production build içinde doğrulandı |
+| GitHub → Vercel | `socialtradeturkey/6lory` `main` dalına push sonrası bağlı Vercel production deployment | Bağlantı doğrulandı |
+| Production deployment | Son bağlı Vercel deployment durumu `READY`; ana sayfa HTTP 200 HTML döndürüyor | Doğrulandı |
+| Production runtime | Son 24 saatte gruplanmış Vercel runtime error bulunmadı | Doğrulandı |
 
-İzole gerçek veritabanı testi yalnız `itest_` ön ekli kendi fixture kayıtlarını oluşturur. Test sonunda kalan `itest_` kullanıcı sayısı `0` olarak doğrulanmıştır. Canlı UI canary bunun dışında, kullanıcı yetkisiyle üretim hesabında oluşturulmuş denetim kanıtıdır; immutable ledger, doğrulama, redemption, bildirim ve audit kayıtları silinmez. Görev ve ödül yalnız kullanıcı kataloglarından çıkarılmak üzere arşivlenmiştir. Gerçek sosyal platform başarısı üretilmez; resmi sağlayıcı kimlik bilgisi olmayan akışlar `UNAVAILABLE` veya manuel inceleme sonucunu korur.
+## Test komutları
 
-Giriş sırasında uygulama paketi yüklenirken `6lory hazırlanıyor`, OAuth köprüsü devredeyken ise `Güvenli girişe yönlendiriliyorsunuz` durumu gösterilir. Bu durumlar, yavaş ağda boş ekran algısını önler; OAuth güvenlik modelini değiştirmez.
+```bash
+pnpm test -- --run
+pnpm check
+pnpm build
+```
 
-Kapanış dağıtımı `dpl_8Rw65TopMmUSQd9azbMUcgT8R9fH`, 25 Ağustos 2026 tarihinde Vercel production durumunda `READY` olarak tamamlandı ve `https://6lory.vercel.app` alias’ında giriş sayfası ile güvenli giriş köprüsü canlıda açıldı. Vercel giriş eylemi, OAuth sağlayıcı callback allowlist’i nedeniyle oturumu bağımsız biçimde orada tamamlamaz; izinli yönetilen uygulama alanına güvenli şekilde köprü kurar.
+Gerçek admin parolası kullanıcı tarafından tarayıcıda belirlenir ve sistem tarafından düz metin olarak saklanmaz. Bu nedenle son uçtan uca adım, kullanıcının `murathand08@gmail.com` ile giriş yapıp `/admin` panelini açması ve bir test görevi oluşturmasıdır. Bu kullanıcı onayı alınmadan canlı görev oluşturma kanıtı varmış gibi gösterilmez.
+
+Gerçek sosyal platform doğrulaması için resmi sağlayıcı API’si, yetki kapsamı ve kullanıcı hesabı bağlantısı gerekir. Bu koşullar yoksa sistem başarılı sonuç veya puan üretmek yerine `UNAVAILABLE` ya da manuel inceleme durumunu korur.
