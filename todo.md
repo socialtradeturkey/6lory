@@ -129,3 +129,8 @@
 - [x] Denetim sonucundaki düzeltmeleri test ederek managed checkpoint ve Vercel production’a yayımlamak.
 - [x] Canlı denetimde görülen arşivlenmiş görev ayrıntısı erişimini düzeltmek: kullanıcıya arşiv durumunu gösterip başlatmayı engellemek veya güvenli biçimde bulunamadı ekranına yönlendirmek.
 - [x] Express clearCookie deprecation uyarısını giderip güvenli oturum çıkışını test etmek.
+- [ ] Kullanıcı canlı ekranında workspace görünmedi; Vercel production ile kaynak checkpoint/bundle farkını kesinleştir ve cache/deployment zincirini düzelt.
+- [ ] Gerçek görev deneyimi: video/Instagram/genel görev türlerinde dashboard içi çalışma alanını görünür ve kullanılabilir hâle getir; mevcut sayaç/Secret Code ekranını tek başına bırakma.
+- [ ] Görev ilerlemesini gerçek çalışma alanı olayları, süre, session sahipliği ve doğrulanabilir kanıtla bağla; sahte sosyal başarı üretme.
+- [ ] Admin görev oluşturma alanlarının çalışma alanı tipini, hedef URL’yi, actionType’ı ve doğrulama yöntemini gerçek kullanıcı akışına taşıdığını doğrula.
+- [ ] Vercel production’da gerçek kullanıcı görev ekranını görsel ve uçtan uca doğrula; kullanıcı onayı olmadan projeyi kapatma.

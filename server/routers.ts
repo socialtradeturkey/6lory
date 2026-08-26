@@ -1,4 +1,6 @@
 import { TRPCError } from "@trpc/server";
+import { promisify } from "node:util";
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -6,6 +8,7 @@ import {
   auditLogs,
   campaigns,
   commentPools,
+  localAuthCredentials,
   comments,
   manualReviews,
   notifications,
@@ -21,6 +24,7 @@ import {
   tasks,
   trustScores,
   userProfiles,
+  users,
   verificationAttempts,
   verificationSignals,
 } from "../drizzle/schema.js";
@@ -35,6 +39,7 @@ import {
   resolveVerification,
 } from "./domain.js";
 import { buildOperationsAnalytics } from "./operationsAnalytics.js";
+import { isEligibleAudienceUser, planAudienceAssignments } from "./taskAudience.js";
 import {
   assertRedemptionTransition,
   needsRedemptionRefund,
@@ -44,12 +49,51 @@ import { getDb } from "./db.js";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
+import { sdk } from "./_core/sdk.js";
 import {
   adminProcedure,
   protectedProcedure,
   publicProcedure,
   router,
 } from "./_core/trpc.js";
+
+const scrypt = promisify(scryptCallback);
+const LOCAL_SESSION_MS = 1000 * 60 * 60 * 24 * 30;
+const LOCAL_LOCK_MS = 1000 * 60 * 15;
+const LOCAL_MAX_FAILED_ATTEMPTS = 5;
+const localPasswordInput = z
+  .string()
+  .min(10, "Parola en az 10 karakter olmalı.")
+  .max(128, "Parola en fazla 128 karakter olabilir.")
+  .regex(/[A-Za-z]/, "Parola en az bir harf içermeli.")
+  .regex(/[0-9]/, "Parola en az bir rakam içermeli.");
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
+}
+
+async function hashLocalPassword(password: string, salt = randomBytes(16).toString("hex")) {
+  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
+  return { salt, hash: derivedKey.toString("hex") };
+}
+
+async function verifyLocalPassword(password: string, salt: string, storedHash: string) {
+  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
+  const expected = Buffer.from(storedHash, "hex");
+  return expected.length === derivedKey.length && timingSafeEqual(expected, derivedKey);
+}
+
+async function setSessionCookie(ctx: { req: any; res: any }, openId: string, name: string) {
+  const token = await sdk.createSessionToken(openId, { expiresInMs: LOCAL_SESSION_MS, name });
+  ctx.res.cookie(COOKIE_NAME, token, {
+    ...getSessionCookieOptions(ctx.req),
+    maxAge: LOCAL_SESSION_MS,
+  });
+}
 
 const idempotencyKey = z.string().min(12).max(96);
 const taskSessionInput = z.object({
@@ -173,6 +217,101 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    register: publicProcedure
+      .input(
+        z.object({
+          name: z.string().trim().min(2).max(96),
+          username: z.string().trim().min(3).max(48).regex(/^[a-zA-Z0-9_]+$/).optional(),
+          email: z.string().trim().email().max(320),
+          password: localPasswordInput,
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await databaseOrThrow();
+        const email = normalizeEmail(input.email);
+        const username = normalizeUsername(input.username ?? `user_${nanoid(10)}`);
+        const password = await hashLocalPassword(input.password);
+        try {
+          const user = await db.transaction(async tx => {
+            const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+            if (existing) {
+              throw new TRPCError({ code: "CONFLICT", message: "Bu e-posta ile zaten bir hesap bulunuyor." });
+            }
+            const [existingUsername] = await tx.select({ id: userProfiles.id }).from(userProfiles).where(eq(userProfiles.username, username)).limit(1);
+            if (existingUsername) {
+              throw new TRPCError({ code: "CONFLICT", message: "Bu kullanıcı adı zaten kullanılıyor." });
+            }
+            const openId = `local_${nanoid(48)}`;
+            await tx.insert(users).values({
+              openId,
+              name: input.name.trim(),
+              email,
+              loginMethod: "local",
+              role: "user",
+            });
+            const [created] = await tx.select().from(users).where(eq(users.openId, openId)).limit(1);
+            if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Hesap oluşturulamadı." });
+            await tx.insert(localAuthCredentials).values({
+              userId: created.id,
+              email,
+              passwordHash: password.hash,
+              passwordSalt: password.salt,
+            });
+            await tx.insert(userProfiles).values({
+              userId: created.id,
+              username,
+              displayName: input.name.trim(),
+              onboardingStatus: "completed",
+            });
+            return created;
+          });
+          await setSessionCookie(ctx, user.openId, user.name ?? "6lory kullanıcısı");
+          return { success: true } as const;
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          throw new TRPCError({ code: "CONFLICT", message: "Bu e-posta ile kayıt tamamlanamadı." });
+        }
+      }),
+    login: publicProcedure
+      .input(z.object({ email: z.string().trim().min(3).max(320), password: z.string().min(1).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await databaseOrThrow();
+        const identifier = input.email.trim().toLowerCase();
+        const [matched] = await db
+          .select({ credential: localAuthCredentials })
+          .from(localAuthCredentials)
+          .leftJoin(userProfiles, eq(userProfiles.userId, localAuthCredentials.userId))
+          .where(or(eq(localAuthCredentials.email, normalizeEmail(identifier)), eq(userProfiles.username, normalizeUsername(identifier))))
+          .limit(1);
+        const credential = matched?.credential;
+        const invalid = () => new TRPCError({ code: "UNAUTHORIZED", message: "Kullanıcı adı/e-posta veya parola geçersiz." });
+        if (!credential) throw invalid();
+        const now = Date.now();
+        if (credential.lockedUntil && credential.lockedUntil.getTime() > now) {
+          throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin." });
+        }
+        const valid = await verifyLocalPassword(input.password, credential.passwordSalt, credential.passwordHash);
+        if (!valid) {
+          const failedAttempts = credential.failedAttempts + 1;
+          await db
+            .update(localAuthCredentials)
+            .set({
+              failedAttempts,
+              lockedUntil: failedAttempts >= LOCAL_MAX_FAILED_ATTEMPTS ? new Date(now + LOCAL_LOCK_MS) : null,
+            })
+            .where(eq(localAuthCredentials.id, credential.id));
+          throw invalid();
+        }
+        await db
+          .update(localAuthCredentials)
+          .set({ failedAttempts: 0, lockedUntil: null })
+          .where(eq(localAuthCredentials.id, credential.id));
+        const [user] = await db.select().from(users).where(eq(users.id, credential.userId)).limit(1);
+        if (!user) throw invalid();
+        await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+        await setSessionCookie(ctx, user.openId, user.name ?? "6lory kullanıcısı");
+        return { success: true } as const;
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, cookieOptions);
@@ -316,10 +455,10 @@ export const appRouter = router({
   }),
 
   tasks: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await databaseOrThrow();
       const now = new Date();
-      return db
+      const visibleTasks = await db
         .select()
         .from(tasks)
         .where(
@@ -330,10 +469,20 @@ export const appRouter = router({
           )
         )
         .orderBy(desc(tasks.priority), desc(tasks.createdAt));
+      const assignedRows = await db
+        .select({ taskId: taskAssignments.taskId, status: taskAssignments.status })
+        .from(taskAssignments)
+        .where(eq(taskAssignments.userId, ctx.user.id));
+      const assignedTaskIds = new Set(
+        assignedRows
+          .filter(row => row.status === "assigned" || row.status === "started")
+          .map(row => row.taskId),
+      );
+      return visibleTasks.filter(task => task.audienceMode === "open" || assignedTaskIds.has(task.id));
     }),
     detail: protectedProcedure
       .input(z.object({ taskId: z.number().int().positive() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const db = await databaseOrThrow();
         const now = new Date();
         const [task] = await db
@@ -353,6 +502,21 @@ export const appRouter = router({
             code: "NOT_FOUND",
             message: "Görev bulunamadı veya artık kullanılamıyor.",
           });
+        if (task.audienceMode === "assigned") {
+          const [assignment] = await db
+            .select({ id: taskAssignments.id })
+            .from(taskAssignments)
+            .where(
+              and(
+                eq(taskAssignments.taskId, task.id),
+                eq(taskAssignments.userId, ctx.user.id),
+                or(eq(taskAssignments.status, "assigned"), eq(taskAssignments.status, "started")),
+              ),
+            )
+            .limit(1);
+          if (!assignment)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Bu görev size atanmamış veya artık kullanılamıyor." });
+        }
         return task;
       }),
     start: protectedProcedure
@@ -1037,6 +1201,103 @@ export const appRouter = router({
       const db = await databaseOrThrow();
       return db.select().from(tasks).orderBy(desc(tasks.createdAt));
     }),
+    taskAudiencePreview: adminProcedure
+      .input(z.object({ taskId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.read");
+        const db = await databaseOrThrow();
+        const [task] = await db.select().from(tasks).where(eq(tasks.id, input.taskId)).limit(1);
+        if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+        const audienceRows = await db
+          .select({ id: users.id, role: users.role, trustStatus: trustScores.status })
+          .from(users)
+          .leftJoin(trustScores, eq(trustScores.userId, users.id));
+        const eligibleUsers = audienceRows.filter(isEligibleAudienceUser);
+        const existingAssignments = await db
+          .select({ userId: taskAssignments.userId, status: taskAssignments.status })
+          .from(taskAssignments)
+          .where(eq(taskAssignments.taskId, task.id));
+        const existingIds = new Set(existingAssignments.map(row => row.userId));
+        return {
+          taskId: task.id,
+          audienceMode: task.audienceMode,
+          assignmentTargetCount: task.assignmentTargetCount,
+          eligibleUserCount: eligibleUsers.length,
+          assignedUserCount: existingAssignments.length,
+          availableUserCount: eligibleUsers.filter(user => !existingIds.has(user.id)).length,
+          claimedQuota: task.claimedQuota,
+          totalQuota: task.totalQuota,
+        };
+      }),
+    assignTaskToActiveUsers: adminProcedure
+      .input(
+        z.object({
+          taskId: z.number().int().positive(),
+          targetCount: z.number().int().positive().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.write");
+        const db = await databaseOrThrow();
+        return db.transaction(async tx => {
+          const [task] = await tx.select().from(tasks).where(eq(tasks.id, input.taskId)).limit(1);
+          if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Görev bulunamadı." });
+          if (task.status === "archived" || task.status === "ended") {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Arşivlenmiş veya sona ermiş göreve atama yapılamaz." });
+          }
+            const audienceRows = await tx
+            .select({ id: users.id, role: users.role, trustStatus: trustScores.status })
+            .from(users)
+            .leftJoin(trustScores, eq(trustScores.userId, users.id));
+          const eligibleUsers = audienceRows.filter(isEligibleAudienceUser);
+          const existing = await tx
+            .select({ userId: taskAssignments.userId })
+            .from(taskAssignments)
+            .where(eq(taskAssignments.taskId, task.id));
+          const plan = planAudienceAssignments({
+            eligibleUserIds: eligibleUsers.map(user => user.id),
+            assignedUserIds: existing.map(row => row.userId),
+            targetCount: input.targetCount,
+            totalQuota: task.totalQuota,
+            claimedQuota: task.claimedQuota,
+          });
+          const targetCount = plan.targetCount;
+          if (targetCount < 1) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Atanabilecek uygun aktif kullanıcı bulunamadı." });
+          }
+          const selected = plan.selectedUserIds.map(userId => ({ id: userId }));
+          if (selected.length) {
+            await tx.insert(taskAssignments).values(
+              selected.map(user => ({ taskId: task.id, userId: user.id, expiresAt: task.endsAt })),
+            );
+            await tx.insert(notifications).values(
+              selected.map(user => ({
+                userId: user.id,
+                type: "task_assigned",
+                title: "Yeni görev atandı",
+                body: `Size yeni bir görev atandı: ${task.title}`,
+                destination: `/tasks/${task.id}`,
+              })),
+            );
+          }
+          await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: targetCount }).where(eq(tasks.id, task.id));
+          await tx.insert(auditLogs).values({
+            actorUserId: ctx.user.id,
+            action: "task.audience_assigned",
+            entityType: "task",
+            entityId: String(task.id),
+            beforeState: { audienceMode: task.audienceMode, assignmentTargetCount: task.assignmentTargetCount },
+            afterState: { audienceMode: "assigned", assignmentTargetCount: targetCount, inserted: selected.length },
+          });
+          return {
+            success: true,
+            eligibleUserCount: plan.eligibleUserCount,
+            targetCount,
+            insertedCount: selected.length,
+            alreadyAssignedCount: Math.min(plan.assignedUserCount, targetCount),
+          };
+        });
+      }),
     listRewards: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "rewards.read");
       const db = await databaseOrThrow();

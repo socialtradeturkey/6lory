@@ -28,7 +28,7 @@ import {
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Operasyon merkezi", path: "/admin" },
-  { icon: ArrowLeft, label: "Kullanıcı uygulaması", path: "/" },
+  { icon: ArrowLeft, label: "Kullanıcı uygulaması", path: "/?view=user" },
 ];
 const managementRoles = [
   "admin",
@@ -93,14 +93,14 @@ export default function DashboardLayout({
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {retryLogin
-              ? "Önceki oturum doğrulanamadı; güvenlik nedeniyle giriş kodu kabul edilmedi. Aşağıdan yeni ve tekil bir giriş başlatın."
+              ? "Oturum bulunamadı. Yönetici hesabınızla e-posta ve parolanızı kullanarak giriş yapın."
               : "Bu alan, kampanya ve doğrulama operasyonlarını yetkili kullanıcılarla sınırlar."}
           </p>
           <Button
             onClick={() => startLogin()}
             className="mt-6 w-full rounded-xl"
           >
-            Güvenli giriş yap
+            Manuel giriş yap
           </Button>
         </div>
       </div>

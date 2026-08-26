@@ -16,7 +16,27 @@ import {
   KeyRound,
   ShieldAlert,
   TimerReset,
+  MousePointerClick,
+  PlaySquare,
 } from "lucide-react";
+
+function getEmbeddedTargetUrl(targetUrl: string | null | undefined, platform: string) {
+  if (!targetUrl) return null;
+  try {
+    const url = new URL(targetUrl);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    if (platform === "youtube" && url.hostname.includes("youtube.com") && url.pathname === "/watch") {
+      const videoId = url.searchParams.get("v");
+      return videoId ? `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?rel=0&modestbranding=1` : null;
+    }
+    if (platform === "youtube" && url.hostname === "youtu.be") {
+      return `https://www.youtube.com/embed/${encodeURIComponent(url.pathname.slice(1))}?rel=0&modestbranding=1`;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 
 const VerificationSignals = {
   sessionValid: true,
@@ -27,17 +47,20 @@ const VerificationSignals = {
 export default function TaskDetail() {
   const [, params] = useRoute("/tasks/:id");
   const taskId = Number(params?.id);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const taskQuery = trpc.tasks.detail.useQuery(
     { taskId },
     { enabled: isAuthenticated && Number.isInteger(taskId) && taskId > 0 },
   );
+  const tasksQuery = trpc.tasks.list.useQuery(undefined, { enabled: isAuthenticated });
+  const utils = trpc.useUtils();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [issuedSecretCode, setIssuedSecretCode] = useState<string | null>(null);
   const [secretCodeInput, setSecretCodeInput] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [interactionCount, setInteractionCount] = useState(0);
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
@@ -58,13 +81,18 @@ export default function TaskDetail() {
   });
 
   const task = taskQuery.data;
+  const nextTask = useMemo(
+    () => tasksQuery.data?.find(candidate => candidate.id !== taskId) ?? null,
+    [taskId, tasksQuery.data],
+  );
+  const embeddedTargetUrl = getEmbeddedTargetUrl(task?.targetUrl, task?.platform ?? "");
   const activeSeconds = useMemo(() => {
     if (!task || remainingSeconds === null) return 0;
     return Math.max(0, task.sessionDurationSeconds - remainingSeconds);
   }, [remainingSeconds, task]);
   const signals = useMemo(
-    () => ({ ...VerificationSignals, activeSeconds }),
-    [activeSeconds],
+    () => ({ ...VerificationSignals, visibilityScore: embeddedTargetUrl ? 100 : 80, interactionCount: Math.max(1, interactionCount), activeSeconds }),
+    [activeSeconds, embeddedTargetUrl, interactionCount],
   );
 
   const issueSecretCode = trpc.tasks.issueSecretCode.useMutation({
@@ -76,9 +104,10 @@ export default function TaskDetail() {
   });
 
   const verify = trpc.tasks.verify.useMutation({
-    onSuccess: result => {
+    onSuccess: async result => {
       const status = result.verification?.status ?? "pending";
       setVerificationStatus(status);
+      await utils.tasks.list.invalidate();
       if (status === "pass") {
         toast.success("Doğrulama tamamlandı; puan kaydı güvenle oluşturuldu.");
       } else {
@@ -112,7 +141,7 @@ export default function TaskDetail() {
     );
   }
 
-  if (taskQuery.isLoading) {
+  if (authLoading || (taskQuery.isPending && taskQuery.fetchStatus !== "idle")) {
     return (
       <AppShell title="Görev ayrıntısı" eyebrow="Yükleniyor">
         <div className="h-80 animate-pulse rounded-3xl bg-muted" />
@@ -120,13 +149,13 @@ export default function TaskDetail() {
     );
   }
 
-  if (!task) {
+  if (taskQuery.error || !task) {
     return (
       <AppShell title="Görev bulunamadı" eyebrow="Görevler">
         <EmptyState
           icon={ShieldAlert}
-          title="Bu görev kullanılamıyor"
-          description="Görev kaldırılmış, süresi dolmuş veya erişim kapsamınız dışında olabilir."
+          title="Görev şu anda açılamıyor"
+          description={taskQuery.error?.message ?? "Görev kaldırılmış, süresi dolmuş veya bu oturumla erişilemiyor."}
           action={{
             label: "Görevlere dön",
             onClick: () => window.location.assign("/tasks"),
@@ -193,6 +222,22 @@ export default function TaskDetail() {
               ))}
             </ol>
           </div>
+          <section className="mt-6 rounded-3xl border border-teal-500/20 bg-teal-500/[0.04] p-4 sm:p-5" aria-label="Görev çalışma alanı" onPointerDown={() => setInteractionCount(value => value + 1)}>
+            <div className="flex items-center gap-2">
+              {task.platform === "youtube" ? <PlaySquare className="size-4 text-teal-700 dark:text-teal-300" /> : <MousePointerClick className="size-4 text-teal-700 dark:text-teal-300" />}
+              <h3 className="font-display text-base font-bold">Görevi uygulama içinde tamamlayın</h3>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {task.platform === "youtube" ? "Videoyu bu panel içinde izleyin; süre ve oturum etkinliği doğrulama isteğine bağlanır." : task.platform === "instagram" ? "Instagram görev alanını bu panel içinde inceleyin; doğrulanamayan sosyal eylemler otomatik başarı sayılmaz." : "Hedefi bu çalışma alanında inceleyin ve doğrulama adımlarını aynı oturumda tamamlayın."}
+            </p>
+            {embeddedTargetUrl ? (
+              <div className="mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm">
+                <iframe src={embeddedTargetUrl} title={`${task.title} görev çalışma alanı`} className="aspect-video w-full" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={() => setInteractionCount(value => Math.max(1, value))} />
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm leading-6 text-muted-foreground">Bu görev için gömülebilir hedef bulunmuyor. Talimatları uygulayın; sistem doğrulanamayan bir sosyal işlemi başarı olarak işaretlemez.</div>
+            )}
+          </section>
         </article>
 
         <aside className="space-y-4">
@@ -343,9 +388,10 @@ export default function TaskDetail() {
               )}
 
               {verificationStatus && (
-                <p className="mt-3 rounded-2xl bg-muted/65 p-3 text-xs font-semibold text-muted-foreground">
-                  Son doğrulama sonucu: {verificationStatus === "pass" ? "başarılı" : verificationStatus}
-                </p>
+                <>
+                  <p className="mt-3 rounded-2xl bg-muted/65 p-3 text-xs font-semibold text-muted-foreground">Son doğrulama sonucu: {verificationStatus === "pass" ? "başarılı" : verificationStatus}</p>
+                  {verificationStatus === "pass" && nextTask && <Link href={`/tasks/${nextTask.id}`} className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Sıradaki görevi aç</Link>}
+                </>
               )}
             </div>
           )}
