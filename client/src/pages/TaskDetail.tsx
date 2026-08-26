@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoute, Link } from "wouter";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
@@ -61,6 +61,9 @@ export default function TaskDetail() {
   const [secretCodeInput, setSecretCodeInput] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [interactionCount, setInteractionCount] = useState(0);
+  const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
+  const playerRef = useRef<any>(null);
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
@@ -119,14 +122,72 @@ export default function TaskDetail() {
 
   useEffect(() => {
     if (!sessionExpiresAt) return;
-    const updateRemaining = () =>
-      setRemainingSeconds(
-        Math.max(0, Math.ceil((sessionExpiresAt - Date.now()) / 1000)),
-      );
-    updateRemaining();
+    const updateRemaining = () => {
+      if (task?.platform === "youtube" && sessionId && (!isPlayerPlaying || !isPageVisible)) return;
+      setRemainingSeconds(prev => {
+        if (prev === null) return Math.max(0, Math.ceil((sessionExpiresAt - Date.now()) / 1000));
+        return Math.max(0, prev - 1);
+      });
+    };
     const timer = window.setInterval(updateRemaining, 1000);
     return () => window.clearInterval(timer);
-  }, [sessionExpiresAt]);
+  }, [sessionExpiresAt, isPlayerPlaying, isPageVisible, task?.platform, sessionId]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      const visible = document.visibilityState === "visible";
+      setIsPageVisible(visible);
+      if (!visible) {
+        setIsPlayerPlaying(false);
+      } else if (playerRef.current?.getPlayerState) {
+        setIsPlayerPlaying(playerRef.current.getPlayerState() === 1);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  useEffect(() => {
+    if (task?.platform !== "youtube" || !sessionId || !embeddedTargetUrl) return;
+    const videoId = embeddedTargetUrl.split("/embed/")[1]?.split("?")[0];
+    if (!videoId) return;
+
+    let player: any;
+    const onPlayerStateChange = (event: any) => {
+      if (event.data === 1) setIsPlayerPlaying(true); // PLAYING
+      else setIsPlayerPlaying(false); // PAUSED, ENDED, etc.
+    };
+
+    const initPlayer = () => {
+      player = new (window as any).YT.Player("youtube-player", {
+        videoId,
+        playerVars: { autoplay: 1, modestbranding: 1, rel: 0, playsinline: 1 },
+        events: {
+          onReady: (event: any) => {
+            event.target.mute();
+            event.target.playVideo();
+          },
+          onStateChange: onPlayerStateChange,
+        },
+      });
+      playerRef.current = player;
+    };
+
+    if (!(window as any).YT) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName("script")[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    } else {
+      initPlayer();
+    }
+
+    return () => {
+      setIsPlayerPlaying(false);
+      if (player?.destroy) player.destroy();
+    };
+  }, [task?.platform, sessionId, embeddedTargetUrl]);
 
   if (!isAuthenticated) {
     return (
@@ -232,7 +293,11 @@ export default function TaskDetail() {
             </p>
             {embeddedTargetUrl ? (
               <div className="mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm">
-                <iframe src={embeddedTargetUrl} title={`${task.title} görev çalışma alanı`} className="aspect-video w-full" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={() => setInteractionCount(value => Math.max(1, value))} />
+                {task.platform === "youtube" && sessionId ? (
+                  <div id="youtube-player" className="aspect-video w-full" />
+                ) : (
+                  <iframe src={embeddedTargetUrl} title={`${task.title} görev çalışma alanı`} className="aspect-video w-full" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={() => setInteractionCount(value => Math.max(1, value))} />
+                )}
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm leading-6 text-muted-foreground">Bu görev için gömülebilir hedef bulunmuyor. Talimatları uygulayın; sistem doğrulanamayan bir sosyal işlemi başarı olarak işaretlemez.</div>

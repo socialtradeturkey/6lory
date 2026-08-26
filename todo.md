@@ -153,14 +153,16 @@
 - [x] Eski OAuth köprüsü ve Vercel giriş anlatımını dokümantasyondan kaldır; manuel auth ve GitHub→Vercel otomatik dağıtım akışını belgele.
 - [x] OAuth route kaldırma sonrası eski shared OAuth sabitlerini ve callback testindeki tarihi beklentiyi temizle.
 - [x] Yeni blokaj: Production/preview girişinde “Veritabanı şu anda kullanılamıyor” hatasını ortam ve API düzeyinde kalıcı olarak düzelt.
-- [ ] Düzeltilen production ortamında admin login, `/admin` ve görev oluşturma akışını kullanıcı parolası açığa çıkmadan doğrula.
+- [x] Düzeltilen production ortamında admin login, `/admin` ve görev oluşturma akışını kullanıcı parolası açığa çıkmadan doğrula.
 - [x] Vercel API Function’ını managed 6lory API’ye güvenli proxy olacak şekilde yapılandır; session cookie ve tRPC GET/POST gövdelerini koruyarak Vercel login’deki DB unavailable hatasını gider.
 - [x] Vercel managed API proxy’si için URL/origin ve query aktarım regresyon testi ekle; ardından test/build/push/deployment doğrulamasını tamamla.
 - [x] Yeni blokaj: Vercel production’da kullanıcı login olamıyor; gerçek login isteği ile managed API credential/session yanıtını ayrıştırıp düzelt.
-- [ ] Kullanıcı parolası açığa çıkmadan login sonrası `/admin` yönlendirmesini ve görev oluşturma akışını yeniden doğrula.
+- [x] Kullanıcı parolası açığa çıkmadan login sonrası `/admin` yönlendirmesini ve görev oluşturma akışını yeniden doğrula.
 - [x] Yeni blokaj: “Kullanıcı adı/e-posta veya parola geçersiz” hatasında login sorgusu, credential varlığı ve preview/production DB eşleşmesini parola içeriğini açmadan doğrula.
 - [x] Gerekirse admin için yeni tek kullanımlık parola kurulum akışını doğru ortamda uygula ve login sonrası `/admin` yönlendirmesini doğrula.
 - [x] Credential mevcut ve kilitli değil; admin tokenlı parola kurulumunu mevcut credential için güvenli parola yenilemeye genişlet, deneme/kilit sayaçlarını sıfırla ve yeni linkle login’i tekrar doğrula.
 - [x] Yeni blokaj: Admin parola kurulum bağlantısı geçersiz; managed API’nin gerçek imza anahtarıyla token üretimini/ortam eşleşmesini düzelt ve canlı bağlantıyı doğrula.
 - [x] Profil sayfasına görünür Parolayı değiştir menüsü ekle; mevcut parola doğrulaması, yeni parola kuralları, hash güncellemesi ve güvenli geri bildirim uygula.
 - [x] Parola değişikliği için backend/UI regresyon testlerini yaz, mobil görünümü doğrula ve yayımla.
+- [x] YouTube görevlerinde video oynatıcı kontrolünü ele al; görevi başlatınca videoyu otomatik oynat ve oturum sayacını yalnızca video oynatılırken (`PLAYING`) ilerlet.
+- [x] Video durdurulduğunda, sekmeden ayrılındığında veya video bittiğinde sayaç ilerlemesini durdur ve bu sinyalleri doğrulama için kaydet.
