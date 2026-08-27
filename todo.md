@@ -243,7 +243,7 @@
 - [x] Yeni hedef `Af6i6ChAVTw`, MrBeast/`UCX6OQ3DkcsbYNE6H8uQQuVA` ve oEmbed/HTTP embed erişimiyle doğrulandı; canlı görev oluşturuldu, player yine 0:00/spinner kaldığı için görev arşivlendi.
 
 - [x] `Af6i6ChAVTw` hedefiyle görev 360001 oluşturuldu; doğrulanabilen akış ve player engeli kaydedildi, session/assignment iptal edildi, ledger etkisi 0 bırakıldı ve son kod/build/checkpoint yayınlandı.
-- [ ] Google OAuth callback sırasında `6loryapp-pernhdey.manus.space/api/social-oauth/youtube/callback` üzerinde görülen `ERR_SSL_PROTOCOL_ERROR` sorununu teşhis et ve production giriş akışını düzelt.
-- [ ] Callback domaini ile Vercel/Manus deployment domaini, Google OAuth redirect URI’leri ve environment yapılandırmasını aynı production yüzeyinde doğrula.
-- [ ] OAuth callback, oturum oluşturma ve YouTube bağlantısı için production smoke testlerini yeniden çalıştır.
-- [ ] Düzeltme sonrası GitHub `main` ve Vercel production deployment senkronizasyonunu doğrula.
+- [x] Google OAuth callback sırasında `6loryapp-pernhdey.manus.space/api/social-oauth/youtube/callback` üzerinde görülen `ERR_SSL_PROTOCOL_ERROR` sorununu teşhis et ve production giriş akışını düzelt.
+- [x] Callback domaini ile Vercel/Manus deployment domaini, Google OAuth redirect URI’leri ve environment yapılandırmasını aynı production yüzeyinde doğrula.
+- [x] OAuth callback, oturum oluşturma ve YouTube bağlantısı için production smoke testlerini yeniden çalıştır.
+- [x] Düzeltme sonrası GitHub `main` ve Vercel production deployment senkronizasyonunu doğrula.
