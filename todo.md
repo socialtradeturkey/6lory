@@ -197,14 +197,16 @@
 - [ ] Preview başlatma → Google izin → üretim callback → profil dönüş akışını gerçek oturumla doğrula.
 - [x] YouTube authorize URL’sinde kullanılan OAuth istemci kimliği, uygulama adı ve scope’ları 6lory yapılandırmasıyla karşılaştır.
 - [x] Google izin ekranında manus.space yerine 6lory uygulamasının görünmesini sağlayacak OAuth yapılandırma düzeltmesini yap ve canlıda doğrula.
-- [ ] Google girişini YouTube API yetkisiyle tek izin akışında birleştir; ikinci profil bağlantısı isteme adımını kaldır.
-- [ ] Mevcut kullanıcıları Google e-postasıyla güvenli biçimde eşleştir; admin rolü, puan bakiyesi ve görev geçmişini koru.
+- [x] Google girişini YouTube API yetkisiyle tek izin akışında birleştir; ikinci profil bağlantısı isteme adımını kaldır.
+- [x] Mevcut kullanıcıları Google e-postasıyla güvenli biçimde eşleştir; admin rolü, puan bakiyesi ve görev geçmişini koru.
 - [ ] Tek akışlı Google girişinin session, token, revoke ve yetki reddi davranışlarını test et.
 - [x] Canlı `/api/social-oauth/youtube/start?mode=login` endpoint’inin yeni bundle ve Client ID ile çalıştığını doğrula.
 - [ ] Google izin ekranında e-posta sonrası Sonraki adımını canlı kullanıcı oturumuyla test et; manus.space/6lory branding tutarsızlığını gider.
-- [ ] Canlı giriş callback’i ve mevcut kullanıcı session eşleştirmesini doğrula; sonucu GitHub/Vercel checkpoint’ine al.
+- [x] Canlı giriş callback’i ve mevcut kullanıcı session eşleştirmesini doğrula; sonucu GitHub/Vercel checkpoint’ine al.
 - [x] Vercel proxy’de Google/YouTube start isteğinin eski Manus `/api/oauth/callback` akışına gitmesini engelle.
 - [x] Vercel callback akışını doğru `/api/social-oauth/youtube/callback` adresine bağla ve 404 testini düzelt.
-- [ ] Canlı Google girişinde e-posta → Sonraki → izin → callback dönüşünü doğrula.
+- [x] Canlı Google girişinde e-posta → Sonraki → izin → callback dönüşünü doğrula.
 
 - [x] Mevcut 6lory değişikliklerini test/build ile doğrula; GitHub `main` dalına commit/push et ve Vercel production READY durumunu teyit et.
+
+- [x] Kullanıcı adına canlı Vercel Google/YouTube OAuth, callback, görev player ve admin akışlarını browser ile dene; bulunan hataları düzeltip yeniden yayınla.
