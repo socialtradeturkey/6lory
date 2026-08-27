@@ -12,8 +12,21 @@ import { encryptYoutubeToken, exchangeYoutubeCode, googleUserInfo, youtubeAuthor
 import { COOKIE_NAME } from "../../shared/const.js";
 import { getSessionCookieOptions } from "./cookies.js";
 
-const APP_URL = "https://6loryapp-pernhdey.manus.space";
+export const MANAGED_APP_URL = "https://6loryapp-pernhdey.manus.space";
+export const VERCEL_APP_URL = "https://6lory.vercel.app";
+const VERCEL_PROJECT_HOSTS = new Set([
+  "6lory.vercel.app",
+  "6lory-socialtradeturkey-7533s-projects.vercel.app",
+  "6lory-git-main-socialtradeturkey-7533s-projects.vercel.app",
+]);
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+export function appOriginForHost(host: string | null | undefined) {
+  const normalizedHost = String(host ?? "").toLowerCase().split(":")[0];
+  if (VERCEL_PROJECT_HOSTS.has(normalizedHost)) return VERCEL_APP_URL;
+  if (normalizedHost === new URL(MANAGED_APP_URL).host) return MANAGED_APP_URL;
+  return MANAGED_APP_URL;
+}
 
 function signState(payload: Record<string, unknown>) {
   const encoded = Buffer.from(JSON.stringify({ ...payload, expiresAt: Date.now() + OAUTH_STATE_TTL_MS })).toString("base64url");
@@ -40,17 +53,18 @@ export function createApiApp(): Express {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
-  const youtubeCallback = `${APP_URL}/api/social-oauth/youtube/callback`;
 
   // Older cached clients may still return to the removed Manus OAuth route.
   // Keep that callback backward-compatible: never show a 404, and send the
   // user to the current login surface where the new flow is available.
   app.get("/api/oauth/callback", (_req, res) => {
     res.setHeader("Cache-Control", "no-store, max-age=0");
-    return res.redirect(`${APP_URL}/?auth=retry&legacy=1`);
+    return res.redirect(`${MANAGED_APP_URL}/?auth=retry&legacy=1`);
   });
 
   app.get("/api/social-oauth/youtube/start", async (req, res) => {
+    const appUrl = appOriginForHost(req.get("x-forwarded-host") ?? req.get("host"));
+    const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     const mode = req.query.mode === "login" ? "login" : "youtube";
     const user = mode === "youtube" ? await sdk.authenticateRequest(req).catch(() => null) : null;
     if (mode === "youtube" && !user) return res.status(401).send("Önce 6lory hesabınızla giriş yapın.");
@@ -59,6 +73,8 @@ export function createApiApp(): Express {
   });
 
   app.get("/api/social-oauth/youtube/callback", async (req, res) => {
+    const appUrl = appOriginForHost(req.get("x-forwarded-host") ?? req.get("host"));
+    const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     if (req.query.error === "access_denied") {
       let mode = "youtube";
       try {
@@ -66,7 +82,7 @@ export function createApiApp(): Express {
       } catch {
         // A denied OAuth request may omit a valid state; the safe fallback is the profile flow.
       }
-      return res.redirect(mode === "login" ? `${APP_URL}/?oauth=denied` : `${APP_URL}/profile?youtube=denied`);
+      return res.redirect(mode === "login" ? `${appUrl}/?oauth=denied` : `${appUrl}/profile?youtube=denied`);
     }
     try {
       const state = verifyState(String(req.query.state ?? ""));
@@ -100,11 +116,11 @@ export function createApiApp(): Express {
         if (!sessionUser) throw new Error("Google kullanıcı oturumu oluşturulamadı.");
         const sessionToken = await sdk.createSessionToken(sessionUser.openId, { expiresInMs: 1000 * 60 * 60 * 24 * 30, name: sessionUser.name ?? identity.name ?? email });
         res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: 1000 * 60 * 60 * 24 * 30 });
-        return res.redirect(`${APP_URL}/profile?google=connected&youtube=connected`);
+        return res.redirect(`${appUrl}/profile?google=connected&youtube=connected`);
       }
       if (!userId) throw new Error("OAuth kullanıcı bağlantısı bulunamadı.");
       await saveYoutubeConnection(db, userId, token);
-      return res.redirect(`${APP_URL}/profile?youtube=connected`);
+      return res.redirect(`${appUrl}/profile?youtube=connected`);
     } catch (error) {
       return res.status(400).send(`Google/YouTube bağlantısı tamamlanamadı: ${error instanceof Error ? error.message : "Bilinmeyen hata"}`);
     }

@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApiApp } from "./_core/app";
+import { appOriginForHost, createApiApp, VERCEL_APP_URL } from "./_core/app";
 
 describe("Vercel API application", () => {
   let server: Server;
@@ -20,6 +20,24 @@ describe("Vercel API application", () => {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve()))
     );
+  });
+
+  it("selects the Vercel origin only for allowlisted Vercel hosts", () => {
+    expect(appOriginForHost("6lory.vercel.app")).toBe(VERCEL_APP_URL);
+    expect(appOriginForHost("6lory-git-main-socialtradeturkey-7533s-projects.vercel.app")).toBe(VERCEL_APP_URL);
+    expect(appOriginForHost("6loryapp-pernhdey.manus.space")).toBe("https://6loryapp-pernhdey.manus.space");
+    expect(appOriginForHost("attacker.example")).toBe("https://6loryapp-pernhdey.manus.space");
+  });
+
+  it("uses the request host to create the Vercel OAuth redirect URI", async () => {
+    const response = await fetch(`${baseUrl}/api/social-oauth/youtube/start?mode=login`, {
+      headers: { "x-forwarded-host": "6lory.vercel.app" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(302);
+    const location = response.headers.get("location");
+    expect(location).toContain(encodeURIComponent("https://6lory.vercel.app/api/social-oauth/youtube/callback"));
+    expect(location).not.toContain(encodeURIComponent("https://6loryapp-pernhdey.manus.space/api/social-oauth/youtube/callback"));
   });
 
   it("redirects legacy OAuth callbacks to the current login surface", async () => {
