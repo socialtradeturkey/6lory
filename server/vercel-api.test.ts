@@ -30,5 +30,6 @@ describe("Vercel API application", () => {
     expect(response.headers.get("location")).toBe(
       "https://6loryapp-pernhdey.manus.space/?auth=retry&legacy=1",
     );
+    expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
   });
 });

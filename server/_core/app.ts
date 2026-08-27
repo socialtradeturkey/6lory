@@ -46,6 +46,7 @@ export function createApiApp(): Express {
   // Keep that callback backward-compatible: never show a 404, and send the
   // user to the current login surface where the new flow is available.
   app.get("/api/oauth/callback", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
     return res.redirect(`${APP_URL}/?auth=retry&legacy=1`);
   });
 
