@@ -192,6 +192,8 @@
 - [ ] Admin görev formu ve onay kuyruğunda abonelik/beğeni kanıtlarını göster; tüm koşullar sağlanmadan puanı pending’e alma.
 - [ ] YouTube doğrulama akışı için testler, mobil UX ve kötüye kullanım kontrollerini tamamla.
 - [x] Google OAuth Branding için herkese açık `/privacy` ve `/terms` sayfaları oluştur; App router’a bağla ve yayın URL’lerini doğrula.
-- [ ] Preview’den üretim callback’ine geçişte malformed OAuth state hatasını düzelt ve state çözümlemesini güvenli test et.
-- [ ] YouTube OAuth/Branding son değişikliklerini GitHub main’e push et; Vercel production deployment commit’ini READY olarak doğrula.
+- [x] Preview’den üretim callback’ine geçişte malformed OAuth state hatasını düzelt ve state çözümlemesini güvenli test et.
+- [x] YouTube OAuth/Branding son değişikliklerini GitHub main’e push et; Vercel production deployment commit’ini READY olarak doğrula.
 - [ ] Preview başlatma → Google izin → üretim callback → profil dönüş akışını gerçek oturumla doğrula.
+- [ ] YouTube authorize URL’sinde kullanılan OAuth istemci kimliği, uygulama adı ve scope’ları 6lory yapılandırmasıyla karşılaştır.
+- [ ] Google izin ekranında manus.space yerine 6lory uygulamasının görünmesini sağlayacak OAuth yapılandırma düzeltmesini yap ve canlıda doğrula.
