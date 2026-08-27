@@ -194,12 +194,12 @@
 - [x] Google OAuth Branding için herkese açık `/privacy` ve `/terms` sayfaları oluştur; App router’a bağla ve yayın URL’lerini doğrula.
 - [x] Preview’den üretim callback’ine geçişte malformed OAuth state hatasını düzelt ve state çözümlemesini güvenli test et.
 - [x] YouTube OAuth/Branding son değişikliklerini GitHub main’e push et; Vercel production deployment commit’ini READY olarak doğrula.
-- [ ] Preview başlatma → Google izin → üretim callback → profil dönüş akışını gerçek oturumla doğrula.
+- [x] Preview başlatma → Google izin → üretim callback → profil dönüş akışını gerçek oturumla doğrula.
 - [x] YouTube authorize URL’sinde kullanılan OAuth istemci kimliği, uygulama adı ve scope’ları 6lory yapılandırmasıyla karşılaştır.
 - [x] Google izin ekranında manus.space yerine 6lory uygulamasının görünmesini sağlayacak OAuth yapılandırma düzeltmesini yap ve canlıda doğrula.
 - [x] Google girişini YouTube API yetkisiyle tek izin akışında birleştir; ikinci profil bağlantısı isteme adımını kaldır.
 - [x] Mevcut kullanıcıları Google e-postasıyla güvenli biçimde eşleştir; admin rolü, puan bakiyesi ve görev geçmişini koru.
-- [ ] Tek akışlı Google girişinin session, token, revoke ve yetki reddi davranışlarını test et.
+- [x] Tek akışlı Google girişinin session, token, revoke ve yetki reddi davranışlarını test et.
 - [x] Canlı `/api/social-oauth/youtube/start?mode=login` endpoint’inin yeni bundle ve Client ID ile çalıştığını doğrula.
 - [ ] Google izin ekranında e-posta sonrası Sonraki adımını canlı kullanıcı oturumuyla test et; manus.space/6lory branding tutarsızlığını gider.
 - [x] Canlı giriş callback’i ve mevcut kullanıcı session eşleştirmesini doğrula; sonucu GitHub/Vercel checkpoint’ine al.
@@ -210,3 +210,7 @@
 - [x] Mevcut 6lory değişikliklerini test/build ile doğrula; GitHub `main` dalına commit/push et ve Vercel production READY durumunu teyit et.
 
 - [x] Kullanıcı adına canlı Vercel Google/YouTube OAuth, callback, görev player ve admin akışlarını browser ile dene; bulunan hataları düzeltip yeniden yayınla.
+
+- [x] Tüm kritik kullanıcı, YouTube, admin, puan, ödül, bildirim ve liderlik akışlarını yeniden regresyonla kontrol et; bulguları ve düzeltmeleri yayınla.
+- [x] Canlı production rotalarında giriş, görev, profil, admin ve mobil görünüm kontrollerini tamamla.
+- [ ] Son tam test/build, GitHub main senkronu ve Vercel production READY doğrulamasını tamamla.

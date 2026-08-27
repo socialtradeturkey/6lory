@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createYoutubeProof,
   extractYoutubeVideoId,
   verifyYoutubeProof,
   youtubeRequirementsSatisfied,
   YOUTUBE_PROOF_TTL_MS,
+  refreshYoutubeAccessToken,
+  revokeYoutubeToken,
 } from "./youtube";
 
 beforeEach(() => {
@@ -48,6 +50,22 @@ describe("YouTube proof token", () => {
       videoId: "abc123_XY",
       channelId: "UC12345678901234567890",
     })).toBeNull();
+  });
+});
+
+describe("YouTube OAuth lifecycle", () => {
+  it("refreshes tokens and revokes Google access without exposing token values", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "fresh-token", expires_in: 3600 }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    try {
+      await expect(refreshYoutubeAccessToken("refresh-token")).resolves.toMatchObject({ access_token: "fresh-token" });
+      await expect(revokeYoutubeToken("access-token")).resolves.toBeUndefined();
+      expect(fetchMock).toHaveBeenNthCalledWith(1, "https://oauth2.googleapis.com/token", expect.objectContaining({ method: "POST" }));
+      expect(fetchMock).toHaveBeenNthCalledWith(2, expect.stringContaining("https://oauth2.googleapis.com/revoke?token="), expect.objectContaining({ method: "POST" }));
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 });
 

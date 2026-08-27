@@ -135,31 +135,35 @@ export default function Profile() {
             </form>
           )}
         </section>
+        <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
+          <h2 className="font-display text-lg font-bold">Hesap bağlantıları</h2>
+          <p className="mt-1 text-sm text-muted-foreground">YouTube görevlerini doğrulamak için Google hesabınızı güvenli biçimde bağlayın.</p>
+          {youtubeDenied && <div role="alert" className="mt-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">YouTube izni verilmedi. Bağlantıyı görev doğrulaması gerektiğinde yeniden başlatabilirsiniz.</div>}
+          {youtubeQuery.data?.connected ? (
+            <div className="mt-4 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-4" /> YouTube hesabı bağlı</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={disconnectYoutube.isPending}
+                  onClick={() => {
+                    if (window.confirm("YouTube API yetkisini ve 6lory bağlantısını kaldırmak istediğinize emin misiniz?")) disconnectYoutube.mutate();
+                  }}
+                  className="rounded-xl"
+                >
+                  {disconnectYoutube.isPending ? "Kaldırılıyor..." : "Bağlantıyı kaldır"}
+                </Button>
+              </div>
+              <p className="text-xs leading-5 text-muted-foreground">Son kontrol: {youtubeQuery.data.connection?.lastCheckedAt ? new Date(youtubeQuery.data.connection.lastCheckedAt).toLocaleString("tr-TR") : "Henüz yapılmadı"}. Bağlantıyı kaldırdığınızda kayıtlı token silinir ve Google yetkisi iptal edilir.</p>
+            </div>
+          ) : <a href="/api/social-oauth/youtube/start" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"><Youtube className="size-4" /> YouTube hesabını bağla</a>}
+        </section>
         {profileQuery.data?.profile && (
           <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
             <h2 className="font-display text-lg font-bold">Profil bilgileri</h2>
             <p className="mt-1 text-sm text-muted-foreground">Hesabınızı ve görev uygunluğunuzu güncel tutun.</p>
-            {youtubeDenied && <div role="alert" className="mt-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">YouTube izni verilmedi. Bağlantıyı görev doğrulaması gerektiğinde yeniden başlatabilirsiniz.</div>}
-            {youtubeQuery.data?.connected ? (
-              <div className="mt-4 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-4" /> YouTube hesabı bağlı</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={disconnectYoutube.isPending}
-                    onClick={() => {
-                      if (window.confirm("YouTube API yetkisini ve 6lory bağlantısını kaldırmak istediğinize emin misiniz?")) disconnectYoutube.mutate();
-                    }}
-                    className="rounded-xl"
-                  >
-                    {disconnectYoutube.isPending ? "Kaldırılıyor..." : "Bağlantıyı kaldır"}
-                  </Button>
-                </div>
-                <p className="text-xs leading-5 text-muted-foreground">Son kontrol: {youtubeQuery.data.connection?.lastCheckedAt ? new Date(youtubeQuery.data.connection.lastCheckedAt).toLocaleString("tr-TR") : "Henüz yapılmadı"}. Bağlantıyı kaldırdığınızda kayıtlı token silinir ve Google yetkisi iptal edilir.</p>
-              </div>
-            ) : <a href="/api/social-oauth/youtube/start" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"><Youtube className="size-4" /> YouTube hesabını bağla</a>}
             {(!profileQuery.data.profile.phoneNumber || !profileQuery.data.profile.province || !profileQuery.data.profile.age || !profileQuery.data.profile.gender) && <div className="mt-4 rounded-2xl bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">Profiliniz eksik. Eksik bilgiler ileride görev uygunluğunuzu ve kazanılmış puanların korunmasını etkileyebilir.</div>}
             <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); updateProfile.mutate({ phoneNumber: phoneNumber || undefined, province: province || undefined, age: age ? Number(age) : undefined, gender }); }}>
               <Input placeholder="Cep telefonu" value={phoneNumber || profileQuery.data.profile.phoneNumber || ""} onChange={event => setPhoneNumber(event.target.value)} />
