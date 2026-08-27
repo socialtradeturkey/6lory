@@ -87,6 +87,11 @@ export default function AuthPanel() {
         <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => { setMode("login"); setMessage(null); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === "login" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>Giriş yap</button>
         <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => { setMode("register"); setMessage(null); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === "register" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>Yeni kayıt</button>
       </div>
+      <Button type="button" variant="outline" className="mt-5 w-full rounded-xl border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800" onClick={() => window.location.assign("/api/social-oauth/youtube/start?mode=login")}>
+        <span className="mr-2 grid size-5 place-items-center rounded-full bg-white text-sm font-black text-blue-600 shadow-sm">G</span>
+        Google ile giriş yap
+      </Button>
+      <div className="mt-4 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"><span className="h-px flex-1 bg-border" /><span>veya manuel giriş</span><span className="h-px flex-1 bg-border" /></div>
       <form className="mt-5 space-y-4" onSubmit={submit}>
         {mode === "register" && <div className="space-y-2"><Label htmlFor="auth-name">Ad soyad</Label><Input id="auth-name" value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder="Adınız Soyadınız" required minLength={2} maxLength={96} /></div>}
         {mode === "register" && <div className="space-y-2"><Label htmlFor="auth-username">Kullanıcı adı</Label><Input id="auth-username" value={username} onChange={event => setUsername(event.target.value)} autoComplete="username" placeholder="kullanici_adi" required minLength={3} maxLength={48} pattern="[A-Za-z0-9_]+" /></div>}
@@ -95,7 +100,7 @@ export default function AuthPanel() {
         {message && <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm leading-5 text-amber-900 dark:text-amber-200">{message}</p>}
         <Button className="w-full rounded-xl" type="submit" disabled={pending}>{pending ? "İşleniyor…" : mode === "login" ? "Manuel giriş yap" : "Güvenli hesabımı oluştur"}</Button>
       </form>
-      <p className="mt-4 text-xs leading-5 text-muted-foreground">Bu uygulamada giriş kullanıcı adı veya e-posta ve parola ile yapılır. Yeni kayıt sırasında benzersiz bir kullanıcı adı belirleyin. Parolalar düz metin saklanmaz.</p>
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">Google ile girişte aynı izin akışı YouTube hesabınızı da bağlar. İsterseniz mevcut kullanıcı adı/e-posta ve parolanızla manuel girişe devam edebilirsiniz.</p>
     </div>
   );
 }

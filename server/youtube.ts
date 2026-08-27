@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 
 const CLIENT_ID = process.env.YOUTUBE_OAUTH_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.YOUTUBE_OAUTH_CLIENT_SECRET ?? "";
-const SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"];
+const SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/youtube.force-ssl"];
 
 function key() {
   return createHash("sha256").update(process.env.JWT_SECRET ?? "").digest();
@@ -31,6 +31,12 @@ export async function exchangeYoutubeCode(code: string, redirectUri: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, client_id: CLIENT_ID, client_secret: CLIENT_SECRET, redirect_uri: redirectUri, grant_type: "authorization_code" }) });
   if (!response.ok) throw new Error("YouTube OAuth token değişimi başarısız.");
   return response.json() as Promise<{ access_token: string; refresh_token?: string; expires_in?: number; scope?: string }>;
+}
+
+export async function googleUserInfo(accessToken: string) {
+  const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!response.ok) throw new Error("Google kullanıcı bilgileri alınamadı.");
+  return response.json() as Promise<{ sub: string; email?: string; name?: string; picture?: string }>;
 }
 
 export async function youtubeApi(accessToken: string, path: string, params: Record<string, string>) {
