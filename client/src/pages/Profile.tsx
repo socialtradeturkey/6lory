@@ -23,6 +23,9 @@ export default function Profile() {
   const socialQuery = trpc.profile.socialAccounts.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+  const youtubeQuery = trpc.youtube.connectionStatus.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
   const setup = trpc.profile.setup.useMutation({
     onSuccess: () => profileQuery.refetch(),
   });
@@ -127,7 +130,7 @@ export default function Profile() {
           <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
             <h2 className="font-display text-lg font-bold">Profil bilgileri</h2>
             <p className="mt-1 text-sm text-muted-foreground">Hesabınızı ve görev uygunluğunuzu güncel tutun.</p>
-            <a href="/api/social-oauth/youtube/start" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"><Youtube className="size-4" /> YouTube hesabını bağla</a>
+            {youtubeQuery.data?.connected ? <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-4" /> YouTube hesabı bağlı</div> : <a href="/api/social-oauth/youtube/start" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"><Youtube className="size-4" /> YouTube hesabını bağla</a>}
             {(!profileQuery.data.profile.phoneNumber || !profileQuery.data.profile.province || !profileQuery.data.profile.age || !profileQuery.data.profile.gender) && <div className="mt-4 rounded-2xl bg-amber-500/10 p-3 text-xs leading-5 text-amber-800 dark:text-amber-200">Profiliniz eksik. Eksik bilgiler ileride görev uygunluğunuzu ve kazanılmış puanların korunmasını etkileyebilir.</div>}
             <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); updateProfile.mutate({ phoneNumber: phoneNumber || undefined, province: province || undefined, age: age ? Number(age) : undefined, gender }); }}>
               <Input placeholder="Cep telefonu" value={phoneNumber || profileQuery.data.profile.phoneNumber || ""} onChange={event => setPhoneNumber(event.target.value)} />
