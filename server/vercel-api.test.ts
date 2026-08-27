@@ -22,8 +22,13 @@ describe("Vercel API application", () => {
     );
   });
 
-  it("does not expose the removed OAuth callback route", async () => {
-    const response = await fetch(`${baseUrl}/api/oauth/callback`);
-    expect(response.status).toBe(404);
+  it("redirects legacy OAuth callbacks to the current login surface", async () => {
+    const response = await fetch(`${baseUrl}/api/oauth/callback?state=stale`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "https://6loryapp-pernhdey.manus.space/?auth=retry&legacy=1",
+    );
   });
 });

@@ -36,7 +36,9 @@
       if (isManagedPreview) {
         navigator.serviceWorker?.getRegistrations().then(registrations => Promise.all(registrations.map(registration => registration.unregister()))).then(() => caches?.keys?.().then(keys => Promise.all(keys.filter(key => key.startsWith("6lory-shell-")).map(key => caches.delete(key)))));
       } else if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }));
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js?v=5", { updateViaCache: "none" }).then(registration => registration.update()).catch(() => {});
+        });
       }
     </script>
   </body>

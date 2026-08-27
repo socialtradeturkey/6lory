@@ -216,3 +216,5 @@
 - [x] Son tam test/build, GitHub main senkronu ve Vercel production READY doğrulamasını tamamla.
 
 - [x] `/tasks` sayfasındaki `Unexpected token '<'` API/proxy hatasını teşhis et, düzelt, test et ve yayınla.
+
+- [ ] Admin e-postasıyla canlı girişte eski `/api/oauth/callback` 404 akışını kökten düzelt; eski ve yeni OAuth başlangıçlarını, session eşleştirmesini, test/build ve GitHub/Vercel yayınını doğrula.

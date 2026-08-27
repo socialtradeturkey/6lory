@@ -42,6 +42,13 @@ export function createApiApp(): Express {
   registerStorageProxy(app);
   const youtubeCallback = `${APP_URL}/api/social-oauth/youtube/callback`;
 
+  // Older cached clients may still return to the removed Manus OAuth route.
+  // Keep that callback backward-compatible: never show a 404, and send the
+  // user to the current login surface where the new flow is available.
+  app.get("/api/oauth/callback", (_req, res) => {
+    return res.redirect(`${APP_URL}/?auth=retry&legacy=1`);
+  });
+
   app.get("/api/social-oauth/youtube/start", async (req, res) => {
     const mode = req.query.mode === "login" ? "login" : "youtube";
     const user = mode === "youtube" ? await sdk.authenticateRequest(req).catch(() => null) : null;
