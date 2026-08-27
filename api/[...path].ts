@@ -53,6 +53,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       method: req.method ?? "GET",
       headers: copyRequestHeaders(req),
       body: body ? body.toString("utf8") : undefined,
+      redirect: "manual",
     });
 
     copyResponseHeaders(upstream, res);

@@ -200,3 +200,6 @@
 - [ ] Google girişini YouTube API yetkisiyle tek izin akışında birleştir; ikinci profil bağlantısı isteme adımını kaldır.
 - [ ] Mevcut kullanıcıları Google e-postasıyla güvenli biçimde eşleştir; admin rolü, puan bakiyesi ve görev geçmişini koru.
 - [ ] Tek akışlı Google girişinin session, token, revoke ve yetki reddi davranışlarını test et.
+- [ ] Canlı `/api/social-oauth/youtube/start?mode=login` endpoint’inin yeni bundle ve Client ID ile çalıştığını doğrula.
+- [ ] Google izin ekranında e-posta sonrası Sonraki adımını canlı kullanıcı oturumuyla test et; manus.space/6lory branding tutarsızlığını gider.
+- [ ] Canlı giriş callback’i ve mevcut kullanıcı session eşleştirmesini doğrula; sonucu GitHub/Vercel checkpoint’ine al.
