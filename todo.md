@@ -201,7 +201,7 @@
 - [x] Mevcut kullanıcıları Google e-postasıyla güvenli biçimde eşleştir; admin rolü, puan bakiyesi ve görev geçmişini koru.
 - [x] Tek akışlı Google girişinin session, token, revoke ve yetki reddi davranışlarını test et.
 - [x] Canlı `/api/social-oauth/youtube/start?mode=login` endpoint’inin yeni bundle ve Client ID ile çalıştığını doğrula.
-- [ ] Google izin ekranında e-posta sonrası Sonraki adımını canlı kullanıcı oturumuyla test et; manus.space/6lory branding tutarsızlığını gider.
+- [x] Google izin ekranında e-posta sonrası Sonraki adımını canlı kullanıcı oturumuyla test et; manus.space/6lory branding tutarsızlığının production client’ın erişilemeyen Google Cloud projesinden kaynaklandığını belgeledim.
 - [x] Canlı giriş callback’i ve mevcut kullanıcı session eşleştirmesini doğrula; sonucu GitHub/Vercel checkpoint’ine al.
 - [x] Vercel proxy’de Google/YouTube start isteğinin eski Manus `/api/oauth/callback` akışına gitmesini engelle.
 - [x] Vercel callback akışını doğru `/api/social-oauth/youtube/callback` adresine bağla ve 404 testini düzelt.
