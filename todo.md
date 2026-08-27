@@ -219,15 +219,15 @@
 
 - [x] Admin e-postasıyla canlı girişte eski `/api/oauth/callback` 404 akışını kökten düzelt; eski ve yeni OAuth başlangıçlarını, session eşleştirmesini, test/build ve GitHub/Vercel yayınını doğrula.
 
-- [ ] Sonraki adım: canlı cache/OAuth branding durumunu yeniden doğrula ve kullanıcı cache yenileme yolunu kontrol et.
-- [ ] Sonraki adım: gerçek kanal/video verisiyle geçici YouTube canary görevi oluştur ve görev koşullarını doğrula.
+- [x] Sonraki adım: canlı cache/OAuth branding durumunu yeniden doğrula ve kullanıcı cache yenileme yolunu kontrol et.
+- [x] Sonraki adım: gerçek kanal/video verisiyle geçici YouTube canary görevi oluştur ve görev koşullarını doğrula.
 - [ ] Sonraki adım: canary kullanıcı doğrulaması, admin onayı ve pendingPoints → availablePoints zincirini çalıştır; ardından canary kaydını arşivle.
 
-- [ ] Yeni regresyon: görev oluştururken otomatik kullanıcı ataması claimedQuota/totalQuota değerlerini tüketmemeli; kullanıcıların gerçekten görevi başlatabilmesini ve admin canary görünürlüğünü düzelt.
+- [x] Yeni regresyon: görev oluştururken otomatik kullanıcı ataması claimedQuota/totalQuota değerlerini tüketmemeli; kullanıcıların gerçekten görevi başlatabilmesini ve admin canary görünürlüğünü düzelt.
 - [ ] Gerçek YouTube canary görevinde bağlı kullanıcıyla player → Secret Code → abonelik/beğeni kanıtı → admin onayı → pending/available wallet geçişini canlı doğrula.
 - [ ] Canary sonrası geçici test görevinin durumunu güvenli biçimde pasifleştir ve atama/kota/ledger yan etkilerini denetle.
 - [ ] Google Consent branding adını 6lory yapabilmek için Google Cloud projesi 219183351050 üzerinde gerekli erişim yetkisinin kullanıcı tarafından verilmesini bekle.
 - [ ] Canary bulgularına göre testleri güncelle, checkpoint oluştur ve managed production/Vercel senkronunu doğrula.
 
-- [ ] Yeni canlı regresyon: My Browser login sırasında production eski `/api/oauth/callback` 404 akışını sunuyor; güncel auth bundle/legacy redirect’i checkpoint ile yayınla ve yeniden doğrula.
+- [x] Yeni canlı regresyon: My Browser login sırasında production eski `/api/oauth/callback` 404 akışını sunuyor; güncel auth bundle/legacy redirect’i checkpoint ile yayınla ve yeniden doğrula.
 - [ ] Auth gerektiren görev detayında kullanılan giriş yüzeyinin güncel birleşik Google/YouTube OAuth ve manuel kayıt seçeneklerini production’da doğrula.
