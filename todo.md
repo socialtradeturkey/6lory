@@ -195,5 +195,5 @@
 - [x] Preview’den üretim callback’ine geçişte malformed OAuth state hatasını düzelt ve state çözümlemesini güvenli test et.
 - [x] YouTube OAuth/Branding son değişikliklerini GitHub main’e push et; Vercel production deployment commit’ini READY olarak doğrula.
 - [ ] Preview başlatma → Google izin → üretim callback → profil dönüş akışını gerçek oturumla doğrula.
-- [ ] YouTube authorize URL’sinde kullanılan OAuth istemci kimliği, uygulama adı ve scope’ları 6lory yapılandırmasıyla karşılaştır.
-- [ ] Google izin ekranında manus.space yerine 6lory uygulamasının görünmesini sağlayacak OAuth yapılandırma düzeltmesini yap ve canlıda doğrula.
+- [x] YouTube authorize URL’sinde kullanılan OAuth istemci kimliği, uygulama adı ve scope’ları 6lory yapılandırmasıyla karşılaştır.
+- [x] Google izin ekranında manus.space yerine 6lory uygulamasının görünmesini sağlayacak OAuth yapılandırma düzeltmesini yap ve canlıda doğrula.
