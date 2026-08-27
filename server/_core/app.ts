@@ -62,7 +62,7 @@ export function createApiApp(): Express {
         if (!identity.email) throw new Error("Google hesabında doğrulanmış e-posta bulunamadı.");
         const email = identity.email.trim().toLowerCase();
         const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
-        if (existing[0]?.accountStatus !== "active") throw new Error("Bu hesap aktif değil veya erişimi engellenmiş.");
+        if (existing[0] && existing[0].accountStatus !== "active") throw new Error("Bu hesap aktif değil veya erişimi engellenmiş.");
         if (existing[0]) {
           userId = existing[0].id;
           await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId!));

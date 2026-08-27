@@ -206,3 +206,5 @@
 - [x] Vercel proxy’de Google/YouTube start isteğinin eski Manus `/api/oauth/callback` akışına gitmesini engelle.
 - [x] Vercel callback akışını doğru `/api/social-oauth/youtube/callback` adresine bağla ve 404 testini düzelt.
 - [ ] Canlı Google girişinde e-posta → Sonraki → izin → callback dönüşünü doğrula.
+
+- [x] Mevcut 6lory değişikliklerini test/build ile doğrula; GitHub `main` dalına commit/push et ve Vercel production READY durumunu teyit et.
