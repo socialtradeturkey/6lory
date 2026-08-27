@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { promisify } from "node:util";
 import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
@@ -29,7 +29,17 @@ import {
   verificationAttempts,
   verificationSignals,
 } from "../drizzle/schema.js";
-import { decryptYoutubeToken, youtubeVerification } from "./youtube.js";
+import {
+  createYoutubeProof,
+  decryptYoutubeToken,
+  encryptYoutubeToken,
+  extractYoutubeVideoId,
+  refreshYoutubeAccessToken,
+  revokeYoutubeToken,
+  verifyYoutubeProof,
+  youtubeRequirementsSatisfied,
+  youtubeVerification,
+} from "./youtube.js";
 import {
   assertRedemptionEligibility,
   createSecretCode,
@@ -523,17 +533,43 @@ export const appRouter = router({
     connectionStatus: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
-      const [connection] = await db.select({ id: youtubeConnections.id, youtubeChannelId: youtubeConnections.youtubeChannelId, scopes: youtubeConnections.scopes, lastCheckedAt: youtubeConnections.lastCheckedAt }).from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
+      const [connection] = await db.select({ id: youtubeConnections.id, youtubeChannelId: youtubeConnections.youtubeChannelId, scopes: youtubeConnections.scopes, expiresAt: youtubeConnections.expiresAt, lastCheckedAt: youtubeConnections.lastCheckedAt }).from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
       return { connected: Boolean(connection), connection: connection ?? null };
+    }),
+    disconnect: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
+      const [connection] = await db.select().from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
+      if (!connection) return { success: true, disconnected: false };
+      try {
+        await revokeYoutubeToken(decryptYoutubeToken(connection.accessTokenCiphertext));
+      } catch {
+        // Google may already have revoked the token. Local deletion still prevents further API use.
+      }
+      await db.delete(youtubeConnections).where(eq(youtubeConnections.id, connection.id));
+      return { success: true, disconnected: true };
     }),
     verify: protectedProcedure.input(z.object({ videoId: z.string().regex(/^[a-zA-Z0-9_-]{6,}$/), channelId: z.string().regex(/^UC[a-zA-Z0-9_-]{10,}$/) })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
       const [connection] = await db.select().from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
       if (!connection) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Önce YouTube hesabınızı bağlayın." });
-      const result = await youtubeVerification(decryptYoutubeToken(connection.accessTokenCiphertext), input.videoId, input.channelId);
+      let accessToken = decryptYoutubeToken(connection.accessTokenCiphertext);
+      if (connection.expiresAt && new Date(connection.expiresAt).getTime() <= Date.now() + 60_000 && connection.refreshTokenCiphertext) {
+        try {
+          const refreshed = await refreshYoutubeAccessToken(decryptYoutubeToken(connection.refreshTokenCiphertext));
+          accessToken = refreshed.access_token;
+          await db.update(youtubeConnections).set({ accessTokenCiphertext: encryptYoutubeToken(accessToken), expiresAt: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000) : connection.expiresAt, scopes: refreshed.scope?.split(" ") ?? connection.scopes }).where(eq(youtubeConnections.id, connection.id));
+        } catch {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "YouTube yetkisi süresi dolmuş. Profil sayfasından hesabınızı yeniden bağlayın." });
+        }
+      }
+      const result = await youtubeVerification(accessToken, input.videoId, input.channelId);
       await db.update(youtubeConnections).set({ lastCheckedAt: new Date() }).where(eq(youtubeConnections.id, connection.id));
-      return result;
+      return {
+        ...result,
+        proofToken: createYoutubeProof({ userId: ctx.user.id, videoId: input.videoId, channelId: input.channelId, ...result, checkedAt: Date.now() }),
+      };
     }),
   }),
   dashboard: router({
@@ -819,6 +855,7 @@ export const appRouter = router({
           idempotencyKey,
           signals: taskSessionInput,
           secretCode: z.string().optional(),
+          youtubeProof: z.string().min(32).optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -860,6 +897,18 @@ export const appRouter = router({
               code: "NOT_FOUND",
               message: "Görev bulunamadı.",
             });
+          const requiresYoutubeProof = task.platform === "youtube" && (task.requiresYoutubeSubscription || task.requiresYoutubeLike);
+          let youtubeProof: ReturnType<typeof verifyYoutubeProof> = null;
+          if (requiresYoutubeProof) {
+            const expectedVideoId = extractYoutubeVideoId(task.targetUrl);
+            if (!expectedVideoId || !task.youtubeChannelId)
+              throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu YouTube görevinin kanal veya video doğrulaması yapılandırılmamış." });
+            youtubeProof = input.youtubeProof ? verifyYoutubeProof(input.youtubeProof, { userId: ctx.user.id, videoId: expectedVideoId, channelId: task.youtubeChannelId }) : null;
+            const missingSubscription = task.requiresYoutubeSubscription && !youtubeProof?.subscribed;
+            const missingLike = task.requiresYoutubeLike && !youtubeProof?.liked;
+            if (!youtubeRequirementsSatisfied({ requiresSubscription: task.requiresYoutubeSubscription, requiresLike: task.requiresYoutubeLike }, youtubeProof))
+              throw new TRPCError({ code: "PRECONDITION_FAILED", message: `YouTube koşulları tamamlanmadan görev gönderilemez.${missingSubscription ? " Kanal aboneliği eksik." : ""}${missingLike ? " Video beğenisi eksik." : ""}` });
+          }
           const secretCodeValid = Boolean(
             input.secretCode &&
               session.secretCodeExpiresAt &&
@@ -879,7 +928,9 @@ export const appRouter = router({
           // Puan, yönetici kararı verilene kadar hiçbir koşulda ledger'a yazılmaz.
           const verificationStatus = secretCodeValid ? "manual_review" : decision.status;
           const verificationReason = secretCodeValid
-            ? "Secret Code doğru; yönetici onayı bekleniyor."
+            ? requiresYoutubeProof
+              ? "Secret Code ve YouTube koşulları doğru; yönetici onayı bekleniyor."
+              : "Secret Code doğru; yönetici onayı bekleniyor."
             : decision.reason;
           const inserted = await tx.insert(verificationAttempts).values({
             idempotencyKey: input.idempotencyKey,
@@ -893,8 +944,18 @@ export const appRouter = router({
             completedAt: new Date(),
           });
           const verificationAttemptId = Number(inserted[0].insertId);
+          const persistedSignals = {
+            ...decision.signals,
+            ...(youtubeProof
+              ? {
+                  youtubeSubscribed: youtubeProof.subscribed,
+                  youtubeLiked: youtubeProof.liked,
+                  youtubeCheckedAt: youtubeProof.checkedAt,
+                }
+              : {}),
+          };
           await tx.insert(verificationSignals).values(
-            Object.entries(decision.signals).map(([key, value]) => ({
+            Object.entries(persistedSignals).map(([key, value]) => ({
               verificationAttemptId,
               key,
               value,
@@ -2018,7 +2079,7 @@ export const appRouter = router({
     verificationQueue: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "verification.decide");
       const db = await databaseOrThrow();
-      return db
+      const reviews = await db
         .select({
           id: manualReviews.id,
           verificationAttemptId: manualReviews.verificationAttemptId,
@@ -2028,6 +2089,11 @@ export const appRouter = router({
           userId: verificationAttempts.userId,
           taskTitle: tasks.title,
           rewardPoints: tasks.rewardPoints,
+          platform: tasks.platform,
+          targetUrl: tasks.targetUrl,
+          youtubeChannelId: tasks.youtubeChannelId,
+          requiresYoutubeSubscription: tasks.requiresYoutubeSubscription,
+          requiresYoutubeLike: tasks.requiresYoutubeLike,
           username: userProfiles.username,
           displayName: userProfiles.displayName,
           attemptReason: verificationAttempts.reason,
@@ -2039,6 +2105,37 @@ export const appRouter = router({
         .leftJoin(userProfiles, eq(userProfiles.userId, verificationAttempts.userId))
         .where(eq(manualReviews.status, "pending"))
         .orderBy(desc(manualReviews.createdAt));
+      if (!reviews.length) return [];
+      const attemptIds = reviews.map(review => review.verificationAttemptId);
+      const signalRows = await db
+        .select({ verificationAttemptId: verificationSignals.verificationAttemptId, key: verificationSignals.key, value: verificationSignals.value })
+        .from(verificationSignals)
+        .where(inArray(verificationSignals.verificationAttemptId, attemptIds));
+      const signalsByAttempt = new Map<number, Map<string, unknown>>();
+      for (const row of signalRows) {
+        const values = signalsByAttempt.get(row.verificationAttemptId) ?? new Map<string, unknown>();
+        values.set(row.key, row.value);
+        signalsByAttempt.set(row.verificationAttemptId, values);
+      }
+      const booleanSignal = (value: unknown) => value === true || value === 1 || value === "1" || value === "true";
+      return reviews.map(review => {
+        const signals = signalsByAttempt.get(review.verificationAttemptId);
+        const isYoutubeTask = review.platform === "youtube" && (review.requiresYoutubeSubscription || review.requiresYoutubeLike);
+        return {
+          ...review,
+          youtubeEvidence: isYoutubeTask
+            ? {
+                videoId: extractYoutubeVideoId(review.targetUrl),
+                channelId: review.youtubeChannelId,
+                requiredSubscription: review.requiresYoutubeSubscription,
+                requiredLike: review.requiresYoutubeLike,
+                subscribed: booleanSignal(signals?.get("youtubeSubscribed")),
+                liked: booleanSignal(signals?.get("youtubeLiked")),
+                checkedAt: typeof signals?.get("youtubeCheckedAt") === "number" ? signals?.get("youtubeCheckedAt") : null,
+              }
+            : null,
+        };
+      });
     }),
     decideReview: adminProcedure
       .input(

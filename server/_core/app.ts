@@ -51,6 +51,15 @@ export function createApiApp(): Express {
   });
 
   app.get("/api/social-oauth/youtube/callback", async (req, res) => {
+    if (req.query.error === "access_denied") {
+      let mode = "youtube";
+      try {
+        mode = String(verifyState(String(req.query.state ?? "")).mode ?? "youtube");
+      } catch {
+        // A denied OAuth request may omit a valid state; the safe fallback is the profile flow.
+      }
+      return res.redirect(mode === "login" ? `${APP_URL}/?oauth=denied` : `${APP_URL}/profile?youtube=denied`);
+    }
     try {
       const state = verifyState(String(req.query.state ?? ""));
       const token = await exchangeYoutubeCode(String(req.query.code ?? ""), youtubeCallback);

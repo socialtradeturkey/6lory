@@ -23,6 +23,8 @@ import {
   UserRound,
   Ban,
   Trash2,
+  ThumbsUp,
+  Youtube,
 } from "lucide-react";
 
 type AdminTab =
@@ -1386,6 +1388,17 @@ export default function Admin() {
                           Kullanıcı: {review.displayName || review.username || `#${review.userId}`} · Ödül: <strong className="text-foreground">+{review.rewardPoints} puan</strong>
                         </p>
                         {review.attemptReason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{review.attemptReason}</p>}
+                        {review.youtubeEvidence && (
+                          <div className="mt-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-3 text-xs">
+                            <p className="flex items-center gap-1.5 font-semibold text-red-700 dark:text-red-300"><Youtube className="size-3.5" /> YouTube kanıtı</p>
+                            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                              {review.youtubeEvidence.requiredSubscription && <span className={review.youtubeEvidence.subscribed ? "text-emerald-700 dark:text-emerald-300" : "text-amber-800 dark:text-amber-200"}>{review.youtubeEvidence.subscribed ? "✓ Abonelik doğrulandı" : "! Abonelik eksik"}</span>}
+                              {review.youtubeEvidence.requiredLike && <span className={review.youtubeEvidence.liked ? "text-emerald-700 dark:text-emerald-300" : "text-amber-800 dark:text-amber-200"}>{review.youtubeEvidence.liked ? "✓ Beğeni doğrulandı" : "! Beğeni eksik"}</span>}
+                            </div>
+                            <p className="mt-2 leading-5 text-muted-foreground">Kanal: {review.youtubeEvidence.channelId || "yapılandırılmamış"} · Video: {review.youtubeEvidence.videoId || "yapılandırılmamış"}</p>
+                            <p className="mt-1 font-semibold text-foreground">Puan, tüm zorunlu koşullar ve admin onayı olmadan aktarılmaz.</p>
+                          </div>
+                        )}
                       </div>
                       <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-300">
                         Onay bekliyor

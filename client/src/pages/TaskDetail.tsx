@@ -15,6 +15,7 @@ import {
   Clock3,
   KeyRound,
   ShieldAlert,
+  ShieldCheck,
   TimerReset,
   MousePointerClick,
   PlaySquare,
@@ -46,6 +47,12 @@ const VerificationSignals = {
   interactionCount: 1,
 };
 
+type YoutubeEvidence = {
+  subscribed: boolean;
+  liked: boolean;
+  proofToken: string;
+};
+
 export default function TaskDetail() {
   const [, params] = useRoute("/tasks/:id");
   const taskId = Number(params?.id);
@@ -63,6 +70,7 @@ export default function TaskDetail() {
   const [secretCodeExpiresAt, setSecretCodeExpiresAt] = useState<number | null>(null);
   const [secretCodeInput, setSecretCodeInput] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [youtubeEvidence, setYoutubeEvidence] = useState<YoutubeEvidence | null>(null);
   const [interactionCount, setInteractionCount] = useState(0);
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
@@ -84,6 +92,7 @@ export default function TaskDetail() {
       lastPlayerTimeRef.current = null;
       secretAutoRequestedRef.current = false;
       setVerificationStatus(null);
+      setYoutubeEvidence(null);
       toast.success(
         result.reused
           ? "Mevcut görev oturumunuz açıldı."
@@ -99,6 +108,7 @@ export default function TaskDetail() {
     [taskId, tasksQuery.data],
   );
   const embeddedTargetUrl = getEmbeddedTargetUrl(task?.targetUrl, task?.platform ?? "");
+  const youtubeVideoId = embeddedTargetUrl?.match(/\/embed\/([^?]+)/)?.[1] ?? null;
   const activeSeconds = useMemo(() => {
     if (!task || remainingSeconds === null) return 0;
     return Math.max(0, task.sessionDurationSeconds - remainingSeconds);
@@ -146,6 +156,7 @@ export default function TaskDetail() {
 
   const youtubeVerify = trpc.youtube.verify.useMutation({
     onSuccess: result => {
+      setYoutubeEvidence(result);
       if (result.subscribed && result.liked) toast.success("YouTube abonelik ve beğeni doğrulandı.");
       else toast.warning(`Eksik koşullar: ${!result.subscribed ? "kanal aboneliği" : ""}${!result.subscribed && !result.liked ? " ve " : ""}${!result.liked ? "video beğenisi" : ""}.`);
     },
@@ -317,6 +328,8 @@ export default function TaskDetail() {
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
   const isReadyForSecretCode = effectiveActiveSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
+  const youtubeActionReady = !supportsSecretCode || Boolean(issuedSecretCode);
+  const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || Boolean(youtubeEvidence && (!task.requiresYoutubeSubscription || youtubeEvidence.subscribed) && (!task.requiresYoutubeLike || youtubeEvidence.liked));
 
   return (
     <AppShell title="Görev ayrıntısı" eyebrow="Doğrulanmış akış">
@@ -388,7 +401,56 @@ export default function TaskDetail() {
                   <iframe src={embeddedTargetUrl} title={`${task.title} görev çalışma alanı`} className="aspect-video w-full" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={() => setInteractionCount(value => Math.max(1, value))} />
                 )}
               </div>
-              {task.platform === "youtube" && sessionId && (task.requiresYoutubeSubscription || task.requiresYoutubeLike) && <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4"><p className="text-sm font-semibold">YouTube görev adımları</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Secret Code’dan sonra gerekli işlemleri aynı YouTube hesabıyla tamamlayın.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><a href="/api/social-oauth/youtube/start" className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white"><Youtube className="size-4" /> YouTube hesabını bağla</a><Button variant="outline" disabled={youtubeVerify.isPending || !task.youtubeChannelId} onClick={() => { const videoId = embeddedTargetUrl?.split("/embed/")[1]?.split("?")[0]; if (videoId && task.youtubeChannelId) youtubeVerify.mutate({ videoId, channelId: task.youtubeChannelId }); }} className="rounded-xl text-xs"><ThumbsUp className="mr-2 size-4" /> Abonelik ve beğeniyi doğrula</Button></div></div>}
+              {task.platform === "youtube" && sessionId && (task.requiresYoutubeSubscription || task.requiresYoutubeLike) && (
+                <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+                  <p className="text-sm font-semibold">YouTube görev adımları</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {supportsSecretCode && !issuedSecretCode
+                      ? "Önce videoyu gerçek oynatma ile izleyin ve Secret Code’u girin. Ardından aşağıdaki zorunlu adımları tamamlayın."
+                      : "Aynı YouTube hesabıyla istenen abonelik ve beğeni adımlarını tamamlayın; görev gönderilmeden önce sunucu kanıtı alınır."}
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {task.requiresYoutubeSubscription ? (
+                      <a
+                        href={task.youtubeChannelId ? `https://www.youtube.com/channel/${encodeURIComponent(task.youtubeChannelId)}?sub_confirmation=1` : "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-disabled={!youtubeActionReady || !task.youtubeChannelId}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 ${!youtubeActionReady || !task.youtubeChannelId ? "pointer-events-none opacity-50" : ""}`}
+                      >
+                        <Youtube className="size-4" /> Abone ol
+                      </a>
+                    ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Abonelik gerekmiyor</span>}
+                    {task.requiresYoutubeLike ? (
+                      <a
+                        href={task.targetUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-disabled={!youtubeActionReady || !task.targetUrl}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-300 transition hover:bg-red-500/10 ${!youtubeActionReady || !task.targetUrl ? "pointer-events-none opacity-50" : ""}`}
+                      >
+                        <ThumbsUp className="size-4" /> Videoyu beğen
+                      </a>
+                    ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Beğeni gerekmiyor</span>}
+                  </div>
+                  <Button
+                    variant="outline"
+                    disabled={youtubeVerify.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
+                    onClick={() => {
+                      if (youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ videoId: youtubeVideoId, channelId: task.youtubeChannelId });
+                    }}
+                    className="mt-3 w-full rounded-xl text-xs"
+                  >
+                    <ShieldCheck className="mr-2 size-4" /> {youtubeVerify.isPending ? "YouTube kontrol ediliyor..." : "YouTube koşullarını kontrol et"}
+                  </Button>
+                  {youtubeEvidence && (
+                    <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2" aria-live="polite">
+                      {task.requiresYoutubeSubscription && <span className={`rounded-xl px-3 py-2 font-semibold ${youtubeEvidence.subscribed ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`}>{youtubeEvidence.subscribed ? "✓ Kanal aboneliği doğrulandı" : "! Kanal aboneliği eksik"}</span>}
+                      {task.requiresYoutubeLike && <span className={`rounded-xl px-3 py-2 font-semibold ${youtubeEvidence.liked ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`}>{youtubeEvidence.liked ? "✓ Video beğenisi doğrulandı" : "! Video beğenisi eksik"}</span>}
+                    </div>
+                  )}
+                </div>
+              )}
               </>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm leading-6 text-muted-foreground">Bu görev için gömülebilir hedef bulunmuyor. Talimatları uygulayın; sistem doğrulanamayan bir sosyal işlemi başarı olarak işaretlemez.</div>
@@ -515,6 +577,7 @@ export default function TaskDetail() {
                         idempotencyKey: crypto.randomUUID(),
                         signals,
                         secretCode: secretCodeInput.trim(),
+                        youtubeProof: youtubeRequirementsMet ? youtubeEvidence?.proofToken : undefined,
                       })
                     }
                     className="w-full rounded-xl"
@@ -534,6 +597,7 @@ export default function TaskDetail() {
                         sessionPublicId: sessionId,
                         idempotencyKey: crypto.randomUUID(),
                         signals,
+                        youtubeProof: youtubeRequirementsMet ? youtubeEvidence?.proofToken : undefined,
                       })
                     }
                     variant="outline"
