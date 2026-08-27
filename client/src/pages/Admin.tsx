@@ -256,6 +256,9 @@ export default function Admin() {
   const [campaignId, setCampaignId] = useState("");
   const [platform, setPlatform] = useState("web");
   const [actionType, setActionType] = useState("VISIT");
+  const [youtubeChannelId, setYoutubeChannelId] = useState("");
+  const [requiresYoutubeSubscription, setRequiresYoutubeSubscription] = useState(false);
+  const [requiresYoutubeLike, setRequiresYoutubeLike] = useState(false);
   const [targetUrl, setTargetUrl] = useState("");
   const [verificationMethod, setVerificationMethod] = useState("manual_review");
   const [fallbackMethod, setFallbackMethod] = useState("manual_review");
@@ -692,6 +695,9 @@ export default function Admin() {
                     | "tiktok"
                     | "custom",
                   actionType,
+                  youtubeChannelId: platform === "youtube" ? youtubeChannelId || undefined : undefined,
+                  requiresYoutubeSubscription: platform === "youtube" && requiresYoutubeSubscription,
+                  requiresYoutubeLike: platform === "youtube" && requiresYoutubeLike,
                   targetUrl: targetUrl || undefined,
                   rewardPoints: Number(points),
                   totalQuota: Number(quota),
@@ -795,6 +801,11 @@ export default function Admin() {
                     placeholder="Örn. VISIT"
                   />
                 </label>
+                {platform === "youtube" && <>
+                  <label className="text-xs font-bold">YouTube kanal ID’si<Input value={youtubeChannelId} onChange={event => setYoutubeChannelId(event.target.value)} className="mt-1.5" placeholder="UC..." /></label>
+                  <label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={requiresYoutubeSubscription} onChange={event => setRequiresYoutubeSubscription(event.target.checked)} /> Kanal aboneliği zorunlu</label>
+                  <label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={requiresYoutubeLike} onChange={event => setRequiresYoutubeLike(event.target.checked)} /> Video beğenisi zorunlu</label>
+                </>}
                 <label className="text-xs font-bold">
                   Hedef URL{" "}
                   <span className="font-normal text-muted-foreground">

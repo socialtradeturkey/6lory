@@ -25,9 +25,11 @@ import {
   trustScores,
   userProfiles,
   users,
+  youtubeConnections,
   verificationAttempts,
   verificationSignals,
 } from "../drizzle/schema.js";
+import { decryptYoutubeToken, youtubeVerification } from "./youtube.js";
 import {
   assertRedemptionEligibility,
   createSecretCode,
@@ -517,6 +519,23 @@ export const appRouter = router({
       }),
   }),
 
+  youtube: router({
+    connectionStatus: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
+      const [connection] = await db.select({ id: youtubeConnections.id, youtubeChannelId: youtubeConnections.youtubeChannelId, scopes: youtubeConnections.scopes, lastCheckedAt: youtubeConnections.lastCheckedAt }).from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
+      return { connected: Boolean(connection), connection: connection ?? null };
+    }),
+    verify: protectedProcedure.input(z.object({ videoId: z.string().regex(/^[a-zA-Z0-9_-]{6,}$/), channelId: z.string().regex(/^UC[a-zA-Z0-9_-]{10,}$/) })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
+      const [connection] = await db.select().from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
+      if (!connection) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Önce YouTube hesabınızı bağlayın." });
+      const result = await youtubeVerification(decryptYoutubeToken(connection.accessTokenCiphertext), input.videoId, input.channelId);
+      await db.update(youtubeConnections).set({ lastCheckedAt: new Date() }).where(eq(youtubeConnections.id, connection.id));
+      return result;
+    }),
+  }),
   dashboard: router({
     summary: protectedProcedure.query(async ({ ctx }) => {
       const db = await databaseOrThrow();
@@ -1825,6 +1844,9 @@ export const appRouter = router({
           description: z.string().max(6000).optional(),
           platform: z.enum(["web", "instagram", "youtube", "tiktok", "custom"]),
           actionType: z.string().trim().min(2).max(64),
+          youtubeChannelId: z.string().trim().regex(/^UC[a-zA-Z0-9_-]{10,}$/).optional(),
+          requiresYoutubeSubscription: z.boolean().default(false),
+          requiresYoutubeLike: z.boolean().default(false),
           targetUrl: z.string().url().optional(),
           rewardPoints: z.number().int().positive().max(1_000_000),
           totalQuota: z.number().int().positive(),

@@ -147,6 +147,9 @@ export const tasks = mysqlTable(
     description: text("description"),
     platform: mysqlEnum("platform", ["web", "instagram", "youtube", "tiktok", "custom"]).notNull(),
     actionType: varchar("action_type", { length: 64 }).notNull(),
+    youtubeChannelId: varchar("youtube_channel_id", { length: 64 }),
+    requiresYoutubeSubscription: boolean("requires_youtube_subscription").default(false).notNull(),
+    requiresYoutubeLike: boolean("requires_youtube_like").default(false).notNull(),
     targetUrl: varchar("target_url", { length: 2048 }),
     targetIdentifier: varchar("target_identifier", { length: 255 }),
     rewardPoints: int("reward_points").notNull(),
@@ -204,6 +207,22 @@ export const socialAccounts = mysqlTable(
   ],
 );
 
+export const youtubeConnections = mysqlTable(
+  "youtube_connections",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+    youtubeChannelId: varchar("youtube_channel_id", { length: 64 }),
+    accessTokenCiphertext: text("access_token_ciphertext").notNull(),
+    refreshTokenCiphertext: text("refresh_token_ciphertext"),
+    expiresAt: utcTimestamp(),
+    scopes: json("scopes").$type<string[]>(),
+    lastCheckedAt: utcTimestamp(),
+    createdAt: utcTimestamp().defaultNow().notNull(),
+    updatedAt: utcTimestamp().defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("youtube_connections_user_idx").on(table.userId)],
+);
 export const taskAssignments = mysqlTable(
   "task_assignments",
   {

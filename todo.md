@@ -186,3 +186,9 @@
 - [x] Son checkpoint ile çalışma ağacını ve canlı deployment’ı karşılaştır; özelliklerin gerçekten bundle’a girdiğini doğrula.
 - [x] Canlıda görünmeyen Liderlik, Profil, admin arama ve kritik işlem modalı akışlarını route bazında düzelt ve yeniden bağla.
 - [x] Yeni yayında kullanıcı/admin akışlarını browser ve build/test ile doğrula; checkpoint’i güncelle.
+- [ ] YouTube görevlerinde izleme/abonelik/beğeni gereksinimlerini ayrı doğrulama adımları olarak modelle.
+- [ ] Kullanıcı YouTube OAuth bağlantısı ve güvenli token saklama/yenileme akışını planla; erişim yoksa görev davranışını güvenli biçimde sınırla.
+- [ ] Dashboard player içinde Abone ol ve Beğen adımlarını göster; Secret Code sonrası API tabanlı kanıt doğrulaması yap.
+- [ ] Admin görev formu ve onay kuyruğunda abonelik/beğeni kanıtlarını göster; tüm koşullar sağlanmadan puanı pending’e alma.
+- [ ] YouTube doğrulama akışı için testler, mobil UX ve kötüye kullanım kontrollerini tamamla.
+- [x] Google OAuth Branding için herkese açık `/privacy` ve `/terms` sayfaları oluştur; App router’a bağla ve yayın URL’lerini doğrula.
