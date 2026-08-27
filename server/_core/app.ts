@@ -79,7 +79,9 @@ export function createApiApp(): Express {
           });
         }
         await saveYoutubeConnection(db, userId!, token);
-        const sessionToken = await sdk.createSessionToken(`google_${identity.sub}`, { expiresInMs: 1000 * 60 * 60 * 24 * 30, name: identity.name ?? email });
+        const [sessionUser] = await db.select({ openId: users.openId, name: users.name }).from(users).where(eq(users.id, userId!)).limit(1);
+        if (!sessionUser) throw new Error("Google kullanıcı oturumu oluşturulamadı.");
+        const sessionToken = await sdk.createSessionToken(sessionUser.openId, { expiresInMs: 1000 * 60 * 60 * 24 * 30, name: sessionUser.name ?? identity.name ?? email });
         res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: 1000 * 60 * 60 * 24 * 30 });
         return res.redirect(`${APP_URL}/profile?google=connected&youtube=connected`);
       }
