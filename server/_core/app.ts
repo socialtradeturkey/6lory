@@ -19,12 +19,9 @@ export function createApiApp(): Express {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
-  const youtubeCallback = (req: express.Request) => {
-    const forwardedHost = req.headers["x-forwarded-host"] || req.headers.host;
-    const host = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
-    const forwardedProto = req.headers["x-forwarded-proto"];
-    const protocol = forwardedProto === "https" || req.protocol === "https" ? "https" : "http";
-    return `${protocol}://${host}/api/social-oauth/youtube/callback`;
+  const youtubeCallback = (_req: express.Request) => {
+    // Google Cloud’da yalnızca bu kalıcı yayın adresi yetkilidir; preview hostları geçicidir.
+    return "https://6loryapp-pernhdey.manus.space/api/social-oauth/youtube/callback";
   };
   app.get("/api/social-oauth/youtube/start", async (req, res) => {
     const user = await sdk.authenticateRequest(req).catch(() => null);

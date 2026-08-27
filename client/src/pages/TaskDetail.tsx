@@ -18,6 +18,8 @@ import {
   TimerReset,
   MousePointerClick,
   PlaySquare,
+  Youtube,
+  ThumbsUp,
 } from "lucide-react";
 
 function getEmbeddedTargetUrl(targetUrl: string | null | undefined, platform: string) {
@@ -141,6 +143,14 @@ export default function TaskDetail() {
     secretAutoRequestedRef.current = true;
     issueSecretCode.mutate({ sessionPublicId: sessionId, signals });
   }, [activeSeconds, isPageVisible, isPlayerPlaying, issuedSecretCode, issueSecretCode, sessionId, signals, task]);
+
+  const youtubeVerify = trpc.youtube.verify.useMutation({
+    onSuccess: result => {
+      if (result.subscribed && result.liked) toast.success("YouTube abonelik ve beğeni doğrulandı.");
+      else toast.warning(`Eksik koşullar: ${!result.subscribed ? "kanal aboneliği" : ""}${!result.subscribed && !result.liked ? " ve " : ""}${!result.liked ? "video beğenisi" : ""}.`);
+    },
+    onError: error => toast.error(error.message),
+  });
 
   const verify = trpc.tasks.verify.useMutation({
     onSuccess: async result => {
@@ -359,6 +369,7 @@ export default function TaskDetail() {
               {task.platform === "youtube" ? "Videoyu bu panel içinde izleyin; süre ve oturum etkinliği doğrulama isteğine bağlanır." : task.platform === "instagram" ? "Instagram görev alanını bu panel içinde inceleyin; doğrulanamayan sosyal eylemler otomatik başarı sayılmaz." : "Hedefi bu çalışma alanında inceleyin ve doğrulama adımlarını aynı oturumda tamamlayın."}
             </p>
             {embeddedTargetUrl ? (
+              <>
               <div className="mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm">
                 {task.platform === "youtube" && sessionId ? (
                   <div className="relative aspect-video w-full">
@@ -377,6 +388,8 @@ export default function TaskDetail() {
                   <iframe src={embeddedTargetUrl} title={`${task.title} görev çalışma alanı`} className="aspect-video w-full" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={() => setInteractionCount(value => Math.max(1, value))} />
                 )}
               </div>
+              {task.platform === "youtube" && sessionId && (task.requiresYoutubeSubscription || task.requiresYoutubeLike) && <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4"><p className="text-sm font-semibold">YouTube görev adımları</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Secret Code’dan sonra gerekli işlemleri aynı YouTube hesabıyla tamamlayın.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><a href="/api/social-oauth/youtube/start" className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white"><Youtube className="size-4" /> YouTube hesabını bağla</a><Button variant="outline" disabled={youtubeVerify.isPending || !task.youtubeChannelId} onClick={() => { const videoId = embeddedTargetUrl?.split("/embed/")[1]?.split("?")[0]; if (videoId && task.youtubeChannelId) youtubeVerify.mutate({ videoId, channelId: task.youtubeChannelId }); }} className="rounded-xl text-xs"><ThumbsUp className="mr-2 size-4" /> Abonelik ve beğeniyi doğrula</Button></div></div>}
+              </>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm leading-6 text-muted-foreground">Bu görev için gömülebilir hedef bulunmuyor. Talimatları uygulayın; sistem doğrulanamayan bir sosyal işlemi başarı olarak işaretlemez.</div>
             )}
