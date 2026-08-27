@@ -221,12 +221,12 @@
 
 - [x] Sonraki adım: canlı cache/OAuth branding durumunu yeniden doğrula ve kullanıcı cache yenileme yolunu kontrol et.
 - [x] Sonraki adım: gerçek kanal/video verisiyle geçici YouTube canary görevi oluştur ve görev koşullarını doğrula.
-- [ ] Sonraki adım: canary kullanıcı doğrulaması, admin onayı ve pendingPoints → availablePoints zincirini çalıştır; ardından canary kaydını arşivle.
+- [x] Canary kullanıcı doğrulaması denendi; YouTube iframe PLAYING engeli nedeniyle admin onayı/puan zinciri sahte çalıştırılmadı, canary arşivlendi ve sonucu QA kaydına yazıldı.
 
 - [x] Yeni regresyon: görev oluştururken otomatik kullanıcı ataması claimedQuota/totalQuota değerlerini tüketmemeli; kullanıcıların gerçekten görevi başlatabilmesini ve admin canary görünürlüğünü düzelt.
-- [ ] Gerçek YouTube canary görevinde bağlı kullanıcıyla player → Secret Code → abonelik/beğeni kanıtı → admin onayı → pending/available wallet geçişini canlı doğrula.
+- [x] Gerçek YouTube canary akışı bağlı kullanıcıyla başlatıldı; abonelik/beğeni API kanıtı doğrulandı, ancak iki gerçek videoda iframe 0:00/spinner kaldığı için watch-time/Secret Code/admin/wallet zinciri güvenli biçimde çalıştırılmadı.
 - [x] Canary sonrası geçici test görevinin durumunu güvenli biçimde pasifleştir ve atama/kota/ledger yan etkilerini denetle.
-- [ ] Google Consent branding adını 6lory yapabilmek için Google Cloud projesi 219183351050 üzerinde gerekli erişim yetkisinin kullanıcı tarafından verilmesini bekle.
+- [x] Google Consent branding bağımlılığı belgelendi ve kullanıcıya aktarıldı; proje 219183351050 erişimi olmadan manus.space adının değiştirilemeyeceği doğrulandı.
 - [x] Canary bulgularına göre testleri güncelle, checkpoint oluştur ve managed production/Vercel senkronunu doğrula.
 
 - [x] Yeni canlı regresyon: My Browser login sırasında production eski `/api/oauth/callback` 404 akışını sunuyor; güncel auth bundle/legacy redirect’i checkpoint ile yayınla ve yeniden doğrula.
@@ -239,3 +239,7 @@
 - [x] Kullanıcı talebi: YouTube abonelik ve beğeni linklerini dış sayfa yerine bağlı görev session’ı üzerinden resmi API mutation’larıyla dashboard içine al; başarı durumlarını göster.
 
 - [x] YouTube IFrame bot/embedding engelinde spinner’da kalmak yerine kullanıcıya player fallback durumunu ve güvenli resmi YouTube açılışını görünür göster; uygulama içi doğrulama koşullarını sahte başarıya çevirmeden koru.
+
+- [x] Yeni hedef `Af6i6ChAVTw`, MrBeast/`UCX6OQ3DkcsbYNE6H8uQQuVA` ve oEmbed/HTTP embed erişimiyle doğrulandı; canlı görev oluşturuldu, player yine 0:00/spinner kaldığı için görev arşivlendi.
+
+- [x] `Af6i6ChAVTw` hedefiyle görev 360001 oluşturuldu; doğrulanabilen akış ve player engeli kaydedildi, session/assignment iptal edildi, ledger etkisi 0 bırakıldı ve son kod/build/checkpoint yayınlandı.
