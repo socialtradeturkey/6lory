@@ -19,3 +19,6 @@
 - Yeni düzeltme: Abone ol ve Videoyu beğen düğmeleri artık görev session’ına bağlı resmi YouTube API mutation’larını çağırıyor; dış sekme açmıyor.
 - UI, başarılı abonelik/beğeni durumunu kilitli düğme olarak gösteriyor; geçersiz session stale state’i temizliyor; geçerli active session tekrar kullanılıyor.
 - Son yerel doğrulama: 17 test dosyası başarılı, 70 test başarılı, 3 test atlandı; TypeScript ve production build başarılı. Yeni checkpoint sonrası canlı canary yeniden çalıştırılacak.
+
+- Yeni fallback: IFrame 10 saniye içinde hazır olmazsa spinner yerine neden açıklaması, Player’ı yeniden dene ve YouTube sayfasını yalnızca kontrol amaçlı aç seçenekleri görünür; dış izleme hiçbir zaman sayaç/başarı kanıtı sayılmıyor.
+- Fallback sonrası doğrulama: 17 test dosyası başarılı, 70 test başarılı, 3 test atlandı; TypeScript ve production build başarılı.

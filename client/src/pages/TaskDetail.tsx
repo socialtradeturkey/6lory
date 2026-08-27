@@ -74,6 +74,7 @@ export default function TaskDetail() {
   const [youtubeActionState, setYoutubeActionState] = useState({ subscribed: false, liked: false });
   const [interactionCount, setInteractionCount] = useState(0);
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
+  const [playerUnavailable, setPlayerUnavailable] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
   const [seekPenaltySeconds, setSeekPenaltySeconds] = useState(0);
   const playerRef = useRef<any>(null);
@@ -90,6 +91,7 @@ export default function TaskDetail() {
       setSecretCodeExpiresAt(null);
       setSecretCodeInput("");
       setSeekPenaltySeconds(0);
+      setPlayerUnavailable(false);
       lastPlayerTimeRef.current = null;
       secretAutoRequestedRef.current = false;
       setVerificationStatus(null);
@@ -276,6 +278,10 @@ export default function TaskDetail() {
     if (!videoId) return;
 
     let player: any;
+    let playerReady = false;
+    const playerTimeout = window.setTimeout(() => {
+      if (!playerReady) setPlayerUnavailable(true);
+    }, 10_000);
     const onPlayerStateChange = (event: any) => {
       if (event.data === 1) setIsPlayerPlaying(true); // PLAYING
       else setIsPlayerPlaying(false); // PAUSED, ENDED, etc.
@@ -288,9 +294,12 @@ export default function TaskDetail() {
         playerVars: { autoplay: 1, modestbranding: 1, rel: 0, playsinline: 1 },
         events: {
           onReady: (event: any) => {
+            playerReady = true;
+            setPlayerUnavailable(false);
             event.target.mute();
             event.target.playVideo();
           },
+          onError: () => setPlayerUnavailable(true),
           onStateChange: onPlayerStateChange,
         },
       });
@@ -308,6 +317,7 @@ export default function TaskDetail() {
     }
 
     return () => {
+      window.clearTimeout(playerTimeout);
       setIsPlayerPlaying(false);
       secretAutoRequestedRef.current = false;
       if (player?.destroy) player.destroy();
@@ -451,12 +461,22 @@ export default function TaskDetail() {
                 {task.platform === "youtube" && sessionId ? (
                   <div className="relative aspect-video w-full">
                     <div id="youtube-player" className="h-full w-full" />
-                    {issuedSecretCode && (
+                    {issuedSecretCode && !playerUnavailable && (
                       <div className="pointer-events-none absolute inset-0 grid place-items-center bg-slate-950/30 p-4">
                         <div className="rounded-2xl border border-white/35 bg-slate-950/90 px-5 py-3 text-center text-white shadow-2xl backdrop-blur-sm">
                           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300">Görev doğrulama kodu</p>
                           <p className="mt-1 font-mono text-2xl font-black tracking-[0.28em] sm:text-3xl sm:tracking-[0.35em]">{issuedSecretCode}</p>
                           <p className="mt-1 text-[11px] text-white/75">Kodu aşağıdaki alana girin</p>
+                        </div>
+                      </div>
+                    )}
+                    {playerUnavailable && (
+                      <div className="absolute inset-0 grid place-items-center bg-slate-950/90 p-5 text-center text-white">
+                        <div className="max-w-sm">
+                          <p className="text-sm font-bold">YouTube player yüklenemedi</p>
+                          <p className="mt-2 text-xs leading-5 text-white/75">YouTube, bu tarayıcı oturumunda gömülü oynatmayı engelledi. Dış sayfada izleme, 6lory sayaç kanıtı yerine geçmez ve görevi tamamlamaz.</p>
+                          <button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-white/90">Player’ı yeniden dene</button>
+                          {task.targetUrl && <a href={task.targetUrl} target="_blank" rel="noreferrer" className="mt-3 block text-xs font-semibold text-teal-300 underline underline-offset-4">YouTube sayfasını yalnızca kontrol için aç</a>}
                         </div>
                       </div>
                     )}

@@ -237,3 +237,5 @@
 - [x] Canary QA’da tekrarlı başlatmalar sonrası aynı kullanıcı/görev için birden fazla active session birikmesini ve eski UI session kimliğinin hata vermesini incele; en fazla bir active session kuralını ve yeniden başlatma akışını doğrula.
 
 - [x] Kullanıcı talebi: YouTube abonelik ve beğeni linklerini dış sayfa yerine bağlı görev session’ı üzerinden resmi API mutation’larıyla dashboard içine al; başarı durumlarını göster.
+
+- [x] YouTube IFrame bot/embedding engelinde spinner’da kalmak yerine kullanıcıya player fallback durumunu ve güvenli resmi YouTube açılışını görünür göster; uygulama içi doğrulama koşullarını sahte başarıya çevirmeden koru.
