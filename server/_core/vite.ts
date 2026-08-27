@@ -6,6 +6,11 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
+export function isApiPath(url: string) {
+  const pathname = url.split("?", 1)[0];
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 export async function setupVite(app: Express, _server: Server) {
   // A prior PWA service worker may cache Vite modules in the proxy-backed
   // preview. Clear only browser storage/cache in development; auth cookies
@@ -44,6 +49,17 @@ export function updateStyle(id, css) {
 }
 export function removeStyle(id) { const style = styles.get(id); style?.remove(); styles.delete(id); }
 `);
+  });
+
+  // Keep API misses away from Vite. Vite may answer unknown paths with an
+  // empty HTML/dev response before the SPA fallback gets a chance to run.
+  // API clients must always receive JSON, including for an omitted endpoint.
+  app.use("*", (req, res, next) => {
+    if (isApiPath(req.originalUrl)) {
+      res.status(404).type("application/json").json({ error: "API endpoint not found." });
+      return;
+    }
+    next();
   });
 
   app.use(vite.middlewares);
@@ -94,6 +110,16 @@ export function serveStatic(app: Express) {
   });
 
   app.use(express.static(distPath));
+
+  // Never serve index.html for an API miss in production. API clients must
+  // always receive JSON, even when a route was omitted from the deployment.
+  app.use("*", (req, res, next) => {
+    if (isApiPath(req.originalUrl)) {
+      res.status(404).type("application/json").json({ error: "API endpoint not found." });
+      return;
+    }
+    next();
+  });
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
