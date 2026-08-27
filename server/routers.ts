@@ -39,6 +39,8 @@ import {
   verifyYoutubeProof,
   youtubeRequirementsSatisfied,
   youtubeVerification,
+  youtubeSubscribe,
+  youtubeLike,
 } from "./youtube.js";
 import {
   assertRedemptionEligibility,
@@ -144,6 +146,33 @@ async function databaseOrThrow() {
       message: "Veritabanı şu anda kullanılamıyor.",
     });
   return db;
+}
+
+type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+
+async function getYoutubeAccessToken(db: Database, userId: number) {
+  const [connection] = await db.select().from(youtubeConnections).where(eq(youtubeConnections.userId, userId)).limit(1);
+  if (!connection) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Önce YouTube hesabınızı bağlayın." });
+  let accessToken = decryptYoutubeToken(connection.accessTokenCiphertext);
+  if (connection.expiresAt && new Date(connection.expiresAt).getTime() <= Date.now() + 60_000 && connection.refreshTokenCiphertext) {
+    try {
+      const refreshed = await refreshYoutubeAccessToken(decryptYoutubeToken(connection.refreshTokenCiphertext));
+      accessToken = refreshed.access_token;
+      await db.update(youtubeConnections).set({ accessTokenCiphertext: encryptYoutubeToken(accessToken), expiresAt: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000) : connection.expiresAt, scopes: refreshed.scope?.split(" ") ?? connection.scopes }).where(eq(youtubeConnections.id, connection.id));
+    } catch {
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "YouTube yetkisi süresi dolmuş. Profil sayfasından hesabınızı yeniden bağlayın." });
+    }
+  }
+  return { connection, accessToken };
+}
+
+async function getYoutubeTaskActionContext(db: Database, sessionPublicId: string, userId: number, action: "subscription" | "like") {
+  const [session] = await db.select().from(taskSessions).where(eq(taskSessions.publicId, sessionPublicId)).limit(1);
+  const access = session ? getTaskSessionAccess({ sessionUserId: session.userId, requesterUserId: userId, expiresAt: session.expiresAt, status: session.status }) : null;
+  if (!session || !access?.allowed) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz veya süresi dolmuş." });
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
+  if (!task || task.platform !== "youtube" || (action === "subscription" ? !task.requiresYoutubeSubscription : !task.requiresYoutubeLike)) throw new TRPCError({ code: "BAD_REQUEST", message: "Bu YouTube görevi istenen eylemi kullanmıyor." });
+  return { session, task };
 }
 
 async function requireAdminCapability(
@@ -536,6 +565,29 @@ export const appRouter = router({
       const [connection] = await db.select({ id: youtubeConnections.id, youtubeChannelId: youtubeConnections.youtubeChannelId, scopes: youtubeConnections.scopes, expiresAt: youtubeConnections.expiresAt, lastCheckedAt: youtubeConnections.lastCheckedAt }).from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
       return { connected: Boolean(connection), connection: connection ?? null };
     }),
+    subscribe: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12) })).mutation(async ({ ctx, input }) => {
+      const db = await databaseOrThrow();
+      const { task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "subscription");
+      if (!task.youtubeChannelId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube kanal hedefi yapılandırılmamış." });
+      const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+      try {
+        return await youtubeSubscribe(accessToken, task.youtubeChannelId);
+      } catch (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "YouTube abonelik işlemi tamamlanamadı." });
+      }
+    }),
+    like: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12) })).mutation(async ({ ctx, input }) => {
+      const db = await databaseOrThrow();
+      const { task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "like");
+      const videoId = extractYoutubeVideoId(task.targetUrl);
+      if (!videoId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube video hedefi yapılandırılmamış." });
+      const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+      try {
+        return await youtubeLike(accessToken, videoId);
+      } catch (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "YouTube beğeni işlemi tamamlanamadı." });
+      }
+    }),
     disconnect: protectedProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
@@ -709,6 +761,21 @@ export const appRouter = router({
               code: "BAD_REQUEST",
               message: "Bu görev şu anda başlatılamıyor.",
             });
+          }
+          const [activeSession] = await tx
+            .select()
+            .from(taskSessions)
+            .where(
+              and(
+                eq(taskSessions.taskId, task.id),
+                eq(taskSessions.userId, ctx.user.id),
+                eq(taskSessions.status, "active"),
+                gte(taskSessions.expiresAt, new Date()),
+              )
+            )
+            .limit(1);
+          if (activeSession && task.status === "active" && (!task.startsAt || task.startsAt <= new Date()) && (!task.endsAt || task.endsAt > new Date())) {
+            return { session: activeSession, reused: true };
           }
           let [assignment] = await tx
             .select()

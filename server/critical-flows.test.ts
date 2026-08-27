@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { hashSecretCode } from "./domain";
+import { encryptYoutubeToken } from "./youtube";
 
 const getDbMock = vi.hoisted(() => vi.fn());
 vi.mock("./db", () => ({ getDb: getDbMock }));
@@ -41,7 +42,7 @@ describe("kritik görev prosedürleri", () => {
     const task = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 0, totalQuota: 2, sessionDurationSeconds: 900 };
     const assignment = { id: 17, status: "claimed" };
     const storedSession = { id: 21, publicId: "stored-session", status: "active" };
-    const { tx, updates, inserts } = createTransaction([[], [task], [], [assignment], [storedSession]], [[{ insertId: 17 }], [{ insertId: 21 }]]);
+    const { tx, updates, inserts } = createTransaction([[], [task], [], [], [assignment], [storedSession]], [[{ insertId: 17 }], [{ insertId: 21 }]]);
     getDbMock.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => unknown) => callback(tx) });
 
     const result = await appRouter.createCaller(createContext()).tasks.start({ taskId: 5, idempotencyKey: "start-key-0001" });
@@ -49,6 +50,41 @@ describe("kritik görev prosedürleri", () => {
     expect(result).toEqual({ session: storedSession, reused: false });
     expect(updates).toContainEqual({ claimedQuota: 1 });
     expect(inserts).toHaveLength(2);
+  });
+
+  it("tasks.start mevcut active session’ı yeniden kullanır ve ikinci oturum üretmez", async () => {
+    const task = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 2, totalQuota: 2, sessionDurationSeconds: 900 };
+    const activeSession = { id: 21, publicId: "active-session", taskId: 5, userId: 1, status: "active", expiresAt: new Date(Date.now() + 60_000) };
+    const { tx, updates, inserts } = createTransaction([[], [task], [activeSession]]);
+    getDbMock.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => unknown) => callback(tx) });
+
+    const result = await appRouter.createCaller(createContext()).tasks.start({ taskId: 5, idempotencyKey: "active-start-key-0001" });
+
+    expect(result).toEqual({ session: activeSession, reused: true });
+    expect(updates).toHaveLength(0);
+    expect(inserts).toHaveLength(0);
+  });
+
+  it("youtube.subscribe yalnızca geçerli YouTube görev session’ı üzerinden resmi API çağrısı yapar", async () => {
+    process.env.JWT_SECRET = "critical-youtube-secret";
+    const session = { id: 21, publicId: "youtube-session-0001", taskId: 5, userId: 1, status: "active", expiresAt: new Date(Date.now() + 60_000) };
+    const task = { id: 5, platform: "youtube", requiresYoutubeSubscription: true, requiresYoutubeLike: false, youtubeChannelId: "UC12345678901234567890", targetUrl: "https://www.youtube.com/watch?v=abc123_XY" };
+    const connection = { id: 31, userId: 1, accessTokenCiphertext: encryptYoutubeToken("access-token"), refreshTokenCiphertext: null, expiresAt: new Date(Date.now() + 3_600_000), scopes: ["https://www.googleapis.com/auth/youtube.force-ssl"] };
+    let selectIndex = 0;
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    getDbMock.mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => query([[session], [task], [connection]][selectIndex++]) }) }),
+      update: () => ({ set: () => ({ where: async () => [{ affectedRows: 1 }] }) }),
+    });
+
+    try {
+      await expect(appRouter.createCaller(createContext()).youtube.subscribe({ sessionPublicId: session.publicId })).resolves.toEqual({ subscribed: true, alreadySubscribed: false });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 
   it("tasks.start kota dolu olduğunda atama veya oturum yazmaz", async () => {

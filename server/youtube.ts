@@ -69,6 +69,32 @@ export async function youtubeApi(accessToken: string, path: string, params: Reco
   return response.json() as Promise<any>;
 }
 
+async function youtubeMutation(accessToken: string, path: string, params: Record<string, string>, body: unknown) {
+  const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
+  Object.entries(params).forEach(([name, value]) => url.searchParams.set(name, value));
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`YouTube API işlemi başarısız (${response.status}).`);
+  return response.status === 204 ? null : response.json();
+}
+
+export async function youtubeSubscribe(accessToken: string, channelId: string) {
+  const existing = await youtubeApi(accessToken, "subscriptions", { part: "snippet", mine: "true", forChannelId: channelId, maxResults: "1" });
+  if ((existing.items?.length ?? 0) > 0) return { subscribed: true, alreadySubscribed: true };
+  await youtubeMutation(accessToken, "subscriptions", { part: "snippet" }, { snippet: { resourceId: { channelId } } });
+  return { subscribed: true, alreadySubscribed: false };
+}
+
+export async function youtubeLike(accessToken: string, videoId: string) {
+  const existing = await youtubeApi(accessToken, "videos/getRating", { id: videoId });
+  if (existing.items?.[0]?.rating === "like") return { liked: true, alreadyLiked: true };
+  await youtubeMutation(accessToken, "videos/rate", { id: videoId, rating: "like" }, {});
+  return { liked: true, alreadyLiked: false };
+}
+
 export async function youtubeVerification(accessToken: string, videoId: string, channelId: string) {
   const [subscription, rating] = await Promise.all([
     youtubeApi(accessToken, "subscriptions", { part: "snippet", mine: "true", forChannelId: channelId, maxResults: "1" }),

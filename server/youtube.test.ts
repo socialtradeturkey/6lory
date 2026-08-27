@@ -7,6 +7,8 @@ import {
   YOUTUBE_PROOF_TTL_MS,
   refreshYoutubeAccessToken,
   revokeYoutubeToken,
+  youtubeSubscribe,
+  youtubeLike,
 } from "./youtube";
 
 beforeEach(() => {
@@ -54,6 +56,22 @@ describe("YouTube proof token", () => {
 });
 
 describe("YouTube OAuth lifecycle", () => {
+  it("performs idempotent subscription and like actions through the official API", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "none" }] }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    try {
+      await expect(youtubeSubscribe("access-token", "UC12345678901234567890")).resolves.toEqual({ subscribed: true, alreadySubscribed: false });
+      await expect(youtubeLike("access-token", "abc123_XY")).resolves.toEqual({ liked: true, alreadyLiked: false });
+      expect(fetchMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/subscriptions?part=snippet") }), expect.objectContaining({ method: "POST", body: JSON.stringify({ snippet: { resourceId: { channelId: "UC12345678901234567890" } } }) }));
+      expect(fetchMock).toHaveBeenNthCalledWith(4, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/videos/rate?id=abc123_XY&rating=like") }), expect.objectContaining({ method: "POST", body: "{}" }));
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   it("refreshes tokens and revokes Google access without exposing token values", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "fresh-token", expires_in: 3600 }), { status: 200, headers: { "content-type": "application/json" } }))

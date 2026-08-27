@@ -230,4 +230,10 @@
 - [ ] Canary bulgularına göre testleri güncelle, checkpoint oluştur ve managed production/Vercel senkronunu doğrula.
 
 - [x] Yeni canlı regresyon: My Browser login sırasında production eski `/api/oauth/callback` 404 akışını sunuyor; güncel auth bundle/legacy redirect’i checkpoint ile yayınla ve yeniden doğrula.
-- [ ] Auth gerektiren görev detayında kullanılan giriş yüzeyinin güncel birleşik Google/YouTube OAuth ve manuel kayıt seçeneklerini production’da doğrula.
+- [x] Auth gerektiren görev detayında kullanılan giriş yüzeyinin güncel birleşik Google/YouTube OAuth ve manuel kayıt seçeneklerini production’da doğrula.
+
+- [x] Canary QA oturumu Secret Code gönderiminden önce süresi doldu; geçici görev session/kota durumunu güvenli biçimde resetle ve test penceresini gerçek kullanıcı adımlarına yetecek şekilde doğrula.
+
+- [x] Canary QA’da tekrarlı başlatmalar sonrası aynı kullanıcı/görev için birden fazla active session birikmesini ve eski UI session kimliğinin hata vermesini incele; en fazla bir active session kuralını ve yeniden başlatma akışını doğrula.
+
+- [x] Kullanıcı talebi: YouTube abonelik ve beğeni linklerini dış sayfa yerine bağlı görev session’ı üzerinden resmi API mutation’larıyla dashboard içine al; başarı durumlarını göster.

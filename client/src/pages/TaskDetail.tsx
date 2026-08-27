@@ -71,6 +71,7 @@ export default function TaskDetail() {
   const [secretCodeInput, setSecretCodeInput] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [youtubeEvidence, setYoutubeEvidence] = useState<YoutubeEvidence | null>(null);
+  const [youtubeActionState, setYoutubeActionState] = useState({ subscribed: false, liked: false });
   const [interactionCount, setInteractionCount] = useState(0);
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
@@ -93,6 +94,7 @@ export default function TaskDetail() {
       secretAutoRequestedRef.current = false;
       setVerificationStatus(null);
       setYoutubeEvidence(null);
+      setYoutubeActionState({ subscribed: false, liked: false });
       toast.success(
         result.reused
           ? "Mevcut görev oturumunuz açıldı."
@@ -100,6 +102,44 @@ export default function TaskDetail() {
       );
     },
     onError: error => toast.error(error.message),
+  });
+
+  const youtubeSubscribe = trpc.youtube.subscribe.useMutation({
+    onSuccess: result => {
+      setYoutubeActionState(state => ({ ...state, subscribed: true }));
+      toast.success(result.alreadySubscribed ? "YouTube kanalına zaten abonesiniz." : "YouTube kanal aboneliği tamamlandı.");
+    },
+    onError: error => {
+      if (/oturum.*(geçerli|süresi|bulunamadı)/i.test(error.message)) {
+        setSessionId(null);
+        setSessionExpiresAt(null);
+        setRemainingSeconds(null);
+        setIssuedSecretCode(null);
+        setSecretCodeExpiresAt(null);
+        setSecretCodeInput("");
+        secretAutoRequestedRef.current = false;
+      }
+      toast.error(error.message);
+    },
+  });
+
+  const youtubeLike = trpc.youtube.like.useMutation({
+    onSuccess: result => {
+      setYoutubeActionState(state => ({ ...state, liked: true }));
+      toast.success(result.alreadyLiked ? "Video zaten beğenilmiş." : "YouTube video beğenisi tamamlandı.");
+    },
+    onError: error => {
+      if (/oturum.*(geçerli|süresi|bulunamadı)/i.test(error.message)) {
+        setSessionId(null);
+        setSessionExpiresAt(null);
+        setRemainingSeconds(null);
+        setIssuedSecretCode(null);
+        setSecretCodeExpiresAt(null);
+        setSecretCodeInput("");
+        secretAutoRequestedRef.current = false;
+      }
+      toast.error(error.message);
+    },
   });
 
   const task = taskQuery.data;
@@ -176,7 +216,18 @@ export default function TaskDetail() {
         toast.success("Doğrulama sonucu kaydedildi. Bildirim merkezinden takip edebilirsiniz.");
       }
     },
-    onError: error => toast.error(error.message),
+    onError: error => {
+      if (/oturum.*(geçerli|süresi|bulunamadı)/i.test(error.message)) {
+        setSessionId(null);
+        setSessionExpiresAt(null);
+        setRemainingSeconds(null);
+        setIssuedSecretCode(null);
+        setSecretCodeExpiresAt(null);
+        setSecretCodeInput("");
+        secretAutoRequestedRef.current = false;
+      }
+      toast.error(error.message);
+    },
   });
 
   useEffect(() => {
@@ -191,6 +242,19 @@ export default function TaskDetail() {
     const timer = window.setInterval(updateRemaining, 1000);
     return () => window.clearInterval(timer);
   }, [sessionExpiresAt, isPlayerPlaying, isPageVisible, task?.platform, sessionId]);
+
+  useEffect(() => {
+    if (!sessionId || remainingSeconds !== 0 || verificationStatus) return;
+    setSessionId(null);
+    setSessionExpiresAt(null);
+    setRemainingSeconds(null);
+    setIssuedSecretCode(null);
+    setSecretCodeExpiresAt(null);
+    setSecretCodeInput("");
+    setIsPlayerPlaying(false);
+    secretAutoRequestedRef.current = false;
+    toast.warning("Görev oturumunun süresi doldu. Görevi yeniden başlatabilirsiniz.");
+  }, [remainingSeconds, sessionId, verificationStatus]);
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -406,36 +470,35 @@ export default function TaskDetail() {
                   <p className="text-sm font-semibold">YouTube görev adımları</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     {supportsSecretCode && !issuedSecretCode
-                      ? "Önce videoyu gerçek oynatma ile izleyin ve Secret Code’u girin. Ardından aşağıdaki zorunlu adımları tamamlayın."
-                      : "Aynı YouTube hesabıyla istenen abonelik ve beğeni adımlarını tamamlayın; görev gönderilmeden önce sunucu kanıtı alınır."}
+                      ? "Önce videoyu gerçek oynatma ile izleyin ve Secret Code’u girin. Ardından zorunlu YouTube işlemlerini bu panelden başlatın."
+                      : "İşlemler bağlı YouTube hesabınızla resmi API üzerinden başlatılır; görev gönderilmeden önce sunucu kanıtı alınır."}
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {task.requiresYoutubeSubscription ? (
-                      <a
-                        href={task.youtubeChannelId ? `https://www.youtube.com/channel/${encodeURIComponent(task.youtubeChannelId)}?sub_confirmation=1` : "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-disabled={!youtubeActionReady || !task.youtubeChannelId}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 ${!youtubeActionReady || !task.youtubeChannelId ? "pointer-events-none opacity-50" : ""}`}
+                      <Button
+                        type="button"
+                        disabled={!youtubeActionReady || !task.youtubeChannelId || youtubeSubscribe.isPending || youtubeActionState.subscribed}
+                        onClick={() => sessionId && youtubeSubscribe.mutate({ sessionPublicId: sessionId })}
+                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
                       >
-                        <Youtube className="size-4" /> Abone ol
-                      </a>
+                        <Youtube className="size-4" /> {youtubeActionState.subscribed ? "Abonelik tamamlandı" : youtubeSubscribe.isPending ? "Abonelik işleniyor..." : "Abone ol"}
+                      </Button>
                     ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Abonelik gerekmiyor</span>}
                     {task.requiresYoutubeLike ? (
-                      <a
-                        href={task.targetUrl ?? "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-disabled={!youtubeActionReady || !task.targetUrl}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-300 transition hover:bg-red-500/10 ${!youtubeActionReady || !task.targetUrl ? "pointer-events-none opacity-50" : ""}`}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!youtubeActionReady || !youtubeVideoId || youtubeLike.isPending || youtubeActionState.liked}
+                        onClick={() => sessionId && youtubeLike.mutate({ sessionPublicId: sessionId })}
+                        className="rounded-xl border-red-500/40 text-xs text-red-700 transition hover:bg-red-500/10 dark:text-red-300"
                       >
-                        <ThumbsUp className="size-4" /> Videoyu beğen
-                      </a>
+                        <ThumbsUp className="size-4" /> {youtubeActionState.liked ? "Beğeni tamamlandı" : youtubeLike.isPending ? "Beğeni işleniyor..." : "Videoyu beğen"}
+                      </Button>
                     ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Beğeni gerekmiyor</span>}
                   </div>
                   <Button
                     variant="outline"
-                    disabled={youtubeVerify.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
+                    disabled={youtubeVerify.isPending || youtubeSubscribe.isPending || youtubeLike.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
                     onClick={() => {
                       if (youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ videoId: youtubeVideoId, channelId: task.youtubeChannelId });
                     }}
