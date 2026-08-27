@@ -1973,7 +1973,7 @@ export const appRouter = router({
                 destination: `/tasks/${taskId}`,
               })),
             );
-            await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: activeUsers.length, claimedQuota: activeUsers.length, totalQuota: Math.max(input.totalQuota, activeUsers.length) }).where(eq(tasks.id, taskId));
+            await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: activeUsers.length }).where(eq(tasks.id, taskId));
           }
           await tx.insert(auditLogs).values({
             actorUserId: ctx.user.id,

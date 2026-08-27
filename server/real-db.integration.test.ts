@@ -377,7 +377,11 @@ describe.runIf(runRealDbIntegration)(
       expect(campaignTaskRows[0]).toMatchObject({
         campaignId: campaign.id,
         status: "active",
+        audienceMode: "assigned",
+        claimedQuota: 0,
+        totalQuota: 10,
       });
+      expect(campaignTaskRows[0].assignmentTargetCount).toBeGreaterThan(0);
       await admin.admin.setTaskStatus({
         taskId: campaignTask.id,
         status: "paused",
