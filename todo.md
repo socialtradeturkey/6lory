@@ -225,9 +225,9 @@
 
 - [x] Yeni regresyon: görev oluştururken otomatik kullanıcı ataması claimedQuota/totalQuota değerlerini tüketmemeli; kullanıcıların gerçekten görevi başlatabilmesini ve admin canary görünürlüğünü düzelt.
 - [ ] Gerçek YouTube canary görevinde bağlı kullanıcıyla player → Secret Code → abonelik/beğeni kanıtı → admin onayı → pending/available wallet geçişini canlı doğrula.
-- [ ] Canary sonrası geçici test görevinin durumunu güvenli biçimde pasifleştir ve atama/kota/ledger yan etkilerini denetle.
+- [x] Canary sonrası geçici test görevinin durumunu güvenli biçimde pasifleştir ve atama/kota/ledger yan etkilerini denetle.
 - [ ] Google Consent branding adını 6lory yapabilmek için Google Cloud projesi 219183351050 üzerinde gerekli erişim yetkisinin kullanıcı tarafından verilmesini bekle.
-- [ ] Canary bulgularına göre testleri güncelle, checkpoint oluştur ve managed production/Vercel senkronunu doğrula.
+- [x] Canary bulgularına göre testleri güncelle, checkpoint oluştur ve managed production/Vercel senkronunu doğrula.
 
 - [x] Yeni canlı regresyon: My Browser login sırasında production eski `/api/oauth/callback` 404 akışını sunuyor; güncel auth bundle/legacy redirect’i checkpoint ile yayınla ve yeniden doğrula.
 - [x] Auth gerektiren görev detayında kullanılan giriş yüzeyinin güncel birleşik Google/YouTube OAuth ve manuel kayıt seçeneklerini production’da doğrula.

@@ -22,3 +22,8 @@
 
 - Yeni fallback: IFrame 10 saniye içinde hazır olmazsa spinner yerine neden açıklaması, Player’ı yeniden dene ve YouTube sayfasını yalnızca kontrol amaçlı aç seçenekleri görünür; dış izleme hiçbir zaman sayaç/başarı kanıtı sayılmıyor.
 - Fallback sonrası doğrulama: 17 test dosyası başarılı, 70 test başarılı, 3 test atlandı; TypeScript ve production build başarılı.
+
+- Resmi YouTube API ile salt-okunur yeniden kontrolde canary hesabı için `subscribed: true` ve `liked: true` görüldü. Kullanıcı onayından sonra `videos.rate` çağrısı başarılı oldu; beğeni gerçek hesapta oluşturuldu.
+- Bu sonuç YouTube koşullarının hesap seviyesinde hazır olduğunu gösterir; ancak görev session’ının gerçek PLAYING watch-time ve Secret Code kanıtı olmadan görev tamamlanmış sayılmayacak ve puan/ledger yazılmayacaktır.
+
+- Canary kapanışı: görev `330001` `archived`, `claimedQuota=0`, `totalQuota=1`; 5 session `cancelled`, 6 assignment `cancelled`; `point_ledger` kaydı ve toplam tutar `0`. Geçici test canlı kullanıcı bakiyesini etkilemeden kapatıldı.
