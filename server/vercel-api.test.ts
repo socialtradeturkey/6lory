@@ -40,6 +40,20 @@ describe("Vercel API application", () => {
     expect(location).not.toContain(encodeURIComponent("https://6loryapp-pernhdey.manus.space/api/social-oauth/youtube/callback"));
   });
 
+  it("prefers the explicit Vercel host header when an upstream rewrites forwarded host", async () => {
+    const response = await fetch(`${baseUrl}/api/social-oauth/youtube/start?mode=login`, {
+      headers: {
+        "x-sixlory-public-host": "6lory.vercel.app",
+        "x-forwarded-host": "6loryapp-pernhdey.manus.space",
+      },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain(
+      encodeURIComponent("https://6lory.vercel.app/api/social-oauth/youtube/callback"),
+    );
+  });
+
   it("redirects legacy OAuth callbacks to the current login surface", async () => {
     const response = await fetch(`${baseUrl}/api/oauth/callback?state=stale`, {
       redirect: "manual",

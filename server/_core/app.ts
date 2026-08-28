@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request as ExpressRequest } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { eq } from "drizzle-orm";
 import { appRouter } from "../routers.js";
@@ -26,6 +26,15 @@ export function appOriginForHost(host: string | null | undefined) {
   if (VERCEL_PROJECT_HOSTS.has(normalizedHost)) return VERCEL_APP_URL;
   if (normalizedHost === new URL(MANAGED_APP_URL).host) return MANAGED_APP_URL;
   return MANAGED_APP_URL;
+}
+
+function appOriginForRequest(req: ExpressRequest) {
+  // The Vercel API proxy supplies this explicit allowlisted value because the
+  // managed upstream can rewrite ordinary forwarded-host headers to its own
+  // Manus hostname.
+  return appOriginForHost(
+    req.get("x-sixlory-public-host") ?? req.get("x-forwarded-host") ?? req.get("host"),
+  );
 }
 
 function signState(payload: Record<string, unknown>) {
@@ -63,7 +72,7 @@ export function createApiApp(): Express {
   });
 
   app.get("/api/social-oauth/youtube/start", async (req, res) => {
-    const appUrl = appOriginForHost(req.get("x-forwarded-host") ?? req.get("host"));
+    const appUrl = appOriginForRequest(req);
     const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     const mode = req.query.mode === "login" ? "login" : "youtube";
     const user = mode === "youtube" ? await sdk.authenticateRequest(req).catch(() => null) : null;
@@ -73,7 +82,7 @@ export function createApiApp(): Express {
   });
 
   app.get("/api/social-oauth/youtube/callback", async (req, res) => {
-    const appUrl = appOriginForHost(req.get("x-forwarded-host") ?? req.get("host"));
+    const appUrl = appOriginForRequest(req);
     const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     if (req.query.error === "access_denied") {
       let mode = "youtube";
