@@ -29,9 +29,10 @@ export function appOriginForHost(host: string | null | undefined) {
 }
 
 function appOriginForRequest(req: ExpressRequest) {
-  // The Vercel API proxy supplies this explicit allowlisted value because the
-  // managed upstream can rewrite ordinary forwarded-host headers to its own
-  // Manus hostname.
+  // The Vercel proxy marks OAuth requests in the query because intermediary
+  // layers can rewrite both ordinary and custom forwarded-host headers.
+  if (String(req.query.__sixlory_surface ?? "") === "vercel") return VERCEL_APP_URL;
+
   return appOriginForHost(
     req.get("x-sixlory-public-host") ?? req.get("x-forwarded-host") ?? req.get("host"),
   );

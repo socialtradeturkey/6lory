@@ -4,6 +4,18 @@ export const MANAGED_API_ORIGIN =
   process.env.SIXLORY_MANAGED_API_ORIGIN ??
   "https://6loryapp-pernhdey.manus.space";
 const CANONICAL_VERCEL_HOST = "6lory.vercel.app";
+const VERCEL_OAUTH_PATHS = new Set([
+  "/api/social-oauth/youtube/start",
+  "/api/social-oauth/youtube/callback",
+]);
+
+export function getManagedRequestPath(requestPath: string) {
+  const parsed = new URL(requestPath, "http://local-request.invalid");
+  if (VERCEL_OAUTH_PATHS.has(parsed.pathname)) {
+    parsed.searchParams.set("__sixlory_surface", "vercel");
+  }
+  return `${parsed.pathname}${parsed.search}`;
+}
 
 export function getManagedApiUrl(requestPath: string) {
   const parsed = new URL(requestPath, "http://local-request.invalid");
@@ -55,7 +67,7 @@ function copyResponseHeaders(response: Response, res: ServerResponse) {
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   try {
-    const requestPath = req.url ?? "/api";
+    const requestPath = getManagedRequestPath(req.url ?? "/api");
     const target = getManagedApiUrl(requestPath);
     const body = await readRequestBody(req);
     const upstream = await fetch(target, {

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { IncomingMessage } from "node:http";
-import { copyRequestHeaders, getManagedApiUrl, MANAGED_API_ORIGIN } from "./[...path]";
+import {
+  copyRequestHeaders,
+  getManagedApiUrl,
+  getManagedRequestPath,
+  MANAGED_API_ORIGIN,
+} from "./[...path]";
 
 describe("Vercel managed API proxy", () => {
   it("forwards the API path and query to the managed origin", () => {
@@ -18,6 +23,17 @@ describe("Vercel managed API proxy", () => {
     const target = getManagedApiUrl("https://attacker.example/api/trpc/auth.me");
     expect(target.origin).toBe(MANAGED_API_ORIGIN);
     expect(target.pathname).toBe("/api/trpc/auth.me");
+  });
+
+  it("marks OAuth requests for the canonical Vercel surface", () => {
+    const requestPath = getManagedRequestPath("/api/social-oauth/youtube/start?mode=login");
+    const parsed = new URL(requestPath, "http://local-request.invalid");
+    expect(parsed.searchParams.get("__sixlory_surface")).toBe("vercel");
+  });
+
+  it("does not add the Vercel marker to non-OAuth API requests", () => {
+    const requestPath = getManagedRequestPath("/api/trpc/auth.me?batch=1");
+    expect(requestPath).toBe("/api/trpc/auth.me?batch=1");
   });
 
   it("forwards the canonical Vercel host instead of an upstream Manus host", () => {
