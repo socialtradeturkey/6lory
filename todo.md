@@ -262,3 +262,7 @@
 - [ ] Canlı Google izin dönüşünde redirect URI’nin hâlâ Manus callback’i olduğunu düzelt; Vercel function üzerinden doğrudan callback akışını doğrula.
 - [ ] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
 - [ ] Bu blokaj çözülmeden kapsamlı QA sonucu veya yeni production checkpoint’i yayınlama.
+
+- [ ] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
+- [ ] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
+- [ ] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
