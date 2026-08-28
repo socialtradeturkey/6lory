@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 export const MANAGED_API_ORIGIN =
   process.env.SIXLORY_MANAGED_API_ORIGIN ??
   "https://6loryapp-pernhdey.manus.space";
+const CANONICAL_VERCEL_HOST = "6lory.vercel.app";
 
 export function getManagedApiUrl(requestPath: string) {
   const parsed = new URL(requestPath, "http://local-request.invalid");
@@ -33,10 +34,10 @@ export function copyRequestHeaders(req: IncomingMessage) {
   // The managed API decides the OAuth callback origin from this header. Vercel
   // may preserve an upstream Manus value, so always replace it with the host
   // the browser actually requested from the Vercel deployment.
-  const requestHost = req.headers.host;
-  if (requestHost) {
-    headers.set("x-forwarded-host", Array.isArray(requestHost) ? requestHost[0] : requestHost);
-  }
+  // This proxy always serves the canonical Vercel production surface. Do not
+  // trust a host value rewritten by the managed upstream, otherwise OAuth can
+  // generate a callback back to the Manus domain and fail with a TLS error.
+  headers.set("x-forwarded-host", CANONICAL_VERCEL_HOST);
   return headers;
 }
 

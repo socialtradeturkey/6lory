@@ -20,10 +20,10 @@ describe("Vercel managed API proxy", () => {
     expect(target.pathname).toBe("/api/trpc/auth.me");
   });
 
-  it("forwards the browser-requested Vercel host instead of an upstream host", () => {
+  it("forwards the canonical Vercel host instead of an upstream Manus host", () => {
     const request = {
       headers: {
-        host: "6lory.vercel.app",
+        host: "6lory-ato6flknk-socialtradeturkey-7533s-projects.vercel.app",
         "x-forwarded-host": "6loryapp-pernhdey.manus.space",
       },
     } as IncomingMessage;

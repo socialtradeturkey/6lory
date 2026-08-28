@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { GOOGLE_LOGIN_URL } from "@/const";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -87,7 +88,7 @@ export default function AuthPanel() {
         <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => { setMode("login"); setMessage(null); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === "login" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>Giriş yap</button>
         <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => { setMode("register"); setMessage(null); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === "register" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>Yeni kayıt</button>
       </div>
-      <Button type="button" variant="outline" className="mt-5 w-full rounded-xl border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800" onClick={() => window.location.assign("/api/social-oauth/youtube/start?mode=login")}>
+      <Button type="button" variant="outline" className="mt-5 w-full rounded-xl border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800" onClick={() => window.location.assign(GOOGLE_LOGIN_URL)}>
         <span className="mr-2 grid size-5 place-items-center rounded-full bg-white text-sm font-black text-blue-600 shadow-sm">G</span>
         Google ile giriş yap
       </Button>
@@ -100,7 +101,7 @@ export default function AuthPanel() {
         {message && <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm leading-5 text-amber-900 dark:text-amber-200">{message}</p>}
         <Button className="w-full rounded-xl" type="submit" disabled={pending}>{pending ? "İşleniyor…" : mode === "login" ? "Manuel giriş yap" : "Güvenli hesabımı oluştur"}</Button>
       </form>
-      <p className="mt-4 text-xs leading-5 text-muted-foreground">Google ile girişte aynı izin akışı YouTube hesabınızı da bağlar. İsterseniz mevcut kullanıcı adı/e-posta ve parolanızla manuel girişe devam edebilirsiniz.</p>
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">Google ile giriş, güvenli OAuth akışı için Vercel production adresinde başlar ve YouTube hesabınızı da bağlar. İsterseniz mevcut kullanıcı adı/e-posta ve parolanızla manuel girişe devam edebilirsiniz.</p>
     </div>
   );
 }
