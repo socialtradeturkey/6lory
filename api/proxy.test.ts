@@ -4,6 +4,7 @@ import {
   copyRequestHeaders,
   getManagedApiUrl,
   getManagedRequestPath,
+  rewriteOAuthLocation,
   MANAGED_API_ORIGIN,
 } from "./[...path]";
 
@@ -34,6 +35,17 @@ describe("Vercel managed API proxy", () => {
   it("does not add the Vercel marker to non-OAuth API requests", () => {
     const requestPath = getManagedRequestPath("/api/trpc/auth.me?batch=1");
     expect(requestPath).toBe("/api/trpc/auth.me?batch=1");
+  });
+
+  it("rewrites the Google authorization redirect URI to Vercel", () => {
+    const location = rewriteOAuthLocation(
+      "/api/social-oauth/youtube/start?mode=login&__sixlory_surface=vercel",
+      "https://accounts.google.com/o/oauth2/v2/auth?client_id=test&redirect_uri=https%3A%2F%2F6loryapp-pernhdey.manus.space%2Fapi%2Fsocial-oauth%2Fyoutube%2Fcallback",
+    );
+    expect(location).toContain(
+      "redirect_uri=https%3A%2F%2F6lory.vercel.app%2Fapi%2Fsocial-oauth%2Fyoutube%2Fcallback",
+    );
+    expect(location).not.toContain("6loryapp-pernhdey.manus.space%2Fapi%2Fsocial-oauth%2Fyoutube%2Fcallback");
   });
 
   it("forwards the canonical Vercel host instead of an upstream Manus host", () => {

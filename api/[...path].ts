@@ -22,6 +22,28 @@ export function getManagedApiUrl(requestPath: string) {
   return new URL(`${parsed.pathname}${parsed.search}`, MANAGED_API_ORIGIN);
 }
 
+export function rewriteOAuthLocation(requestPath: string, location: string | null) {
+  if (!location) return location;
+  const parsedRequest = new URL(requestPath, "http://local-request.invalid");
+  if (!VERCEL_OAUTH_PATHS.has(parsedRequest.pathname)) return location;
+
+  const locationUrl = new URL(location, MANAGED_API_ORIGIN);
+  if (parsedRequest.pathname === "/api/social-oauth/youtube/start") {
+    locationUrl.searchParams.set(
+      "redirect_uri",
+      `${"https://" + CANONICAL_VERCEL_HOST}/api/social-oauth/youtube/callback`,
+    );
+    return locationUrl.toString();
+  }
+
+  if (locationUrl.origin === MANAGED_API_ORIGIN) {
+    locationUrl.protocol = "https:";
+    locationUrl.host = CANONICAL_VERCEL_HOST;
+    return locationUrl.toString();
+  }
+  return location;
+}
+
 function hasBody(method: string | undefined) {
   return !["GET", "HEAD"].includes((method ?? "GET").toUpperCase());
 }
@@ -53,14 +75,14 @@ export function copyRequestHeaders(req: IncomingMessage) {
   return headers;
 }
 
-function copyResponseHeaders(response: Response, res: ServerResponse) {
+function copyResponseHeaders(response: Response, res: ServerResponse, locationOverride?: string | null) {
   const setCookies = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.();
   if (setCookies?.length) {
     res.setHeader("set-cookie", setCookies);
   }
 
   response.headers.forEach((value, key) => {
-    if (["set-cookie", "content-encoding", "content-length", "transfer-encoding"].includes(key)) return;
+    if (["set-cookie", "content-encoding", "content-length", "transfer-encoding", "location"].includes(key)) return;
     res.setHeader(key, value);
   });
 }
@@ -77,7 +99,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       redirect: "manual",
     });
 
-    copyResponseHeaders(upstream, res);
+    const locationOverride = rewriteOAuthLocation(requestPath, upstream.headers.get("location"));
+    copyResponseHeaders(upstream, res, locationOverride);
+    if (locationOverride) res.setHeader("location", locationOverride);
     res.statusCode = upstream.status;
     res.end(Buffer.from(await upstream.arrayBuffer()));
   } catch (error) {

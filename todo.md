@@ -252,3 +252,13 @@
 - [ ] Google girişini tek çalışan production domainine sabitle; eski Manus giriş yüzeyini güvenli biçimde doğru adrese yönlendir veya açıkça devre dışı bırak.
 - [ ] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
 - [ ] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
+
+- [ ] Kapsamlı QA: Google OAuth/yeni kayıt, manuel kullanıcı girişi, admin girişi ve rol korumasını production’da doğrula.
+- [ ] Kapsamlı QA: Admin görev oluşturma, otomatik kullanıcı atama ve görev silme/durum akışlarını doğrula.
+- [ ] Kapsamlı QA: YouTube player, PLAYING süresi, seek koruması, Secret Code ve görev tamamlanma zincirini doğrula.
+- [ ] Kapsamlı QA: YouTube beğeni/abonelik resmi API kanıtını, admin doğrulama/onayını, ledger-cüzdan geçişini ve bildirimleri doğrula.
+- [ ] Kapsamlı QA tamamlanmadan GitHub/Vercel/managed production checkpoint’i yayınlama.
+
+- [ ] Canlı Google izin dönüşünde redirect URI’nin hâlâ Manus callback’i olduğunu düzelt; Vercel function üzerinden doğrudan callback akışını doğrula.
+- [ ] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
+- [ ] Bu blokaj çözülmeden kapsamlı QA sonucu veya yeni production checkpoint’i yayınlama.
