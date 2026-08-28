@@ -76,6 +76,17 @@ export function createApiApp(): Express {
     const appUrl = appOriginForRequest(req);
     const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     const mode = req.query.mode === "login" ? "login" : "youtube";
+
+    // The managed Manus host is retained for backward compatibility, but it
+    // must not originate new login authorizations: Google can return there
+    // with an invalid TLS surface. Move only the account-login flow to the
+    // canonical Vercel host before creating OAuth state.
+    if (mode === "login" && appUrl === MANAGED_APP_URL) {
+      const canonicalStart = new URL("/api/social-oauth/youtube/start", VERCEL_APP_URL);
+      canonicalStart.searchParams.set("mode", "login");
+      return res.redirect(canonicalStart.toString());
+    }
+
     const user = mode === "youtube" ? await sdk.authenticateRequest(req).catch(() => null) : null;
     if (mode === "youtube" && !user) return res.status(401).send("Önce 6lory hesabınızla giriş yapın.");
     const state = signState(mode === "login" ? { mode } : { mode, userId: user?.id });
