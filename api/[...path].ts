@@ -23,11 +23,19 @@ async function readRequestBody(req: IncomingMessage): Promise<Buffer | undefined
   return Buffer.concat(chunks);
 }
 
-function copyRequestHeaders(req: IncomingMessage) {
+export function copyRequestHeaders(req: IncomingMessage) {
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
-    if (value === undefined || key === "host" || key === "content-length") continue;
+    if (value === undefined || key === "host" || key === "content-length" || key === "x-forwarded-host") continue;
     headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+  }
+
+  // The managed API decides the OAuth callback origin from this header. Vercel
+  // may preserve an upstream Manus value, so always replace it with the host
+  // the browser actually requested from the Vercel deployment.
+  const requestHost = req.headers.host;
+  if (requestHost) {
+    headers.set("x-forwarded-host", Array.isArray(requestHost) ? requestHost[0] : requestHost);
   }
   return headers;
 }

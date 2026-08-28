@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getManagedApiUrl, MANAGED_API_ORIGIN } from "./[...path]";
+import type { IncomingMessage } from "node:http";
+import { copyRequestHeaders, getManagedApiUrl, MANAGED_API_ORIGIN } from "./[...path]";
 
 describe("Vercel managed API proxy", () => {
   it("forwards the API path and query to the managed origin", () => {
@@ -17,5 +18,17 @@ describe("Vercel managed API proxy", () => {
     const target = getManagedApiUrl("https://attacker.example/api/trpc/auth.me");
     expect(target.origin).toBe(MANAGED_API_ORIGIN);
     expect(target.pathname).toBe("/api/trpc/auth.me");
+  });
+
+  it("forwards the browser-requested Vercel host instead of an upstream host", () => {
+    const request = {
+      headers: {
+        host: "6lory.vercel.app",
+        "x-forwarded-host": "6loryapp-pernhdey.manus.space",
+      },
+    } as IncomingMessage;
+
+    const headers = copyRequestHeaders(request);
+    expect(headers.get("x-forwarded-host")).toBe("6lory.vercel.app");
   });
 });
