@@ -95,12 +95,31 @@ export async function youtubeLike(accessToken: string, videoId: string) {
   return { liked: true, alreadyLiked: false };
 }
 
+const YOUTUBE_VERIFICATION_RETRY_DELAYS_MS = [0, 500, 1000, 2000];
+
+function wait(milliseconds: number) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 export async function youtubeVerification(accessToken: string, videoId: string, channelId: string) {
-  const [subscription, rating] = await Promise.all([
-    youtubeApi(accessToken, "subscriptions", { part: "snippet", mine: "true", forChannelId: channelId, maxResults: "1" }),
-    youtubeApi(accessToken, "videos/getRating", { id: videoId }),
-  ]);
-  return { subscribed: (subscription.items?.length ?? 0) > 0, liked: rating.items?.[0]?.rating === "like" };
+  let result = { subscribed: false, liked: false };
+
+  // YouTube may acknowledge a subscribe/like mutation before the read APIs
+  // expose the new state. Retry only while a required state is still missing.
+  for (const delay of YOUTUBE_VERIFICATION_RETRY_DELAYS_MS) {
+    if (delay > 0) await wait(delay);
+    const [subscription, rating] = await Promise.all([
+      youtubeApi(accessToken, "subscriptions", { part: "snippet", mine: "true", forChannelId: channelId, maxResults: "1" }),
+      youtubeApi(accessToken, "videos/getRating", { id: videoId }),
+    ]);
+    result = {
+      subscribed: (subscription.items?.length ?? 0) > 0,
+      liked: rating.items?.[0]?.rating === "like",
+    };
+    if (result.subscribed && result.liked) break;
+  }
+
+  return result;
 }
 
 function encodeProof(payload: YoutubeProofPayload) {

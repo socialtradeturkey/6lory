@@ -9,6 +9,7 @@ import {
   revokeYoutubeToken,
   youtubeSubscribe,
   youtubeLike,
+  youtubeVerification,
   parseYoutubeChannelTarget,
   resolveYoutubeChannel,
 } from "./youtube";
@@ -69,6 +70,20 @@ describe("YouTube OAuth lifecycle", () => {
       await expect(youtubeLike("access-token", "abc123_XY")).resolves.toEqual({ liked: true, alreadyLiked: false });
       expect(fetchMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/subscriptions?part=snippet") }), expect.objectContaining({ method: "POST", body: JSON.stringify({ snippet: { resourceId: { channelId: "UC12345678901234567890" } } }) }));
       expect(fetchMock).toHaveBeenNthCalledWith(4, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/videos/rate?id=abc123_XY&rating=like") }), expect.objectContaining({ method: "POST", body: "{}" }));
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("retries read-after-write propagation before reporting missing actions", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "none" }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "subscription" }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "like" }] }), { status: 200 }));
+    try {
+      await expect(youtubeVerification("access-token", "abc123_XY", "UC12345678901234567890")).resolves.toEqual({ subscribed: true, liked: true });
+      expect(fetchMock).toHaveBeenCalledTimes(4);
     } finally {
       fetchMock.mockRestore();
     }
