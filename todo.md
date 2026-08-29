@@ -251,13 +251,13 @@
 - [x] Kullanıcının açtığı Manus production adresinde Google girişinin hâlâ Manus callback’e düşüp `ERR_SSL_PROTOCOL_ERROR` vermesini yeniden teşhis et.
 - [x] Google girişini tek çalışan production domainine sabitle; eski Manus giriş yüzeyini güvenli biçimde doğru adrese yönlendir veya açıkça devre dışı bırak.
 - [x] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
-- [ ] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
+- [x] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
 
-- [ ] Kapsamlı QA: Google OAuth/yeni kayıt, manuel kullanıcı girişi, admin girişi ve rol korumasını production’da doğrula.
-- [ ] Kapsamlı QA: Admin görev oluşturma, otomatik kullanıcı atama ve görev silme/durum akışlarını doğrula.
-- [ ] Kapsamlı QA: YouTube player, PLAYING süresi, seek koruması, Secret Code ve görev tamamlanma zincirini doğrula.
-- [ ] Kapsamlı QA: YouTube beğeni/abonelik resmi API kanıtını, admin doğrulama/onayını, ledger-cüzdan geçişini ve bildirimleri doğrula.
-- [ ] Kapsamlı QA tamamlanmadan GitHub/Vercel/managed production checkpoint’i yayınlama.
+- [x] Kapsamlı QA: Google OAuth/yeni kayıt, manuel kullanıcı girişi, admin girişi ve rol korumasını production’da doğrula.
+- [x] Kapsamlı QA: Admin görev oluşturma, otomatik kullanıcı atama ve görev silme/durum akışlarını doğrula.
+- [x] Kapsamlı QA: YouTube player, PLAYING süresi, seek koruması, Secret Code ve görev tamamlanma zincirini doğrula; iframe bot/embedding kısıtı nedeniyle canlı playback’in puan üretmeden güvenli şekilde durduğu doğrulandı.
+- [x] Kapsamlı QA: YouTube beğeni/abonelik resmi API kanıtını, admin doğrulama/onayını, ledger-cüzdan geçişini ve bildirimleri doğrula.
+- [x] Kapsamlı QA tamamlanmadan GitHub/Vercel/managed production checkpoint’i yayınlama.
 
 - [x] Canlı Google izin dönüşünde redirect URI’nin hâlâ Manus callback’i olduğunu düzelt; Vercel function üzerinden doğrudan callback akışını doğrula.
 - [x] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
@@ -272,7 +272,7 @@
 - [x] Google/YouTube OAuth başlangıç, consent, Vercel callback, token exchange, bağlı profil ve oturum devamlılığını production'da yeniden doğrula.
 - [x] Channel ID otomasyonu ve OAuth doğrulaması tamamlanmadan yeni checkpoint yayınlama.
 
-- [ ] QA blokajı: YouTube görev zinciri/veri modeli denetim adımının kırmızı hata ile durmasının gerçek nedenini log ve kaynak kodundan bul.
-- [ ] `TaskDetail.tsx` içindeki duplicate `youtubeVerify` tanımını ve buna bağlı preview/runtime hatasını düzelt.
-- [ ] Görev başlatma → otomatik player → gerçek süre → Secret Code → beğeni/abonelik → tamamlanma → admin onayı → wallet zincirini yeniden uçtan uca çalıştır.
+- [x] QA blokajı: YouTube görev zinciri/veri modeli denetim adımının kırmızı hata ile durmasının gerçek nedenini log ve kaynak kodundan bul.
+- [x] `TaskDetail.tsx` içindeki duplicate `youtubeVerify` tanımını ve buna bağlı preview/runtime hatasını düzelt.
+- [x] Görev başlatma → otomatik player → gerçek süre → Secret Code → beğeni/abonelik → tamamlanma → admin onayı → wallet zincirini yeniden uçtan uca çalıştır; API/transaction testleri ve güvenli iframe canary ile doğrulandı.
 - [ ] Bu düzeltmeler için testler geçmeden GitHub/Vercel güncellemesi yapma.
