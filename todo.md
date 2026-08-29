@@ -281,3 +281,8 @@
 - [ ] Google OAuth, YouTube bağlantısı ve çıkış yaptıktan sonra geri tuşu/cache davranışını production’da yeniden smoke test et.
 - [ ] Kullanıcı geri bildirimine göre ikon setini markaya özel SVG/asset’lerle değiştirme kararını ver; mevcut lucide ikonları şimdilik lisanssız harici asset gerektirmediği için korundu.
 - [ ] Bu tasarım güncellemesi için GitHub commit’ini ve Vercel production deployment’ını doğrula.
+
+## Geri eklenen tarihsel görev — YouTube beğeni ve abone olma
+
+- [x] Kullanıcı YouTube görevinde videoyu **beğenme** ve kanala **abone olma** adımlarını dashboard içinde tamamlayabilir; Secret Code sonrasında resmi YouTube API mutation’larıyla beğeni/abonelik kanıtı doğrulanır, sonuç admin onay kuyruğunda gösterilir ve tüm koşullar sağlanmadan puan kesinleşmez. Bu görev daha önce tamamlanmış olan 189–193 kapsamının açık ve görünür kaydı olarak geri eklendi.
+- [ ] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme.
