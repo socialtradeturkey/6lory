@@ -14,10 +14,11 @@ import {
   ShieldCheck,
   UserRound,
   Youtube,
+  LogOut,
 } from "lucide-react";
 
 export default function Profile() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const youtubeDenied = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("youtube") === "denied";
   const profileQuery = trpc.profile.me.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -75,30 +76,42 @@ export default function Profile() {
     <AppShell title="Profil" eyebrow="Hesap güvenliği">
       <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="rounded-3xl border border-border/80 bg-card/75 p-5 shadow-sm">
-          <div className="flex items-start gap-4">
-            <span className="grid size-14 place-items-center rounded-2xl bg-slate-950 font-display text-xl font-bold text-white dark:bg-teal-300 dark:text-slate-950">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <span className="grid size-14 place-items-center rounded-2xl bg-slate-950 font-display text-xl font-bold text-white dark:bg-teal-300 dark:text-slate-950">
               {profileQuery.data?.profile?.displayName
                 ?.slice(0, 1)
                 .toUpperCase() ||
                 profileQuery.data?.user.name?.slice(0, 1).toUpperCase() ||
                 "U"}
-            </span>
-            <div>
-              <h2 className="font-display text-xl font-bold">
+              </span>
+              <div>
+                <h2 className="font-display text-xl font-bold">
                 {profileQuery.data?.profile?.displayName ||
                   profileQuery.data?.user.name ||
                   "Hesabınız"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {profileQuery.data?.profile
-                  ? `@${profileQuery.data.profile.username}`
-                  : "Profil kurulumu bekliyor"}
-              </p>
-              <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-teal-500/10 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
-                <ShieldCheck className="size-3.5" />{" "}
-                {profileQuery.data?.trust?.status || "normal"} güven durumu
-              </span>
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {profileQuery.data?.profile
+                    ? `@${profileQuery.data.profile.username}`
+                    : "Profil kurulumu bekliyor"}
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-teal-500/10 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
+                  <ShieldCheck className="size-3.5" />{" "}
+                  {profileQuery.data?.trust?.status || "normal"} güven durumu
+                </span>
+              </div>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => void logout()}
+              aria-label="Güvenli çıkış yap"
+            >
+              <LogOut className="mr-2 size-4" />
+              Çıkış yap
+            </Button>
           </div>
           {!profileQuery.data?.profile && (
             <form
