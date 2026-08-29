@@ -8,7 +8,7 @@ Vercel alan adı kullanıcı arayüzünü ve `/api/*` Function yönlendirmesini 
 
 ## Kimlik doğrulama
 
-Kullanıcı erişimi yalnızca uygulama içindeki **kullanıcı adı/e-posta ve parola** formuyla yapılır. Google, Manus veya başka bir harici sağlayıcı üzerinden kullanıcı girişi yoktur. Parolalar scrypt ve benzersiz salt ile hashlenir; oturumlar güvenli host-only session cookie ile sürdürülür. Admin kullanıcısı başarılı girişten sonra `/admin` alanına yönlendirilir ve sunucu tarafındaki rol/izin kontrolleri tüm yönetim prosedürlerinde uygulanır.
+Kullanıcı erişimi uygulama içindeki **kullanıcı adı/e-posta ve parola** formuyla veya YouTube kapsamlarını da veren tek Google OAuth akışıyla yapılır. Google OAuth’un kanonik başlangıç ve callback yüzeyi `https://6lory.vercel.app` adresidir; eski managed Manus callback’i yalnızca `https://6lory.vercel.app/?auth=retry&legacy=1` adresine yönlendiren, önbelleksiz bir uyumluluk köprüsüdür. Token değişimi sırasında kullanılan `redirect_uri`, authorize isteğinde kullanılan Vercel callback URI’siyle birebir aynı olmalıdır. Parolalar scrypt ve benzersiz salt ile hashlenir; oturumlar güvenli host-only session cookie ile sürdürülür. Admin kullanıcısı başarılı girişten sonra `/admin` alanına yönlendirilir ve sunucu tarafındaki rol/izin kontrolleri tüm yönetim prosedürlerinde uygulanır.
 
 ## Görev ve veri güvenliği
 

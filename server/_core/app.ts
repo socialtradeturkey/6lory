@@ -68,8 +68,13 @@ export function createApiApp(): Express {
   // Keep that callback backward-compatible: never show a 404, and send the
   // user to the current login surface where the new flow is available.
   app.get("/api/oauth/callback", (_req, res) => {
+    // This route only exists as a compatibility bridge for stale bundles and
+    // old bookmarks. Never send users back to the managed Manus surface: that
+    // surface is the source of the historical TLS/callback failure. Converge
+    // every legacy entry point on the canonical Vercel login surface instead.
     res.setHeader("Cache-Control", "no-store, max-age=0");
-    return res.redirect(`${MANAGED_APP_URL}/?auth=retry&legacy=1`);
+    res.setHeader("Pragma", "no-cache");
+    return res.redirect(`${VERCEL_APP_URL}/?auth=retry&legacy=1`);
   });
 
   app.get("/api/social-oauth/youtube/start", async (req, res) => {
