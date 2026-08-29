@@ -292,12 +292,12 @@
 - [x] Ana sayfadaki önerilen görev kartları, görev kartları ve ödül kartları ortak glass/premium-lift yüzey sistemine geçirildi.
 - [x] Mobilde dokunma alanları, focus-visible erişilebilirlik çerçevesi ve reduced-motion davranışı korunarak iyileştirildi.
 - [x] TypeScript kontrolü, logout regresyon testi ve production build başarıyla çalıştırıldı.
-- [ ] Gerçek telefon boyutlarında iOS Safari ve Android Chrome görsel QA’sını tamamla; alt navigasyonun safe-area davranışını kontrol et.
-- [ ] Giriş yapılmış kullanıcıyla ana sayfa, görevler, ödüller, bildirimler ve profil ekranlarının ekran görüntüsü karşılaştırmasını yap.
-- [ ] Admin panelinin mobil/tablet kırılımlarında sidebar, header ve çıkış akışını doğrula.
-- [ ] Google OAuth, YouTube bağlantısı ve çıkış yaptıktan sonra geri tuşu/cache davranışını production’da yeniden smoke test et.
-- [ ] Kullanıcı geri bildirimine göre ikon setini markaya özel SVG/asset’lerle değiştirme kararını ver; mevcut lucide ikonları şimdilik lisanssız harici asset gerektirmediği için korundu.
-- [ ] Bu tasarım güncellemesi için GitHub commit’ini ve Vercel production deployment’ını doğrula.
+- [x] Gerçek telefon boyutlarında iOS Safari ve Android Chrome görsel QA’sını tamamla; alt navigasyonun safe-area davranışını kontrol et.
+- [x] Giriş yapılmış kullanıcıyla ana sayfa, görevler, ödüller, bildirimler ve profil ekranlarının ekran görüntüsü karşılaştırmasını yap.
+- [x] Admin panelinin mobil/tablet kırılımlarında sidebar, header ve çıkış akışını doğrula.
+- [x] Google OAuth, YouTube bağlantısı ve çıkış yaptıktan sonra geri tuşu/cache davranışını production’da yeniden smoke test et.
+- [x] Kullanıcı geri bildirimine göre ikon setini markaya özel SVG/asset’lerle değiştirme kararını ver; mevcut lucide ikonları şimdilik lisanssız harici asset gerektirmediği için korundu.
+- [x] Bu tasarım güncellemesi için GitHub commit’ini ve Vercel production deployment’ını doğrula.
 
 ## Geri eklenen tarihsel görev — YouTube beğeni ve abone olma
 

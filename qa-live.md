@@ -67,3 +67,8 @@ Geçici QA hesabında Çıkış yap işlemi production session’ını temizledi
 Çıkış sonrası aynı `qa6lory_0828c` kullanıcı adı ve test parolası manuel giriş formuna kabul edildi. Submit sonrası yeni session’ın açılması ve kullanıcı ana sayfasına dönüş doğrulanacaktır.
 
 Manuel giriş production’da başarıyla tamamlandı. Uygulama ana sayfaya döndü, yeni session açıldı ve aynı `6lory QA Test` kullanıcı kimliği ile 0 puan/0 görev başlangıç durumu korundu. Böylece yeni kayıt, çıkış, kullanıcı adıyla manuel yeniden giriş ve standart kullanıcı rol koruması uçtan uca doğrulandı.
+
+
+## Mobil responsive QA
+
+375x812 görünümünde ana sayfa, görevler, ödüller, bildirimler, profil ve admin rotaları ayrı ayrı render edildi. Alt navigasyon güvenli alan içinde kaldı; aktif sekme, bildirim rozeti, profil bağlantı durumu, admin çıkış düğmesi ve kart yüzeyleri telefon genişliğinde taşmadı. Görevler ve ödüller veri boşluğu durumları skeleton/empty-state bileşenleriyle okunabilir kaldı. Tasarım ikon seti olarak mevcut lisanssız Lucide ikonları korunacaktır; marka özel SVG değişikliği bu kapsamda gerekli görülmedi.
