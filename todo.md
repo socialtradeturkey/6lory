@@ -253,8 +253,8 @@
 - [x] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
 - [x] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
 
-- [ ] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
-- [ ] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
+- [x] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
+- [x] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
 
 
 - [x] Kapsamlı QA: Google OAuth/yeni kayıt, manuel kullanıcı girişi, admin girişi ve rol korumasını production’da doğrula.
@@ -267,7 +267,6 @@
 - [x] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
 - [x] Bu blokaj çözülmeden kapsamlı QA sonucu veya yeni production checkpoint’i yayınlama.
 
-<<<<<<< HEAD
 - [x] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
 - [x] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
 - [x] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
@@ -280,11 +279,10 @@
 - [x] QA blokajı: YouTube görev zinciri/veri modeli denetim adımının kırmızı hata ile durmasının gerçek nedenini log ve kaynak kodundan bul.
 - [x] `TaskDetail.tsx` içindeki duplicate `youtubeVerify` tanımını ve buna bağlı preview/runtime hatasını düzelt.
 - [x] Görev başlatma → otomatik player → gerçek süre → Secret Code → beğeni/abonelik → tamamlanma → admin onayı → wallet zincirini yeniden uçtan uca çalıştır; API/transaction testleri ve güvenli iframe canary ile doğrulandı.
-- [ ] Bu düzeltmeler için testler geçmeden GitHub/Vercel güncellemesi yapma.
-=======
-- [ ] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
-- [ ] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
-- [ ] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
+- [x] Bu düzeltmeler için testler geçmeden GitHub/Vercel güncellemesi yapma.
+- [x] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
+- [x] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
+- [x] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
 
 ## 2026-08-29 — Premium mobil tema ve sosyal medya görsel dili
 
@@ -304,5 +302,4 @@
 ## Geri eklenen tarihsel görev — YouTube beğeni ve abone olma
 
 - [x] Kullanıcı YouTube görevinde videoyu **beğenme** ve kanala **abone olma** adımlarını dashboard içinde tamamlayabilir; Secret Code sonrasında resmi YouTube API mutation’larıyla beğeni/abonelik kanıtı doğrulanır, sonuç admin onay kuyruğunda gösterilir ve tüm koşullar sağlanmadan puan kesinleşmez. Bu görev daha önce tamamlanmış olan 189–193 kapsamının açık ve görünür kaydı olarak geri eklendi.
-- [ ] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme.
->>>>>>> github/main
+- [x] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme; iframe engeli puan üretmeden güvenli biçimde durduruldu.
