@@ -2016,10 +2016,19 @@ export const appRouter = router({
           startsAt: z.date().optional(),
           endsAt: z.date().optional(),
           priority: z.number().int().min(-10).max(10).default(0),
-        }).refine(
-          value => value.secretCodeRandomMaxSeconds >= value.secretCodeRandomMinSeconds,
-          { path: ["secretCodeRandomMaxSeconds"], message: "Secret Code rastgele bitişi başlangıçtan küçük olamaz." },
-        )
+        }        )
+          .refine(
+            value => value.secretCodeRandomMaxSeconds >= value.secretCodeRandomMinSeconds,
+            { path: ["secretCodeRandomMaxSeconds"], message: "Secret Code rastgele bitişi başlangıçtan küçük olamaz." },
+          )
+          .refine(
+            value => value.requiredWatchSeconds <= value.sessionDurationSeconds,
+            { path: ["requiredWatchSeconds"], message: "Minimum izleme süresi oturum süresini aşamaz." },
+          )
+          .refine(
+            value => value.secretCodeRandomMaxSeconds <= value.sessionDurationSeconds,
+            { path: ["secretCodeRandomMaxSeconds"], message: "Secret Code gösterim zamanı oturum süresini aşamaz." },
+          )
       )
       .mutation(async ({ ctx, input }) => {
         await requireAdminCapability(ctx.user, "tasks.write");
