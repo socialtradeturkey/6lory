@@ -52,6 +52,8 @@
   --border: oklch(0.89 0.012 220);
   --input: oklch(0.89 0.012 220);
   --ring: oklch(0.61 0.1 195);
+  --surface-glow: oklch(0.84 0.08 190 / 0.26);
+  --surface-highlight: oklch(1 0 0 / 0.72);
 }
 
 .dark {
@@ -74,13 +76,20 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 13%);
   --ring: oklch(0.78 0.1 194);
+  --surface-glow: oklch(0.46 0.1 190 / 0.24);
+  --surface-highlight: oklch(1 0 0 / 0.08);
 }
 
 @layer base {
   * { @apply border-border outline-ring/50; }
   html { font-family: var(--font-sans); background: var(--background); }
-  body { @apply bg-background text-foreground antialiased; min-width: 320px; }
+  body { @apply bg-background text-foreground antialiased; min-width: 320px; background-image: radial-gradient(circle at 8% 0%, var(--surface-glow), transparent 28rem), radial-gradient(circle at 92% 10%, oklch(0.78 0.08 285 / 0.12), transparent 24rem); }
   button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [type="button"]:not(:disabled), [type="submit"]:not(:disabled), a[href] { @apply cursor-pointer; }
+  ::selection { background: oklch(0.72 0.12 190 / 0.28); }
+  :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+  @media (max-width: 767px) { body { background-image: radial-gradient(circle at 50% -8%, var(--surface-glow), transparent 18rem); } }
+  @media (prefers-reduced-motion: no-preference) { .premium-lift { transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1), border-color 220ms cubic-bezier(0.23, 1, 0.32, 1); } .premium-lift:hover { transform: translateY(-3px); box-shadow: 0 18px 45px oklch(0.2 0.03 250 / 0.12); } }
+  .glass-surface { background: color-mix(in oklab, var(--card) 78%, transparent); border-color: color-mix(in oklab, var(--border) 82%, var(--surface-highlight)); box-shadow: inset 0 1px 0 var(--surface-highlight), 0 16px 40px oklch(0.2 0.03 250 / 0.06); backdrop-filter: blur(18px); }
   button:not(:disabled):active { transform: scale(0.97); }
 }
 
