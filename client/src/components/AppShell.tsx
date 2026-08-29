@@ -28,10 +28,10 @@ export default function AppShell({ title, eyebrow, children }: { title: string; 
   const unread = summary.data?.unreadNotifications ?? 0;
 
   return (
-    <div className="min-h-dvh bg-background text-foreground selection:bg-teal-500/20">
+    <div className="min-h-dvh bg-background text-foreground">
       <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[430px] bg-[radial-gradient(ellipse_at_14%_0%,oklch(0.82_0.08_196_/_0.32),transparent_52%),radial-gradient(ellipse_at_88%_4%,oklch(0.82_0.055_280_/_0.26),transparent_46%)] dark:bg-[radial-gradient(ellipse_at_14%_0%,oklch(0.31_0.07_196_/_0.32),transparent_52%),radial-gradient(ellipse_at_88%_4%,oklch(0.28_0.06_280_/_0.3),transparent_46%)]" />
       <div className="mx-auto flex min-h-dvh max-w-[1440px]">
-        <aside className="sticky top-0 hidden h-dvh w-[252px] shrink-0 flex-col border-r border-border/70 bg-background/70 px-4 py-6 backdrop-blur-xl md:flex">
+        <aside className="sticky top-0 hidden h-dvh w-[252px] shrink-0 flex-col border-r border-border/70 bg-background/65 px-4 py-6 backdrop-blur-xl md:flex">
           <Link href="/" className="mb-10 flex items-center gap-3 px-3">
             <span className="grid size-9 place-items-center rounded-2xl bg-slate-950 text-sm font-black text-white shadow-lg shadow-slate-950/15 dark:bg-teal-300 dark:text-slate-950">6</span>
             <span className="font-display text-xl font-bold tracking-tight">lory<span className="text-teal-600 dark:text-teal-300">.</span></span>
@@ -40,7 +40,7 @@ export default function AppShell({ title, eyebrow, children }: { title: string; 
             {nav.map(item => {
               const Icon = item.icon;
               const active = location === item.href;
-              return <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-slate-950 text-white shadow-md shadow-slate-950/10 dark:bg-teal-300 dark:text-slate-950" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><Icon className="size-[18px]" />{item.label}</Link>;
+              return <Link key={item.href} href={item.href} className={`premium-lift flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold ${active ? "bg-slate-950 text-white shadow-lg shadow-slate-950/15 dark:bg-teal-300 dark:text-slate-950" : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"}`}><span className={`grid size-8 place-items-center rounded-xl ${active ? "bg-white/15 dark:bg-slate-950/10" : "bg-muted/70"}`}><Icon className="size-[17px]" /></span>{item.label}</Link>;
             })}
           </nav>
           <div className="mt-auto space-y-3 rounded-2xl border border-border/80 bg-card/65 p-3 shadow-sm">
@@ -50,7 +50,7 @@ export default function AppShell({ title, eyebrow, children }: { title: string; 
         </aside>
 
         <div className="min-w-0 flex-1 pb-24 md:pb-8">
-          <header className="sticky top-0 z-20 border-b border-border/70 bg-background/70 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-10">
+          <header className="sticky top-0 z-20 border-b border-border/70 bg-background/72 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-10">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <Link href="/" className="flex items-center gap-2 md:hidden"><span className="grid size-8 place-items-center rounded-xl bg-slate-950 text-xs font-black text-white dark:bg-teal-300 dark:text-slate-950">6</span><span className="font-display text-lg font-bold">lory.</span></Link>
@@ -68,11 +68,11 @@ export default function AppShell({ title, eyebrow, children }: { title: string; 
           {isAuthenticated && <div className="fixed bottom-5 right-5 z-20 hidden rounded-2xl border border-border/80 bg-card/90 px-4 py-3 shadow-xl shadow-slate-950/10 backdrop-blur-xl lg:block"><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Kullanılabilir bakiye</p><p className="mt-0.5 font-display text-lg font-bold text-teal-700 dark:text-teal-300">{formatPoints(availablePoints)} <span className="text-xs">puan</span></p></div>}
         </div>
       </div>
-      <nav className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-2xl border border-white/60 bg-slate-950/95 p-1.5 shadow-2xl shadow-slate-950/25 backdrop-blur-xl dark:border-white/10 md:hidden" aria-label="Mobil navigasyon">
+      <nav className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-[1.35rem] border border-white/60 bg-slate-950/95 p-1.5 shadow-2xl shadow-slate-950/25 backdrop-blur-xl dark:border-white/10 md:hidden" aria-label="Mobil navigasyon">
         {nav.map(item => {
           const Icon = item.icon;
           const active = location === item.href;
-          return <Link key={item.href} href={item.href} className={`relative flex min-w-12 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium transition ${active ? "bg-teal-300 text-slate-950" : "text-slate-300"}`}><Icon className="size-[18px]" />{item.label}</Link>;
+          return <Link key={item.href} href={item.href} className={`relative flex min-w-12 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition ${active ? "bg-teal-300 text-slate-950 shadow-lg shadow-teal-300/20" : "text-slate-300 hover:bg-white/10"}`}><Icon className="size-[18px]" />{item.label}</Link>;
         })}
       </nav>
     </div>

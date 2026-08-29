@@ -211,9 +211,22 @@ export default function DashboardLayout({
               Operasyon merkezi
             </h1>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300">
-            <Activity className="size-3.5" /> Güvenli mod
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="hidden items-center gap-2 rounded-full bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 sm:inline-flex">
+              <Activity className="size-3.5" /> Güvenli mod
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void logout()}
+              aria-label="Yönetici oturumunu kapat"
+              className="rounded-xl"
+            >
+              <LogOut className="mr-2 size-4" />
+              Çıkış yap
+            </Button>
+          </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">
           <InAppNotificationStatus />

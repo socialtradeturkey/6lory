@@ -60,8 +60,9 @@ describe("Vercel API application", () => {
     });
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(
-      "https://6loryapp-pernhdey.manus.space/?auth=retry&legacy=1",
+      "https://6lory.vercel.app/?auth=retry&legacy=1",
     );
     expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
+    expect(response.headers.get("pragma")).toBe("no-cache");
   });
 });

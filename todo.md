@@ -253,6 +253,10 @@
 - [x] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
 - [x] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
 
+- [ ] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
+- [ ] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
+
+
 - [x] Kapsamlı QA: Google OAuth/yeni kayıt, manuel kullanıcı girişi, admin girişi ve rol korumasını production’da doğrula.
 - [x] Kapsamlı QA: Admin görev oluşturma, otomatik kullanıcı atama ve görev silme/durum akışlarını doğrula.
 - [x] Kapsamlı QA: YouTube player, PLAYING süresi, seek koruması, Secret Code ve görev tamamlanma zincirini doğrula; iframe bot/embedding kısıtı nedeniyle canlı playback’in puan üretmeden güvenli şekilde durduğu doğrulandı.
@@ -263,6 +267,7 @@
 - [x] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
 - [x] Bu blokaj çözülmeden kapsamlı QA sonucu veya yeni production checkpoint’i yayınlama.
 
+<<<<<<< HEAD
 - [x] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
 - [x] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
 - [x] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
@@ -276,3 +281,28 @@
 - [x] `TaskDetail.tsx` içindeki duplicate `youtubeVerify` tanımını ve buna bağlı preview/runtime hatasını düzelt.
 - [x] Görev başlatma → otomatik player → gerçek süre → Secret Code → beğeni/abonelik → tamamlanma → admin onayı → wallet zincirini yeniden uçtan uca çalıştır; API/transaction testleri ve güvenli iframe canary ile doğrulandı.
 - [ ] Bu düzeltmeler için testler geçmeden GitHub/Vercel güncellemesi yapma.
+=======
+- [ ] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
+- [ ] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
+- [ ] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
+
+## 2026-08-29 — Premium mobil tema ve sosyal medya görsel dili
+
+- [x] Global renk token’larını, yüzey katmanlarını, seçim/focus durumlarını ve mobil arka plan gradyanlarını premium görsel dile taşı.
+- [x] Mobil ve masaüstü uygulama kabuğunda cam yüzey, daha güçlü aktif navigasyon durumu ve okunabilir mobil alt navigasyon uygulandı.
+- [x] Ana sayfaya premium görev kulübü vurgusu ve Instagram, YouTube, TikTok sosyal kanal ikon rozetleri eklendi.
+- [x] Ana sayfadaki önerilen görev kartları, görev kartları ve ödül kartları ortak glass/premium-lift yüzey sistemine geçirildi.
+- [x] Mobilde dokunma alanları, focus-visible erişilebilirlik çerçevesi ve reduced-motion davranışı korunarak iyileştirildi.
+- [x] TypeScript kontrolü, logout regresyon testi ve production build başarıyla çalıştırıldı.
+- [ ] Gerçek telefon boyutlarında iOS Safari ve Android Chrome görsel QA’sını tamamla; alt navigasyonun safe-area davranışını kontrol et.
+- [ ] Giriş yapılmış kullanıcıyla ana sayfa, görevler, ödüller, bildirimler ve profil ekranlarının ekran görüntüsü karşılaştırmasını yap.
+- [ ] Admin panelinin mobil/tablet kırılımlarında sidebar, header ve çıkış akışını doğrula.
+- [ ] Google OAuth, YouTube bağlantısı ve çıkış yaptıktan sonra geri tuşu/cache davranışını production’da yeniden smoke test et.
+- [ ] Kullanıcı geri bildirimine göre ikon setini markaya özel SVG/asset’lerle değiştirme kararını ver; mevcut lucide ikonları şimdilik lisanssız harici asset gerektirmediği için korundu.
+- [ ] Bu tasarım güncellemesi için GitHub commit’ini ve Vercel production deployment’ını doğrula.
+
+## Geri eklenen tarihsel görev — YouTube beğeni ve abone olma
+
+- [x] Kullanıcı YouTube görevinde videoyu **beğenme** ve kanala **abone olma** adımlarını dashboard içinde tamamlayabilir; Secret Code sonrasında resmi YouTube API mutation’larıyla beğeni/abonelik kanıtı doğrulanır, sonuç admin onay kuyruğunda gösterilir ve tüm koşullar sağlanmadan puan kesinleşmez. Bu görev daha önce tamamlanmış olan 189–193 kapsamının açık ve görünür kaydı olarak geri eklendi.
+- [ ] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme.
+>>>>>>> github/main
