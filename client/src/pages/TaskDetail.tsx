@@ -80,6 +80,7 @@ export default function TaskDetail() {
   const playerRef = useRef<any>(null);
   const lastPlayerTimeRef = useRef<number | null>(null);
   const secretAutoRequestedRef = useRef(false);
+  const secretCodeIssuedRef = useRef(false);
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
@@ -94,6 +95,7 @@ export default function TaskDetail() {
       setPlayerUnavailable(false);
       lastPlayerTimeRef.current = null;
       secretAutoRequestedRef.current = false;
+      secretCodeIssuedRef.current = false;
       setVerificationStatus(null);
       setYoutubeEvidence(null);
       setYoutubeActionState({ subscribed: false, liked: false });
@@ -170,6 +172,7 @@ export default function TaskDetail() {
 
   const issueSecretCode = trpc.tasks.issueSecretCode.useMutation({
     onSuccess: result => {
+      secretCodeIssuedRef.current = true;
       setIssuedSecretCode(result.code);
       setSecretCodeExpiresAt(result.expiresAt ? new Date(result.expiresAt).getTime() : null);
       toast.success("Tek kullanımlık doğrulama kodu video üzerinde gösterildi.");
@@ -190,7 +193,8 @@ export default function TaskDetail() {
       !isPageVisible ||
       signals.activeSeconds < secretTriggerSeconds ||
       secretAutoRequestedRef.current ||
-      issuedSecretCode
+      issuedSecretCode ||
+      secretCodeIssuedRef.current
     ) return;
     secretAutoRequestedRef.current = true;
     issueSecretCode.mutate({ sessionPublicId: sessionId, signals });
@@ -346,7 +350,7 @@ export default function TaskDetail() {
     const timeout = window.setTimeout(() => {
       setIssuedSecretCode(null);
       setSecretCodeExpiresAt(null);
-      secretAutoRequestedRef.current = false;
+      // Kod yalnızca ekrandan gizlenir; aynı oturumda kesinlikle yeniden üretilmez.
     }, Math.max(0, secretCodeExpiresAt - Date.now()));
     return () => window.clearTimeout(timeout);
   }, [secretCodeExpiresAt]);
@@ -609,7 +613,11 @@ export default function TaskDetail() {
                   )}
                   <Button
                     disabled={
-                      issueSecretCode.isPending || isSessionExpired || !isReadyForSecretCode
+                      issueSecretCode.isPending ||
+                      secretCodeIssuedRef.current ||
+                      Boolean(issuedSecretCode) ||
+                      isSessionExpired ||
+                      !isReadyForSecretCode
                     }
                     onClick={() =>
                       issueSecretCode.mutate({ sessionPublicId: sessionId, signals })
@@ -618,7 +626,7 @@ export default function TaskDetail() {
                     className="w-full rounded-xl"
                   >
                     <KeyRound className="mr-2 size-4" />
-                    {issuedSecretCode ? "Kodu yeniden göster" : "Kodu göster"}
+                    {issuedSecretCode ? "Kod ekranda" : secretCodeIssuedRef.current ? "Kod süresi doldu" : "Kodu göster"}
                   </Button>
 
                   {issuedSecretCode && (

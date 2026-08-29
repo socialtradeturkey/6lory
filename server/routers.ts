@@ -149,6 +149,11 @@ async function databaseOrThrow() {
   return db;
 }
 
+function publicTaskSession<T extends { secretCodeCiphertext?: unknown }>(session: T) {
+  const { secretCodeCiphertext: _secretCodeCiphertext, ...publicSession } = session;
+  return publicSession;
+}
+
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
 async function getYoutubeAccessToken(db: Database, userId: number) {
@@ -750,7 +755,7 @@ export const appRouter = router({
               )
             )
             .limit(1);
-          if (reused) return { session: reused, reused: true };
+          if (reused) return { session: publicTaskSession(reused), reused: true };
 
           const [task] = await tx
             .select()
@@ -776,7 +781,7 @@ export const appRouter = router({
             )
             .limit(1);
           if (activeSession && task.status === "active" && (!task.startsAt || task.startsAt <= new Date()) && (!task.endsAt || task.endsAt > new Date())) {
-            return { session: activeSession, reused: true };
+            return { session: publicTaskSession(activeSession), reused: true };
           }
           let [assignment] = await tx
             .select()
@@ -851,7 +856,7 @@ export const appRouter = router({
             .from(taskSessions)
             .where(eq(taskSessions.publicId, publicId))
             .limit(1);
-          return { session: stored, reused: false };
+          return { session: stored ? publicTaskSession(stored) : stored, reused: false };
         });
       }),
     issueSecretCode: protectedProcedure
@@ -900,6 +905,20 @@ export const appRouter = router({
             code: "BAD_REQUEST",
             message: decision.reason,
           });
+        if (session.secretCodeUsedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev oturumunun Secret Code’u daha önce kullanıldı." });
+        }
+
+        if (session.secretCodeHash) {
+          if (!session.secretCodeCiphertext || !session.secretCodeExpiresAt) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Bu oturumun Secret Code’u zaten oluşturuldu; yeni kod üretilemez. Lütfen yeni görev oturumu başlatın." });
+          }
+          if (session.secretCodeExpiresAt < new Date()) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev oturumunun Secret Code süresi doldu." });
+          }
+          return { code: decryptYoutubeToken(session.secretCodeCiphertext), expiresAt: session.secretCodeExpiresAt };
+        }
+
         const code = createSecretCode();
         const expiresAt = new Date(
           Math.min(
@@ -911,6 +930,7 @@ export const appRouter = router({
           .update(taskSessions)
           .set({
             secretCodeHash: hashSecretCode(code),
+            secretCodeCiphertext: encryptYoutubeToken(code),
             secretCodeExpiresAt: expiresAt,
           })
           .where(eq(taskSessions.id, session.id));
@@ -971,7 +991,19 @@ export const appRouter = router({
             const expectedVideoId = extractYoutubeVideoId(task.targetUrl);
             if (!expectedVideoId || !task.youtubeChannelId)
               throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu YouTube görevinin kanal veya video doğrulaması yapılandırılmamış." });
-            youtubeProof = input.youtubeProof ? verifyYoutubeProof(input.youtubeProof, { userId: ctx.user.id, videoId: expectedVideoId, channelId: task.youtubeChannelId }) : null;
+            try {
+              const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+              const current = await youtubeVerification(accessToken, expectedVideoId, task.youtubeChannelId);
+              youtubeProof = {
+                userId: ctx.user.id,
+                videoId: expectedVideoId,
+                channelId: task.youtubeChannelId,
+                ...current,
+                checkedAt: Date.now(),
+              };
+            } catch (error) {
+              throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "YouTube koşulları doğrulanamadı." });
+            }
             const missingSubscription = task.requiresYoutubeSubscription && !youtubeProof?.subscribed;
             const missingLike = task.requiresYoutubeLike && !youtubeProof?.liked;
             if (!youtubeRequirementsSatisfied({ requiresSubscription: task.requiresYoutubeSubscription, requiresLike: task.requiresYoutubeLike }, youtubeProof))
