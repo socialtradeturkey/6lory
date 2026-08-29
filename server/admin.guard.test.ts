@@ -98,6 +98,11 @@ describe("admin erişim koruması", () => {
     await expect(caller.admin.overview()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+    await expect(
+      caller.admin.resolveYoutubeChannel({
+        target: "https://www.youtube.com/watch?v=Af6i6ChAVTw",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("yapılandırılmış yönetici izni olan kullanıcının operasyon özetini okuyabildiğini doğrular", { timeout: 15_000 }, async () => {

@@ -9,6 +9,8 @@ import {
   revokeYoutubeToken,
   youtubeSubscribe,
   youtubeLike,
+  parseYoutubeChannelTarget,
+  resolveYoutubeChannel,
 } from "./youtube";
 
 beforeEach(() => {
@@ -109,5 +111,49 @@ describe("YouTube URL parsing", () => {
   it("rejects non-YouTube or malformed URLs", () => {
     expect(extractYoutubeVideoId("https://example.com/watch?v=abc123_XY")).toBeNull();
     expect(extractYoutubeVideoId("https://www.youtube.com/watch?v=bad")).toBeNull();
+  });
+
+  it.each([
+    ["UCX6OQ3DkcsbYNE6H8uQQuVA", { type: "channel_id", channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA" }],
+    ["https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA", { type: "channel_id", channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA" }],
+    ["https://www.youtube.com/@MrBeast", { type: "handle", handle: "MrBeast" }],
+    ["@MrBeast", { type: "handle", handle: "MrBeast" }],
+    ["https://www.youtube.com/user/legacyname", { type: "username", username: "legacyname" }],
+    ["https://youtu.be/Af6i6ChAVTw", { type: "video", videoId: "Af6i6ChAVTw" }],
+  ])("parses channel target %s", (value, expected) => {
+    expect(parseYoutubeChannelTarget(value)).toEqual(expected);
+  });
+
+  it("resolves a video URL to its channel through the official API", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ items: [{ snippet: { channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA", channelTitle: "MrBeast" } }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    try {
+      await expect(resolveYoutubeChannel("access-token", "https://www.youtube.com/watch?v=Af6i6ChAVTw")).resolves.toEqual({
+        channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA",
+        channelTitle: "MrBeast",
+        sourceType: "video",
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.objectContaining({ href: expect.stringContaining("/youtube/v3/videos?part=snippet&id=Af6i6ChAVTw") }),
+        expect.objectContaining({ headers: { Authorization: "Bearer access-token" } }),
+      );
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("returns direct channel IDs without an API request and rejects invalid targets", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    await expect(resolveYoutubeChannel("access-token", "https://youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA")).resolves.toMatchObject({
+      channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA",
+      sourceType: "channel_id",
+    });
+    await expect(resolveYoutubeChannel("access-token", "https://example.com/video")).rejects.toThrow("Geçerli bir YouTube");
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockRestore();
   });
 });

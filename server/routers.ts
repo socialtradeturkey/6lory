@@ -41,6 +41,7 @@ import {
   youtubeVerification,
   youtubeSubscribe,
   youtubeLike,
+  resolveYoutubeChannel,
 } from "./youtube.js";
 import {
   assertRedemptionEligibility,
@@ -1319,6 +1320,21 @@ export const appRouter = router({
         permissions: permissions.map(item => item.permission),
       };
     }),
+    resolveYoutubeChannel: adminProcedure
+      .input(z.object({ target: z.string().trim().min(1).max(2048) }))
+      .mutation(async ({ ctx, input }) => {
+        await requireAdminCapability(ctx.user, "tasks.write");
+        const db = await databaseOrThrow();
+        const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+        try {
+          return await resolveYoutubeChannel(accessToken, input.target);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "YouTube kanal kimliği çözümlenemedi.",
+          });
+        }
+      }),
     overview: adminProcedure.query(async ({ ctx }) => {
       await requireAdminCapability(ctx.user, "operations.read");
       const db = await databaseOrThrow();
@@ -2013,6 +2029,26 @@ export const appRouter = router({
             message: "Görev bitişi başlangıçtan sonra olmalı.",
           });
         const db = await databaseOrThrow();
+        let youtubeChannelId = input.youtubeChannelId;
+        if (input.platform === "youtube" && input.targetUrl && !youtubeChannelId) {
+          try {
+            const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+            youtubeChannelId = (await resolveYoutubeChannel(accessToken, input.targetUrl)).channelId;
+          } catch (error) {
+            if (input.requiresYoutubeSubscription) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: error instanceof Error ? error.message : "YouTube kanal kimliği otomatik çözümlenemedi.",
+              });
+            }
+          }
+        }
+        if (input.platform === "youtube" && input.requiresYoutubeSubscription && !youtubeChannelId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Abonelik zorunlu görev için YouTube kanal kimliği gerekli.",
+          });
+        }
         const status =
           input.startsAt && input.startsAt > new Date()
             ? "scheduled"
@@ -2020,7 +2056,7 @@ export const appRouter = router({
         return db.transaction(async tx => {
           const created = await tx
             .insert(tasks)
-            .values({ ...input, status, createdBy: ctx.user.id });
+            .values({ ...input, youtubeChannelId, status, createdBy: ctx.user.id });
           const taskId = Number(created[0].insertId);
           const [createdTask] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
           const activeUsers = await tx

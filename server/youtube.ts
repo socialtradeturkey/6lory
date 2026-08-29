@@ -155,6 +155,72 @@ export function extractYoutubeVideoId(value: string | null | undefined) {
   return null;
 }
 
+const YOUTUBE_CHANNEL_ID_PATTERN = /^UC[a-zA-Z0-9_-]{10,}$/;
+
+export type YoutubeChannelTarget =
+  | { type: "channel_id"; channelId: string }
+  | { type: "video"; videoId: string }
+  | { type: "handle"; handle: string }
+  | { type: "username"; username: string };
+
+export function parseYoutubeChannelTarget(value: string | null | undefined): YoutubeChannelTarget | null {
+  const normalized = value?.trim();
+  if (!normalized) return null;
+  if (YOUTUBE_CHANNEL_ID_PATTERN.test(normalized)) {
+    return { type: "channel_id", channelId: normalized };
+  }
+  if (/^@[a-zA-Z0-9._-]{3,30}$/.test(normalized)) {
+    return { type: "handle", handle: normalized.slice(1) };
+  }
+
+  const videoId = extractYoutubeVideoId(normalized);
+  if (videoId) return { type: "video", videoId };
+
+  try {
+    const url = new URL(normalized);
+    if (url.hostname !== "youtube.com" && !url.hostname.endsWith(".youtube.com")) return null;
+    const channelMatch = url.pathname.match(/^\/channel\/(UC[a-zA-Z0-9_-]{10,})\/?$/);
+    if (channelMatch) return { type: "channel_id", channelId: channelMatch[1] };
+    const handleMatch = url.pathname.match(/^\/@([a-zA-Z0-9._-]{3,30})\/?$/);
+    if (handleMatch) return { type: "handle", handle: handleMatch[1] };
+    const usernameMatch = url.pathname.match(/^\/user\/([a-zA-Z0-9._-]{1,100})\/?$/);
+    if (usernameMatch) return { type: "username", username: usernameMatch[1] };
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export async function resolveYoutubeChannel(
+  accessToken: string,
+  value: string,
+): Promise<{ channelId: string; channelTitle: string | null; sourceType: YoutubeChannelTarget["type"] }> {
+  const target = parseYoutubeChannelTarget(value);
+  if (!target) throw new Error("Geçerli bir YouTube video veya kanal URL’si girin.");
+
+  if (target.type === "channel_id") {
+    return { channelId: target.channelId, channelTitle: null, sourceType: target.type };
+  }
+
+  const response = target.type === "video"
+    ? await youtubeApi(accessToken, "videos", { part: "snippet", id: target.videoId, maxResults: "1" })
+    : await youtubeApi(accessToken, "channels", {
+        part: "snippet",
+        ...(target.type === "handle" ? { forHandle: target.handle } : { forUsername: target.username }),
+        maxResults: "1",
+      });
+  const item = response.items?.[0];
+  const channelId = target.type === "video" ? item?.snippet?.channelId : item?.id;
+  if (!channelId || !YOUTUBE_CHANNEL_ID_PATTERN.test(channelId)) {
+    throw new Error("YouTube URL’sine bağlı kanal bulunamadı.");
+  }
+  return {
+    channelId,
+    channelTitle: target.type === "video" ? item?.snippet?.channelTitle ?? null : item?.snippet?.title ?? null,
+    sourceType: target.type,
+  };
+}
+
 export function youtubeClientConfigured() {
   return Boolean(CLIENT_ID && CLIENT_SECRET);
 }

@@ -248,9 +248,9 @@
 - [x] OAuth callback, oturum oluşturma ve YouTube bağlantısı için production smoke testlerini yeniden çalıştır.
 - [x] Düzeltme sonrası GitHub `main` ve Vercel production deployment senkronizasyonunu doğrula.
 
-- [ ] Kullanıcının açtığı Manus production adresinde Google girişinin hâlâ Manus callback’e düşüp `ERR_SSL_PROTOCOL_ERROR` vermesini yeniden teşhis et.
-- [ ] Google girişini tek çalışan production domainine sabitle; eski Manus giriş yüzeyini güvenli biçimde doğru adrese yönlendir veya açıkça devre dışı bırak.
-- [ ] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
+- [x] Kullanıcının açtığı Manus production adresinde Google girişinin hâlâ Manus callback’e düşüp `ERR_SSL_PROTOCOL_ERROR` vermesini yeniden teşhis et.
+- [x] Google girişini tek çalışan production domainine sabitle; eski Manus giriş yüzeyini güvenli biçimde doğru adrese yönlendir veya açıkça devre dışı bırak.
+- [x] Temiz oturumla Google OAuth başlangıç, callback, session ve dashboard dönüşünü gerçek tarayıcıda doğrula.
 - [ ] Düzeltme sonrası testleri çalıştır, GitHub main ve Vercel production deployment senkronizasyonunu yeniden doğrula ve kullanıcıya yalnızca doğrulanmış giriş adresini ver.
 
 - [ ] Kapsamlı QA: Google OAuth/yeni kayıt, manuel kullanıcı girişi, admin girişi ve rol korumasını production’da doğrula.
@@ -259,10 +259,20 @@
 - [ ] Kapsamlı QA: YouTube beğeni/abonelik resmi API kanıtını, admin doğrulama/onayını, ledger-cüzdan geçişini ve bildirimleri doğrula.
 - [ ] Kapsamlı QA tamamlanmadan GitHub/Vercel/managed production checkpoint’i yayınlama.
 
-- [ ] Canlı Google izin dönüşünde redirect URI’nin hâlâ Manus callback’i olduğunu düzelt; Vercel function üzerinden doğrudan callback akışını doğrula.
-- [ ] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
-- [ ] Bu blokaj çözülmeden kapsamlı QA sonucu veya yeni production checkpoint’i yayınlama.
+- [x] Canlı Google izin dönüşünde redirect URI’nin hâlâ Manus callback’i olduğunu düzelt; Vercel function üzerinden doğrudan callback akışını doğrula.
+- [x] Google OAuth istemcisindeki canonical Vercel callback ile canlı authorization URL’sinin birebir eşleştiğini tarayıcıda kontrol et.
+- [x] Bu blokaj çözülmeden kapsamlı QA sonucu veya yeni production checkpoint’i yayınlama.
 
-- [ ] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
-- [ ] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
-- [ ] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
+- [x] Yeni blokaj: Google izin sonrası `YouTube OAuth token değişimi başarısız` hatasının callback redirect URI uyumsuzluğunu izole et.
+- [x] Managed callback token exchange sırasında Vercel callback URI’sini Google authorize URI ile birebir eşleştir.
+- [x] Token exchange düzeltmesini yerel regresyon testleri ve canlı OAuth callback ile doğrula; doğrulama bitmeden yayınlama.
+
+- [x] Admin görev formunda YouTube video veya kanal URL'si girildiğinde Channel ID'yi sunucu tarafında güvenli biçimde otomatik çöz ve alanı doldur.
+- [x] YouTube URL çözümlemesinde video URL'si, `/channel/UC...` URL'si, `@handle`, kısa `youtu.be` URL'si ve geçersiz URL hata durumlarını test et.
+- [x] Google/YouTube OAuth başlangıç, consent, Vercel callback, token exchange, bağlı profil ve oturum devamlılığını production'da yeniden doğrula.
+- [x] Channel ID otomasyonu ve OAuth doğrulaması tamamlanmadan yeni checkpoint yayınlama.
+
+- [ ] QA blokajı: YouTube görev zinciri/veri modeli denetim adımının kırmızı hata ile durmasının gerçek nedenini log ve kaynak kodundan bul.
+- [ ] `TaskDetail.tsx` içindeki duplicate `youtubeVerify` tanımını ve buna bağlı preview/runtime hatasını düzelt.
+- [ ] Görev başlatma → otomatik player → gerçek süre → Secret Code → beğeni/abonelik → tamamlanma → admin onayı → wallet zincirini yeniden uçtan uca çalıştır.
+- [ ] Bu düzeltmeler için testler geçmeden GitHub/Vercel güncellemesi yapma.

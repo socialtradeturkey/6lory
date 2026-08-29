@@ -73,20 +73,12 @@ export function createApiApp(): Express {
   });
 
   app.get("/api/social-oauth/youtube/start", async (req, res) => {
-    const appUrl = appOriginForRequest(req);
-    const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     const mode = req.query.mode === "login" ? "login" : "youtube";
-
-    // The managed Manus host is retained for backward compatibility, but it
-    // must not originate new login authorizations: Google can return there
-    // with an invalid TLS surface. Move only the account-login flow to the
-    // canonical Vercel host before creating OAuth state.
-    if (mode === "login" && appUrl === MANAGED_APP_URL) {
-      const canonicalStart = new URL("/api/social-oauth/youtube/start", VERCEL_APP_URL);
-      canonicalStart.searchParams.set("mode", "login");
-      return res.redirect(canonicalStart.toString());
-    }
-
+    // Login always uses the same public callback URI, regardless of whether
+    // the request entered through the legacy managed Manus host or Vercel.
+    // Google requires this value to match again during code exchange.
+    const appUrl = mode === "login" ? VERCEL_APP_URL : appOriginForRequest(req);
+    const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     const user = mode === "youtube" ? await sdk.authenticateRequest(req).catch(() => null) : null;
     if (mode === "youtube" && !user) return res.status(401).send("Önce 6lory hesabınızla giriş yapın.");
     const state = signState(mode === "login" ? { mode } : { mode, userId: user?.id });
@@ -94,7 +86,13 @@ export function createApiApp(): Express {
   });
 
   app.get("/api/social-oauth/youtube/callback", async (req, res) => {
-    const appUrl = appOriginForRequest(req);
+    let stateForOrigin: { mode?: string } | null = null;
+    try {
+      if (req.query.state) stateForOrigin = verifyState(String(req.query.state));
+    } catch {
+      // The full verification below returns the canonical error response.
+    }
+    const appUrl = stateForOrigin?.mode === "login" ? VERCEL_APP_URL : appOriginForRequest(req);
     const youtubeCallback = `${appUrl}/api/social-oauth/youtube/callback`;
     if (req.query.error === "access_denied") {
       let mode = "youtube";

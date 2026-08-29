@@ -262,6 +262,7 @@ export default function Admin() {
   const [requiresYoutubeSubscription, setRequiresYoutubeSubscription] = useState(false);
   const [requiresYoutubeLike, setRequiresYoutubeLike] = useState(false);
   const [targetUrl, setTargetUrl] = useState("");
+  const [youtubeResolveMessage, setYoutubeResolveMessage] = useState<string | null>(null);
   const [verificationMethod, setVerificationMethod] = useState("manual_review");
   const [fallbackMethod, setFallbackMethod] = useState("manual_review");
   const [perUserLimit, setPerUserLimit] = useState("1");
@@ -279,6 +280,19 @@ export default function Admin() {
   const [instructionsText, setInstructionsText] = useState(
     "Görevi açın\nTalimatları izleyin\nDoğrulama isteği gönderin"
   );
+  const resolveYoutubeChannel = trpc.admin.resolveYoutubeChannel.useMutation({
+    onSuccess: data => {
+      setYoutubeChannelId(data.channelId);
+      setYoutubeResolveMessage(`${data.channelTitle ?? "YouTube kanalı"} · ${data.channelId}`);
+    },
+    onError: error => setYoutubeResolveMessage(error.message),
+  });
+  const resolveYoutubeTarget = () => {
+    const target = targetUrl.trim();
+    if (platform !== "youtube" || !target || resolveYoutubeChannel.isPending) return;
+    setYoutubeResolveMessage(null);
+    resolveYoutubeChannel.mutate({ target });
+  };
   const [campaignName, setCampaignName] = useState("");
   const [campaignDescription, setCampaignDescription] = useState("");
   const [campaignBudget, setCampaignBudget] = useState("");
@@ -816,10 +830,32 @@ export default function Admin() {
                   <Input
                     type="url"
                     value={targetUrl}
-                    onChange={event => setTargetUrl(event.target.value)}
+                    onChange={event => {
+                      setTargetUrl(event.target.value);
+                      setYoutubeResolveMessage(null);
+                    }}
+                    onBlur={resolveYoutubeTarget}
                     className="mt-1.5"
                     placeholder="https://..."
                   />
+                  {platform === "youtube" && (
+                    <span className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg"
+                        disabled={!targetUrl.trim() || resolveYoutubeChannel.isPending}
+                        onClick={resolveYoutubeTarget}
+                      >
+                        <Youtube className="mr-1.5 size-3.5" />
+                        {resolveYoutubeChannel.isPending ? "Kanal bulunuyor..." : "Channel ID’yi bul"}
+                      </Button>
+                      <span className={`text-[11px] leading-5 ${resolveYoutubeChannel.error ? "text-destructive" : "text-muted-foreground"}`}>
+                        {youtubeResolveMessage ?? "URL alanından çıktığınızda Channel ID otomatik doldurulur."}
+                      </span>
+                    </span>
+                  )}
                 </label>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
