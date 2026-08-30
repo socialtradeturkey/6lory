@@ -69,7 +69,8 @@ describe("YouTube OAuth lifecycle", () => {
       await expect(youtubeSubscribe("access-token", "UC12345678901234567890")).resolves.toEqual({ subscribed: true, alreadySubscribed: false });
       await expect(youtubeLike("access-token", "abc123_XY")).resolves.toEqual({ liked: true, alreadyLiked: false });
       expect(fetchMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/subscriptions?part=snippet") }), expect.objectContaining({ method: "POST", body: JSON.stringify({ snippet: { resourceId: { channelId: "UC12345678901234567890" } } }) }));
-      expect(fetchMock).toHaveBeenNthCalledWith(4, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/videos/rate?id=abc123_XY&rating=like") }), expect.objectContaining({ method: "POST", body: "{}" }));
+      expect(fetchMock).toHaveBeenNthCalledWith(4, expect.objectContaining({ href: expect.stringContaining("/youtube/v3/videos/rate?id=abc123_XY&rating=like") }), expect.objectContaining({ method: "POST" }));
+      expect(fetchMock.mock.calls[3][1]).not.toHaveProperty("body");
     } finally {
       fetchMock.mockRestore();
     }

@@ -87,6 +87,30 @@ describe("kritik görev prosedürleri", () => {
     }
   });
 
+  it("youtube.verify API eksik sonucunu local ilerleme bayraklarıyla başarıya yükseltmez", async () => {
+    process.env.JWT_SECRET = "critical-youtube-secret";
+    const connection = { id: 31, userId: 1, accessTokenCiphertext: encryptYoutubeToken("access-token"), refreshTokenCiphertext: null, expiresAt: new Date(Date.now() + 3_600_000), scopes: ["https://www.googleapis.com/auth/youtube.force-ssl"] };
+    const session = { id: 21, publicId: "youtube-session-0001", taskId: 5, userId: 1, status: "active", expiresAt: new Date(Date.now() + 60_000), progress: { youtubeSubscribed: true, youtubeLiked: true } };
+    const task = { id: 5, platform: "youtube", targetUrl: "https://www.youtube.com/watch?v=abc123_XY", youtubeChannelId: "UC12345678901234567890", requiresYoutubeSubscription: true, requiresYoutubeLike: true };
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "none" }] }), { status: 200 }));
+    }
+    let selectIndex = 0;
+    getDbMock.mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => query([[connection], [session], [task]][selectIndex++]) }) }),
+      update: () => ({ set: () => ({ where: async () => [{ affectedRows: 1 }] }) }),
+    });
+
+    try {
+      const result = await appRouter.createCaller(createContext()).youtube.verify({ sessionPublicId: session.publicId, videoId: "abc123_XY", channelId: task.youtubeChannelId });
+      expect(result).toMatchObject({ subscribed: false, liked: false });
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   it("tasks.start kota dolu olduğunda atama veya oturum yazmaz", async () => {
     const task = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 2, totalQuota: 2, sessionDurationSeconds: 900 };
     const { tx, updates, inserts } = createTransaction([[], [task], []]);

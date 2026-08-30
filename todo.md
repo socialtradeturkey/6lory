@@ -303,3 +303,10 @@
 
 - [x] Kullanıcı YouTube görevinde videoyu **beğenme** ve kanala **abone olma** adımlarını dashboard içinde tamamlayabilir; Secret Code sonrasında resmi YouTube API mutation’larıyla beğeni/abonelik kanıtı doğrulanır, sonuç admin onay kuyruğunda gösterilir ve tüm koşullar sağlanmadan puan kesinleşmez. Bu görev daha önce tamamlanmış olan 189–193 kapsamının açık ve görünür kaydı olarak geri eklendi.
 - [x] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme; iframe engeli puan üretmeden güvenli biçimde durduruldu.
+
+## 2026-08-30 — YouTube doğrulama son kontrolü
+- [x] YouTube API’nin güncel abonelik/beğeni okuma sonucunu local session progress bayraklarından üstün tut; eksik API sonucunu sahte başarıya çevirmeyi engelle.
+- [x] `youtube.verify` çağrısında video ve kanal hedeflerini görev oturumunun gerçek hedefleriyle eşleştir.
+- [x] API’nin eksik sonucunda local progress fallback’inin çalışmadığını doğrulayan regresyon testi ekle.
+- [x] YouTube Data API resmi `subscriptions.list`, `subscriptions.insert`, `videos.getRating` ve `videos.rate` belgelerini kontrol et; `videos.rate` işleminin herkese açık like sayacını değiştirmediğini dokümante et.
+- [x] Tip kontrolü, YouTube/kritik testler ve production build doğrulamasını tamamla; tam test paketindeki DATABASE_URL bağımlı admin guard testlerini raporla.

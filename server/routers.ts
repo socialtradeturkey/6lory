@@ -626,14 +626,15 @@ export const appRouter = router({
           throw new TRPCError({ code: "PRECONDITION_FAILED", message: "YouTube yetkisi süresi dolmuş. Profil sayfasından hesabınızı yeniden bağlayın." });
         }
       }
-      const [session] = await db.select({ userId: taskSessions.userId, progress: taskSessions.progress }).from(taskSessions).where(eq(taskSessions.publicId, input.sessionPublicId)).limit(1);
+      const [session] = await db.select({ userId: taskSessions.userId, taskId: taskSessions.taskId }).from(taskSessions).where(eq(taskSessions.publicId, input.sessionPublicId)).limit(1);
       if (!session || session.userId !== ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz." });
+      const [task] = await db.select({ platform: tasks.platform, targetUrl: tasks.targetUrl, youtubeChannelId: tasks.youtubeChannelId, requiresYoutubeSubscription: tasks.requiresYoutubeSubscription, requiresYoutubeLike: tasks.requiresYoutubeLike }).from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
+      const expectedVideoId = task ? extractYoutubeVideoId(task.targetUrl) : null;
+      if (!task || task.platform !== "youtube" || expectedVideoId !== input.videoId || task.youtubeChannelId !== input.channelId || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "YouTube doğrulama hedefi görev oturumuyla eşleşmiyor." });
+      }
       const result = await youtubeVerification(accessToken, input.videoId, input.channelId);
-      const actionProgress = (session.progress ?? {}) as Record<string, unknown>;
-      const effectiveResult = {
-        subscribed: result.subscribed || actionProgress.youtubeSubscribed === true,
-        liked: result.liked || actionProgress.youtubeLiked === true,
-      };
+      const effectiveResult = result;
       await db.update(youtubeConnections).set({ lastCheckedAt: new Date() }).where(eq(youtubeConnections.id, connection.id));
       return {
         ...effectiveResult,
@@ -1010,8 +1011,8 @@ export const appRouter = router({
                 userId: ctx.user.id,
                 videoId: expectedVideoId,
                 channelId: task.youtubeChannelId,
-                subscribed: current.subscribed || actionProgress.youtubeSubscribed === true,
-                liked: current.liked || actionProgress.youtubeLiked === true,
+                subscribed: current.subscribed,
+                liked: current.liked,
                 checkedAt: Date.now(),
               };
             } catch (error) {
