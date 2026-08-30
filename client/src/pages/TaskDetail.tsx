@@ -203,6 +203,7 @@ export default function TaskDetail() {
   const youtubeVerify = trpc.youtube.verify.useMutation({
     onSuccess: result => {
       setYoutubeEvidence(result);
+      setYoutubeActionState({ subscribed: result.subscribed, liked: result.liked });
       if (result.subscribed && result.liked) toast.success("YouTube abonelik ve beğeni doğrulandı.");
       else toast.warning(`Eksik koşullar: ${!result.subscribed ? "kanal aboneliği" : ""}${!result.subscribed && !result.liked ? " ve " : ""}${!result.liked ? "video beğenisi" : ""}.`);
     },
@@ -406,8 +407,11 @@ export default function TaskDetail() {
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
   const isReadyForSecretCode = effectiveActiveSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
-  const youtubeActionReady = !supportsSecretCode || Boolean(issuedSecretCode);
-  const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || Boolean(youtubeEvidence && (!task.requiresYoutubeSubscription || youtubeEvidence.subscribed) && (!task.requiresYoutubeLike || youtubeEvidence.liked));
+  // YouTube işlemleri izleme kodundan bağımsızdır; görev oturumu başladıktan sonra aktif olur.
+  const youtubeActionReady = Boolean(sessionId);
+  const youtubeSubscriptionDone = youtubeActionState.subscribed || Boolean(youtubeEvidence?.subscribed);
+  const youtubeLikeDone = youtubeActionState.liked || Boolean(youtubeEvidence?.liked);
+  const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || ((!task.requiresYoutubeSubscription || youtubeSubscriptionDone) && (!task.requiresYoutubeLike || youtubeLikeDone));
 
   return (
     <AppShell title="Görev ayrıntısı" eyebrow="Doğrulanmış akış">
@@ -493,9 +497,7 @@ export default function TaskDetail() {
                 <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
                   <p className="text-sm font-semibold">YouTube görev adımları</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    {supportsSecretCode && !issuedSecretCode
-                      ? "Önce videoyu gerçek oynatma ile izleyin ve Secret Code’u girin. Ardından zorunlu YouTube işlemlerini bu panelden başlatın."
-                      : "İşlemler bağlı YouTube hesabınızla resmi API üzerinden başlatılır; görev gönderilmeden önce sunucu kanıtı alınır."}
+                    İşlemler görev oturumu açıldıktan sonra bağlı YouTube hesabınızla resmi API üzerinden başlatılır. Başarılı işlemler hemen işaretlenir; görev gönderiminde sunucu son kontrolü yapar.
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {task.requiresYoutubeSubscription ? (
@@ -524,7 +526,7 @@ export default function TaskDetail() {
                     variant="outline"
                     disabled={youtubeVerify.isPending || youtubeSubscribe.isPending || youtubeLike.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
                     onClick={() => {
-                      if (youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ videoId: youtubeVideoId, channelId: task.youtubeChannelId });
+                      if (sessionId && youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ sessionPublicId: sessionId, videoId: youtubeVideoId, channelId: task.youtubeChannelId });
                     }}
                     className="mt-3 w-full rounded-xl text-xs"
                   >

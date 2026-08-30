@@ -573,23 +573,27 @@ export const appRouter = router({
     }),
     subscribe: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12) })).mutation(async ({ ctx, input }) => {
       const db = await databaseOrThrow();
-      const { task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "subscription");
+      const { session, task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "subscription");
       if (!task.youtubeChannelId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube kanal hedefi yapılandırılmamış." });
       const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
       try {
-        return await youtubeSubscribe(accessToken, task.youtubeChannelId);
+        const result = await youtubeSubscribe(accessToken, task.youtubeChannelId);
+        await db.update(taskSessions).set({ progress: { ...(session.progress ?? {}), youtubeSubscribed: true } }).where(eq(taskSessions.id, session.id));
+        return result;
       } catch (error) {
         throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "YouTube abonelik işlemi tamamlanamadı." });
       }
     }),
     like: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12) })).mutation(async ({ ctx, input }) => {
       const db = await databaseOrThrow();
-      const { task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "like");
+      const { session, task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "like");
       const videoId = extractYoutubeVideoId(task.targetUrl);
       if (!videoId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube video hedefi yapılandırılmamış." });
       const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
       try {
-        return await youtubeLike(accessToken, videoId);
+        const result = await youtubeLike(accessToken, videoId);
+        await db.update(taskSessions).set({ progress: { ...(session.progress ?? {}), youtubeLiked: true } }).where(eq(taskSessions.id, session.id));
+        return result;
       } catch (error) {
         throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "YouTube beğeni işlemi tamamlanamadı." });
       }
@@ -607,7 +611,7 @@ export const appRouter = router({
       await db.delete(youtubeConnections).where(eq(youtubeConnections.id, connection.id));
       return { success: true, disconnected: true };
     }),
-    verify: protectedProcedure.input(z.object({ videoId: z.string().regex(/^[a-zA-Z0-9_-]{6,}$/), channelId: z.string().regex(/^UC[a-zA-Z0-9_-]{10,}$/) })).mutation(async ({ ctx, input }) => {
+    verify: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12), videoId: z.string().regex(/^[a-zA-Z0-9_-]{6,}$/), channelId: z.string().regex(/^UC[a-zA-Z0-9_-]{10,}$/) })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
       const [connection] = await db.select().from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
@@ -622,11 +626,18 @@ export const appRouter = router({
           throw new TRPCError({ code: "PRECONDITION_FAILED", message: "YouTube yetkisi süresi dolmuş. Profil sayfasından hesabınızı yeniden bağlayın." });
         }
       }
+      const [session] = await db.select({ userId: taskSessions.userId, progress: taskSessions.progress }).from(taskSessions).where(eq(taskSessions.publicId, input.sessionPublicId)).limit(1);
+      if (!session || session.userId !== ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz." });
       const result = await youtubeVerification(accessToken, input.videoId, input.channelId);
+      const actionProgress = (session.progress ?? {}) as Record<string, unknown>;
+      const effectiveResult = {
+        subscribed: result.subscribed || actionProgress.youtubeSubscribed === true,
+        liked: result.liked || actionProgress.youtubeLiked === true,
+      };
       await db.update(youtubeConnections).set({ lastCheckedAt: new Date() }).where(eq(youtubeConnections.id, connection.id));
       return {
-        ...result,
-        proofToken: createYoutubeProof({ userId: ctx.user.id, videoId: input.videoId, channelId: input.channelId, ...result, checkedAt: Date.now() }),
+        ...effectiveResult,
+        proofToken: createYoutubeProof({ userId: ctx.user.id, videoId: input.videoId, channelId: input.channelId, ...effectiveResult, checkedAt: Date.now() }),
       };
     }),
   }),
@@ -994,11 +1005,13 @@ export const appRouter = router({
             try {
               const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
               const current = await youtubeVerification(accessToken, expectedVideoId, task.youtubeChannelId);
+              const actionProgress = (session.progress ?? {}) as Record<string, unknown>;
               youtubeProof = {
                 userId: ctx.user.id,
                 videoId: expectedVideoId,
                 channelId: task.youtubeChannelId,
-                ...current,
+                subscribed: current.subscribed || actionProgress.youtubeSubscribed === true,
+                liked: current.liked || actionProgress.youtubeLiked === true,
                 checkedAt: Date.now(),
               };
             } catch (error) {
