@@ -74,10 +74,12 @@ export default function TaskDetail() {
   const [youtubeActionState, setYoutubeActionState] = useState({ subscribed: false, liked: false });
   const [interactionCount, setInteractionCount] = useState(0);
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [playerUnavailable, setPlayerUnavailable] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
   const [seekPenaltySeconds, setSeekPenaltySeconds] = useState(0);
   const playerRef = useRef<any>(null);
+  const playerReadyRef = useRef(false);
   const lastPlayerTimeRef = useRef<number | null>(null);
   const secretAutoRequestedRef = useRef(false);
   const secretCodeIssuedRef = useRef(false);
@@ -92,6 +94,7 @@ export default function TaskDetail() {
       setSecretCodeExpiresAt(null);
       setSecretCodeInput("");
       setSeekPenaltySeconds(0);
+      setIsPlayerReady(false);
       setPlayerUnavailable(false);
       lastPlayerTimeRef.current = null;
       secretAutoRequestedRef.current = false;
@@ -300,11 +303,18 @@ export default function TaskDetail() {
         events: {
           onReady: (event: any) => {
             playerReady = true;
+            playerReadyRef.current = true;
+            setIsPlayerReady(true);
             setPlayerUnavailable(false);
             event.target.mute();
-            event.target.playVideo();
+            const playResult = event.target.playVideo();
+            if (playResult?.catch) playResult.catch(() => setIsPlayerPlaying(false));
           },
-          onError: () => setPlayerUnavailable(true),
+          onError: () => {
+            // YouTube bazı tarayıcılarda autoplay/oturum uyarısını error callback’iyle bildirir.
+            // Player hazırsa bunu yükleme hatası sayma; kullanıcı oynatmayı elle başlatabilir.
+            if (!playerReady) setPlayerUnavailable(true);
+          },
           onStateChange: onPlayerStateChange,
         },
       });
@@ -324,6 +334,8 @@ export default function TaskDetail() {
     return () => {
       window.clearTimeout(playerTimeout);
       setIsPlayerPlaying(false);
+      playerReadyRef.current = false;
+      setIsPlayerReady(false);
       secretAutoRequestedRef.current = false;
       if (player?.destroy) player.destroy();
     }
@@ -469,6 +481,9 @@ export default function TaskDetail() {
                 {task.platform === "youtube" && sessionId ? (
                   <div className="relative aspect-video w-full">
                     <div id="youtube-player" className="h-full w-full" />
+                    {!isPlayerPlaying && !playerUnavailable && isPlayerReady && (
+                      <button type="button" onClick={() => playerRef.current?.playVideo?.()} className="absolute inset-x-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white/95 px-4 py-2 text-xs font-bold text-slate-900 shadow-lg">Videoyu oynat</button>
+                    )}
                     {issuedSecretCode && !playerUnavailable && (
                       <div className="pointer-events-none absolute inset-0 grid place-items-center bg-slate-950/30 p-4">
                         <div className="rounded-2xl border border-white/35 bg-slate-950/90 px-5 py-3 text-center text-white shadow-2xl backdrop-blur-sm">
