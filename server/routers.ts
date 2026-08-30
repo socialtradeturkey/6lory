@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { promisify } from "node:util";
 import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
@@ -698,7 +698,7 @@ export const appRouter = router({
           and(
             eq(tasks.status, "active"),
             or(isNull(tasks.startsAt), lte(tasks.startsAt, now)),
-            or(isNull(tasks.endsAt), gte(tasks.endsAt, now))
+            or(isNull(tasks.endsAt), gt(tasks.endsAt, now))
           )
         )
         .orderBy(desc(tasks.priority), desc(tasks.createdAt));
@@ -721,7 +721,7 @@ export const appRouter = router({
               eq(tasks.id, input.taskId),
               eq(tasks.status, "active"),
               or(isNull(tasks.startsAt), lte(tasks.startsAt, now)),
-              or(isNull(tasks.endsAt), gte(tasks.endsAt, now)),
+              or(isNull(tasks.endsAt), gt(tasks.endsAt, now)),
             ),
           )
           .limit(1);
