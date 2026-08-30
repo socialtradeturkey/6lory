@@ -316,3 +316,9 @@
 - [x] Bitiş zamanı geçmemiş görevleri görünür tut; arşivlenmiş, pasif, başlamamış veya süresi dolmuş görevleri listeleme dışında bırak.
 - [x] Görev detayına erişimi eski assignment filtresine bağlamadan status ve zaman penceresiyle sınırla.
 - [x] Yeni kullanıcı görünürlüğünü doğrulayan regresyon testi ekle.
+
+## 2026-08-30 — Gerçek görev yapma kanıtını güçlendirme
+- [x] Secret Code üretimi ve görev doğrulamasında istemcinin gönderdiği `activeSeconds` değerini kullanma; session’ın sunucu başlangıç zamanından geçen süreyi esas al.
+- [x] İstemcinin sahte yüksek süre ve etkileşim sayısıyla erken Secret Code almasını engelle.
+- [x] Sunucu süre doğrulaması için anti-spoofing regresyon testi ekle.
+- [x] Tarayıcı görünürlük/oynatma sinyallerinin tek başına kesin kanıt olmadığını koru; kesin başarıyı Secret Code, resmi platform API’si veya manuel inceleme ile sınırla.

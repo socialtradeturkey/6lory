@@ -47,6 +47,7 @@ import {
   assertRedemptionEligibility,
   createSecretCode,
   evaluateWebSignals,
+  getServerElapsedSeconds,
   getTaskSessionAccess,
   getTaskStartEligibility,
   hashSecretCode,
@@ -893,6 +894,8 @@ export const appRouter = router({
           });
         const decision = evaluateWebSignals({
           ...input.signals,
+          sessionValid: true,
+          activeSeconds: getServerElapsedSeconds(session.startedAt),
           requiredSeconds: task.requiredWatchSeconds ?? task.estimatedDurationSeconds,
         });
         if (decision.status !== "pass")
@@ -1017,6 +1020,8 @@ export const appRouter = router({
             method: task.verificationMethod,
             webSignals: {
               ...input.signals,
+              sessionValid: true,
+              activeSeconds: getServerElapsedSeconds(session.startedAt),
               requiredSeconds: task.requiredWatchSeconds ?? task.estimatedDurationSeconds,
             },
             secretCodeValid,

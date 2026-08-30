@@ -2,6 +2,10 @@ import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 
 export type VerificationStatus = "pass" | "fail" | "unavailable" | "manual_review";
 
+export function getServerElapsedSeconds(startedAt: Date, now = new Date()) {
+  return Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / 1000));
+}
+
 export type VerificationDecision = {
   status: VerificationStatus;
   score: number | null;
