@@ -38,6 +38,18 @@ function createTransaction(selectResults: unknown[][], insertResults: unknown[] 
 beforeEach(() => getDbMock.mockReset());
 
 describe("kritik görev prosedürleri", () => {
+  it("yeni kullanıcı assignment kaydı olmadan aktif görevleri görebilir", async () => {
+    const visibleTasks = [
+      { id: 1, status: "active", audienceMode: "open", startsAt: null, endsAt: new Date(Date.now() + 60_000) },
+      { id: 2, status: "active", audienceMode: "assigned", startsAt: new Date(Date.now() - 60_000), endsAt: null },
+    ];
+    getDbMock.mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => ({ orderBy: async () => visibleTasks }) }) }),
+    });
+
+    await expect(appRouter.createCaller(createContext(99)).tasks.list()).resolves.toEqual(visibleTasks);
+  });
+
   it("tasks.start geçerli görevde kotayı bir kez tahsis eder ve imzalı oturum döndürür", async () => {
     const task = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 0, totalQuota: 2, sessionDurationSeconds: 900 };
     const assignment = { id: 17, status: "claimed" };

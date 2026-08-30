@@ -702,16 +702,11 @@ export const appRouter = router({
           )
         )
         .orderBy(desc(tasks.priority), desc(tasks.createdAt));
-      const assignedRows = await db
-        .select({ taskId: taskAssignments.taskId, status: taskAssignments.status })
-        .from(taskAssignments)
-        .where(eq(taskAssignments.userId, ctx.user.id));
-      const assignedTaskIds = new Set(
-        assignedRows
-          .filter(row => row.status === "assigned" || row.status === "started")
-          .map(row => row.taskId),
-      );
-      return visibleTasks.filter(task => task.audienceMode === "open" || assignedTaskIds.has(task.id));
+      // Görev görünürlüğü kullanıcı hesabının oluşturulma zamanına veya
+      // önceki assignment kayıtlarına bağlanmaz. Admin tarafından silinmemiş
+      // (archived olmayan), aktif ve zaman penceresi içindeki görevler yeni
+      // kullanıcılar dahil tüm aktif kullanıcılar için keşfedilebilir olmalıdır.
+      return visibleTasks;
     }),
     detail: protectedProcedure
       .input(z.object({ taskId: z.number().int().positive() }))
@@ -735,21 +730,9 @@ export const appRouter = router({
             code: "NOT_FOUND",
             message: "Görev bulunamadı veya artık kullanılamıyor.",
           });
-        if (task.audienceMode === "assigned") {
-          const [assignment] = await db
-            .select({ id: taskAssignments.id })
-            .from(taskAssignments)
-            .where(
-              and(
-                eq(taskAssignments.taskId, task.id),
-                eq(taskAssignments.userId, ctx.user.id),
-                or(eq(taskAssignments.status, "assigned"), eq(taskAssignments.status, "started")),
-              ),
-            )
-            .limit(1);
-          if (!assignment)
-            throw new TRPCError({ code: "NOT_FOUND", message: "Bu görev size atanmamış veya artık kullanılamıyor." });
-        }
+        // `audienceMode` assignment/notification operasyonlarında kullanılabilir;
+        // görev detayına erişim ise yeni kullanıcıların da aktif görevleri
+        // başlatabilmesi için yalnızca status ve zaman penceresiyle sınırlıdır.
         return task;
       }),
     start: protectedProcedure
@@ -2114,25 +2097,11 @@ export const appRouter = router({
             .values({ ...input, youtubeChannelId, status, createdBy: ctx.user.id });
           const taskId = Number(created[0].insertId);
           const [createdTask] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
-          const activeUsers = await tx
-            .select({ id: users.id })
-            .from(users)
-            .where(and(eq(users.accountStatus, "active"), eq(users.role, "user")));
-          if (activeUsers.length) {
-            await tx.insert(taskAssignments).values(
-              activeUsers.map(user => ({ taskId, userId: user.id, expiresAt: input.endsAt })),
-            );
-            await tx.insert(notifications).values(
-              activeUsers.map(user => ({
-                userId: user.id,
-                type: "task_assigned",
-                title: "Yeni görev yayınlandı",
-                body: `Size yeni bir görev atandı: ${input.title}`,
-                destination: `/tasks/${taskId}`,
-              })),
-            );
-            await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: activeUsers.length }).where(eq(tasks.id, taskId));
-          }
+          // Yeni görevler varsayılan olarak `open` kalır. Böylece görev
+          // oluşturulduktan sonra kayıt olan kullanıcılar da görev penceresi
+          // açık olduğu sürece görevi görebilir ve başlatabilir. Hedefli
+          // assignment gerekiyorsa admin bunu ayrıca başlatabilir.
+          const assignedCount = 0;
           await tx.insert(auditLogs).values({
             actorUserId: ctx.user.id,
             action: "task.created",
@@ -2141,10 +2110,10 @@ export const appRouter = router({
             afterState: {
               title: input.title,
               verificationMethod: input.verificationMethod,
-              autoAssignedUserCount: activeUsers.length,
+              autoAssignedUserCount: assignedCount,
             },
           });
-          return { id: createdTask?.id ?? taskId, status, assignedCount: activeUsers.length };
+          return { id: createdTask?.id ?? taskId, status, assignedCount };
         });
       }),
     createReward: adminProcedure

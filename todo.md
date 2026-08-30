@@ -310,3 +310,9 @@
 - [x] API’nin eksik sonucunda local progress fallback’inin çalışmadığını doğrulayan regresyon testi ekle.
 - [x] YouTube Data API resmi `subscriptions.list`, `subscriptions.insert`, `videos.getRating` ve `videos.rate` belgelerini kontrol et; `videos.rate` işleminin herkese açık like sayacını değiştirmediğini dokümante et.
 - [x] Tip kontrolü, YouTube/kritik testler ve production build doğrulamasını tamamla; tam test paketindeki DATABASE_URL bağımlı admin guard testlerini raporla.
+
+## 2026-08-30 — Yeni kullanıcı görev görünürlüğü
+- [x] Yeni kayıt olan kullanıcıların assignment kaydı olmasa bile aktif ve başlangıç zamanı gelmiş görevleri görebilmesini sağla.
+- [x] Bitiş zamanı geçmemiş görevleri görünür tut; arşivlenmiş, pasif, başlamamış veya süresi dolmuş görevleri listeleme dışında bırak.
+- [x] Görev detayına erişimi eski assignment filtresine bağlamadan status ve zaman penceresiyle sınırla.
+- [x] Yeni kullanıcı görünürlüğünü doğrulayan regresyon testi ekle.
