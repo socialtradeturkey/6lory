@@ -1071,12 +1071,14 @@ export const appRouter = router({
               : {}),
           };
           await tx.insert(verificationSignals).values(
-            Object.entries(persistedSignals).map(([key, value]) => ({
-              verificationAttemptId,
-              key,
-              value,
-              score: typeof value === "number" ? Math.round(value) : null,
-            }))
+            Object.entries(persistedSignals)
+              .filter(([, value]) => value !== undefined)
+              .map(([key, value]) => ({
+                verificationAttemptId,
+                key,
+                value,
+                score: typeof value === "number" ? Math.round(value) : null,
+              }))
           );
           if (verificationStatus === "manual_review") {
             await tx.insert(manualReviews).values({ verificationAttemptId });
