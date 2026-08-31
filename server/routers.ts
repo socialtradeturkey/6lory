@@ -36,8 +36,6 @@ import {
   extractYoutubeVideoId,
   refreshYoutubeAccessToken,
   revokeYoutubeToken,
-  verifyYoutubeProof,
-  youtubeRequirementsSatisfied,
   youtubeVerification,
   youtubeSubscribe,
   youtubeLike,
@@ -997,34 +995,6 @@ export const appRouter = router({
               message: `Görevi göndermek için en az ${requiredWatchSeconds} saniyelik görev süresini tamamlamanız gerekiyor.`,
             });
           }
-          // YouTube abonelik/beğeni kontrolü görev gönderimini bloke etmez.
-          // Görev, izleme süresi ve doğrulama yöntemi üzerinden değerlendirilir.
-          const requiresYoutubeProof = false;
-          let youtubeProof: ReturnType<typeof verifyYoutubeProof> = null;
-          if (requiresYoutubeProof) {
-            const expectedVideoId = extractYoutubeVideoId(task.targetUrl);
-            if (!expectedVideoId || !task.youtubeChannelId)
-              throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu YouTube görevinin kanal veya video doğrulaması yapılandırılmamış." });
-            try {
-              const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
-              const current = await youtubeVerification(accessToken, expectedVideoId, task.youtubeChannelId);
-              const actionProgress = (session.progress ?? {}) as Record<string, unknown>;
-              youtubeProof = {
-                userId: ctx.user.id,
-                videoId: expectedVideoId,
-                channelId: task.youtubeChannelId,
-                subscribed: current.subscribed,
-                liked: current.liked,
-                checkedAt: Date.now(),
-              };
-            } catch (error) {
-              throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "YouTube koşulları doğrulanamadı." });
-            }
-            const missingSubscription = task.requiresYoutubeSubscription && !youtubeProof?.subscribed;
-            const missingLike = task.requiresYoutubeLike && !youtubeProof?.liked;
-            if (!youtubeRequirementsSatisfied({ requiresSubscription: task.requiresYoutubeSubscription, requiresLike: task.requiresYoutubeLike }, youtubeProof))
-              throw new TRPCError({ code: "PRECONDITION_FAILED", message: `YouTube koşulları tamamlanmadan görev gönderilemez.${missingSubscription ? " Kanal aboneliği eksik." : ""}${missingLike ? " Video beğenisi eksik." : ""}` });
-          }
           const secretCodeValid = Boolean(
             input.secretCode &&
               session.secretCodeExpiresAt &&
@@ -1046,9 +1016,7 @@ export const appRouter = router({
           // Puan, yönetici kararı verilene kadar hiçbir koşulda ledger'a yazılmaz.
           const verificationStatus = secretCodeValid ? "manual_review" : decision.status;
           const verificationReason = secretCodeValid
-            ? requiresYoutubeProof
-              ? "Secret Code ve YouTube koşulları doğru; yönetici onayı bekleniyor."
-              : "Secret Code doğru; yönetici onayı bekleniyor."
+            ? "Secret Code doğru; yönetici onayı bekleniyor."
             : decision.reason;
           const inserted = await tx.insert(verificationAttempts).values({
             idempotencyKey: input.idempotencyKey,
@@ -1062,16 +1030,7 @@ export const appRouter = router({
             completedAt: new Date(),
           });
           const verificationAttemptId = Number(inserted[0].insertId);
-          const persistedSignals = {
-            ...decision.signals,
-            ...(youtubeProof
-              ? {
-                  youtubeSubscribed: youtubeProof.subscribed,
-                  youtubeLiked: youtubeProof.liked,
-                  youtubeCheckedAt: youtubeProof.checkedAt,
-                }
-              : {}),
-          };
+          const persistedSignals = { ...decision.signals };
           try {
             await tx.insert(verificationSignals).values(
               Object.entries(persistedSignals)
