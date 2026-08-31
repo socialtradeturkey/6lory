@@ -176,6 +176,22 @@ async function getYoutubeTaskActionContext(db: Database, sessionPublicId: string
   return { session, task };
 }
 
+async function buildYoutubeActionProof(
+  accessToken: string,
+  userId: number,
+  task: { targetUrl: string | null; youtubeChannelId: string | null },
+  override: { subscribed?: boolean; liked?: boolean },
+) {
+  const videoId = extractYoutubeVideoId(task.targetUrl);
+  if (!videoId || !task.youtubeChannelId) return null;
+  const current = await youtubeVerification(accessToken, videoId, task.youtubeChannelId);
+  const result = { subscribed: override.subscribed ?? current.subscribed, liked: override.liked ?? current.liked };
+  return {
+    ...result,
+    proofToken: createYoutubeProof({ userId, videoId, channelId: task.youtubeChannelId, ...result, checkedAt: Date.now() }),
+  };
+}
+
 async function requireAdminCapability(
   user: { role: string },
   capability: string
@@ -572,7 +588,9 @@ export const appRouter = router({
       if (!task.youtubeChannelId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube kanal hedefi yapılandırılmamış." });
       const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
       try {
-        return await youtubeSubscribe(accessToken, task.youtubeChannelId);
+        const actionResult = await youtubeSubscribe(accessToken, task.youtubeChannelId);
+        const proof = await buildYoutubeActionProof(accessToken, ctx.user.id, task, { subscribed: true });
+        return { ...actionResult, ...(proof ?? {}) };
       } catch (error) {
         throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "YouTube abonelik işlemi tamamlanamadı." });
       }
@@ -584,7 +602,9 @@ export const appRouter = router({
       if (!videoId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube video hedefi yapılandırılmamış." });
       const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
       try {
-        return await youtubeLike(accessToken, videoId);
+        const actionResult = await youtubeLike(accessToken, videoId);
+        const proof = await buildYoutubeActionProof(accessToken, ctx.user.id, task, { liked: true });
+        return { ...actionResult, ...(proof ?? {}) };
       } catch (error) {
         throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "YouTube beğeni işlemi tamamlanamadı." });
       }

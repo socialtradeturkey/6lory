@@ -80,6 +80,7 @@ export default function TaskDetail() {
   const playerRef = useRef<any>(null);
   const lastPlayerTimeRef = useRef<number | null>(null);
   const secretAutoRequestedRef = useRef(false);
+  const lastYoutubeCheckKeyRef = useRef<string | null>(null);
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
@@ -97,6 +98,7 @@ export default function TaskDetail() {
       setVerificationStatus(null);
       setYoutubeEvidence(null);
       setYoutubeActionState({ subscribed: false, liked: false });
+      lastYoutubeCheckKeyRef.current = null;
       toast.success(
         result.reused
           ? "Mevcut görev oturumunuz açıldı."
@@ -109,6 +111,9 @@ export default function TaskDetail() {
   const youtubeSubscribe = trpc.youtube.subscribe.useMutation({
     onSuccess: result => {
       setYoutubeActionState(state => ({ ...state, subscribed: true }));
+      if (result.proofToken) {
+        setYoutubeEvidence({ subscribed: Boolean(result.subscribed), liked: Boolean(result.liked), proofToken: result.proofToken });
+      }
       toast.success(result.alreadySubscribed ? "YouTube kanalına zaten abonesiniz." : "YouTube kanal aboneliği tamamlandı.");
     },
     onError: error => {
@@ -128,6 +133,9 @@ export default function TaskDetail() {
   const youtubeLike = trpc.youtube.like.useMutation({
     onSuccess: result => {
       setYoutubeActionState(state => ({ ...state, liked: true }));
+      if (result.proofToken) {
+        setYoutubeEvidence({ subscribed: Boolean(result.subscribed), liked: Boolean(result.liked), proofToken: result.proofToken });
+      }
       toast.success(result.alreadyLiked ? "Video zaten beğenilmiş." : "YouTube video beğenisi tamamlandı.");
     },
     onError: error => {
@@ -199,6 +207,7 @@ export default function TaskDetail() {
   const youtubeVerify = trpc.youtube.verify.useMutation({
     onSuccess: result => {
       setYoutubeEvidence(result);
+      setYoutubeActionState({ subscribed: result.subscribed, liked: result.liked });
       if (result.subscribed && result.liked) toast.success("YouTube abonelik ve beğeni doğrulandı.");
       else toast.warning(`Eksik koşullar: ${!result.subscribed ? "kanal aboneliği" : ""}${!result.subscribed && !result.liked ? " ve " : ""}${!result.liked ? "video beğenisi" : ""}.`);
     },
@@ -652,7 +661,8 @@ export default function TaskDetail() {
                       verificationStatus === "manual_review" ||
                       verificationStatus === "pass" ||
                       isSessionExpired ||
-                      secretCodeInput.trim().length < 4
+                      secretCodeInput.trim().length < 4 ||
+                      (task.platform === "youtube" && (task.requiresYoutubeSubscription || task.requiresYoutubeLike) && !youtubeRequirementsMet)
                     }
                     onClick={() =>
                       verify.mutate({

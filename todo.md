@@ -303,3 +303,7 @@
 
 - [x] Kullanıcı YouTube görevinde videoyu **beğenme** ve kanala **abone olma** adımlarını dashboard içinde tamamlayabilir; Secret Code sonrasında resmi YouTube API mutation’larıyla beğeni/abonelik kanıtı doğrulanır, sonuç admin onay kuyruğunda gösterilir ve tüm koşullar sağlanmadan puan kesinleşmez. Bu görev daha önce tamamlanmış olan 189–193 kapsamının açık ve görünür kaydı olarak geri eklendi.
 - [x] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme; iframe engeli puan üretmeden güvenli biçimde durduruldu.
+
+- [ ] Production’da abonelik/beğeni butonları tamamlandı görünürken görev gönderme hatasının server proof/state senkronizasyonu nedenini düzelt.
+- [ ] Mutation sonrası YouTube koşullarını server üzerinden yeniden sorgula ve görev gönderme öncesi UI durumunu bu sonuçla eşitle.
+- [ ] Düzeltme için regression, build ve gerçek görev gönderme testlerini çalıştırıp GitHub main’e commit et.

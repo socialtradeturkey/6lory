@@ -73,15 +73,17 @@ describe("kritik görev prosedürleri", () => {
     let selectIndex = 0;
     const fetchMock = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } }))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "none" }] }), { status: 200, headers: { "content-type": "application/json" } }));
     getDbMock.mockResolvedValue({
       select: () => ({ from: () => ({ where: () => query([[session], [task], [connection]][selectIndex++]) }) }),
       update: () => ({ set: () => ({ where: async () => [{ affectedRows: 1 }] }) }),
     });
 
     try {
-      await expect(appRouter.createCaller(createContext()).youtube.subscribe({ sessionPublicId: session.publicId })).resolves.toEqual({ subscribed: true, alreadySubscribed: false });
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      await expect(appRouter.createCaller(createContext()).youtube.subscribe({ sessionPublicId: session.publicId })).resolves.toMatchObject({ subscribed: true, alreadySubscribed: false, liked: false, proofToken: expect.any(String) });
+      expect(fetchMock).toHaveBeenCalledTimes(4);
     } finally {
       fetchMock.mockRestore();
     }
