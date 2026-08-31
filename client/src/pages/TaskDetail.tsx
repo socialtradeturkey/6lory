@@ -419,8 +419,11 @@ export default function TaskDetail() {
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
   const isReadyForSecretCode = effectiveActiveSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
-  // YouTube işlemleri izleme kodundan bağımsızdır; görev oturumu başladıktan sonra aktif olur.
-  const youtubeActionReady = Boolean(sessionId);
+  // YouTube işlemleri ve doğrulama, belirlenen izleme süresi tamamlanmadan aktifleşmez.
+  // Sunucu da aynı eşiği kontrol eder; bu yalnızca erken tıklamayı önleyen UX katmanıdır.
+  const requiredWatchSeconds = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+  const youtubeActionReady = Boolean(sessionId) && effectiveActiveSeconds >= requiredWatchSeconds;
+  const verificationReady = Boolean(sessionId) && effectiveActiveSeconds >= requiredWatchSeconds;
   const youtubeSubscriptionDone = youtubeActionState.subscribed || Boolean(youtubeEvidence?.subscribed);
   const youtubeLikeDone = youtubeActionState.liked || Boolean(youtubeEvidence?.liked);
   const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || ((!task.requiresYoutubeSubscription || youtubeSubscriptionDone) && (!task.requiresYoutubeLike || youtubeLikeDone));
@@ -699,7 +702,7 @@ export default function TaskDetail() {
                     Bu görevde sonuç, yönetici incelemesiyle verilir. Talep göndermek puan kazandığınız anlamına gelmez.
                   </p>
                   <Button
-                    disabled={verify.isPending || isSessionExpired}
+                    disabled={verify.isPending || isSessionExpired || !verificationReady}
                     onClick={() =>
                       verify.mutate({
                         sessionPublicId: sessionId,
@@ -711,7 +714,7 @@ export default function TaskDetail() {
                     variant="outline"
                     className="mt-4 w-full rounded-xl"
                   >
-                    {isSessionExpired ? "Oturum süresi doldu" : "İnceleme talebi oluştur"}
+                    {isSessionExpired ? "Oturum süresi doldu" : !verificationReady ? `İzleme süresi tamamlanmadı (${requiredWatchSeconds} sn gerekli)` : "İnceleme talebi oluştur"}
                   </Button>
                 </>
               ) : (

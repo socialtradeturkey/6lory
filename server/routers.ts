@@ -179,6 +179,13 @@ async function getYoutubeTaskActionContext(db: Database, sessionPublicId: string
   if (!session || !access?.allowed) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz veya süresi dolmuş." });
   const [task] = await db.select().from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
   if (!task || task.platform !== "youtube" || (action === "subscription" ? !task.requiresYoutubeSubscription : !task.requiresYoutubeLike)) throw new TRPCError({ code: "BAD_REQUEST", message: "Bu YouTube görevi istenen eylemi kullanmıyor." });
+  const requiredWatchSeconds = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+  if (getServerElapsedSeconds(session.startedAt) < requiredWatchSeconds) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: `Bu işlem için önce videoyu en az ${requiredWatchSeconds} saniye izlemeniz gerekiyor.`,
+    });
+  }
   return { session, task };
 }
 
@@ -983,6 +990,13 @@ export const appRouter = router({
               code: "NOT_FOUND",
               message: "Görev bulunamadı.",
             });
+          const requiredWatchSeconds = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+          if (getServerElapsedSeconds(session.startedAt) < requiredWatchSeconds) {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: `Görevi göndermek için en az ${requiredWatchSeconds} saniyelik görev süresini tamamlamanız gerekiyor.`,
+            });
+          }
           const requiresYoutubeProof = task.platform === "youtube" && (task.requiresYoutubeSubscription || task.requiresYoutubeLike);
           let youtubeProof: ReturnType<typeof verifyYoutubeProof> = null;
           if (requiresYoutubeProof) {
