@@ -15,7 +15,6 @@ import {
   Clock3,
   KeyRound,
   ShieldAlert,
-  ShieldCheck,
   TimerReset,
   MousePointerClick,
   PlaySquare,
@@ -202,16 +201,6 @@ export default function TaskDetail() {
     secretAutoRequestedRef.current = true;
     issueSecretCode.mutate({ sessionPublicId: sessionId, signals });
   }, [activeSeconds, isPageVisible, isPlayerPlaying, issuedSecretCode, issueSecretCode, sessionId, signals, task]);
-
-  const youtubeVerify = trpc.youtube.verify.useMutation({
-    onSuccess: result => {
-      setYoutubeEvidence(result);
-      setYoutubeActionState({ subscribed: result.subscribed, liked: result.liked });
-      if (result.subscribed && result.liked) toast.success("YouTube abonelik ve beğeni doğrulandı.");
-      else toast.warning(`Eksik koşullar: ${!result.subscribed ? "kanal aboneliği" : ""}${!result.subscribed && !result.liked ? " ve " : ""}${!result.liked ? "video beğenisi" : ""}.`);
-    },
-    onError: error => toast.error(error.message),
-  });
 
   const verify = trpc.tasks.verify.useMutation({
     onSuccess: async result => {
@@ -540,22 +529,6 @@ export default function TaskDetail() {
                       </Button>
                     ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Beğeni gerekmiyor</span>}
                   </div>
-                  <Button
-                    variant="outline"
-                    disabled={youtubeVerify.isPending || youtubeSubscribe.isPending || youtubeLike.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
-                    onClick={() => {
-                      if (sessionId && youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ sessionPublicId: sessionId, videoId: youtubeVideoId, channelId: task.youtubeChannelId });
-                    }}
-                    className="mt-3 w-full rounded-xl text-xs"
-                  >
-                    <ShieldCheck className="mr-2 size-4" /> {youtubeVerify.isPending ? "YouTube kontrol ediliyor..." : "YouTube koşullarını kontrol et"}
-                  </Button>
-                  {youtubeEvidence && (
-                    <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2" aria-live="polite">
-                      {task.requiresYoutubeSubscription && <span className={`rounded-xl px-3 py-2 font-semibold ${youtubeEvidence.subscribed ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`}>{youtubeEvidence.subscribed ? "✓ Kanal aboneliği doğrulandı" : "! Kanal aboneliği eksik"}</span>}
-                      {task.requiresYoutubeLike && <span className={`rounded-xl px-3 py-2 font-semibold ${youtubeEvidence.liked ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`}>{youtubeEvidence.liked ? "✓ Video beğenisi doğrulandı" : "! Video beğenisi eksik"}</span>}
-                    </div>
-                  )}
                 </div>
               )}
               </>

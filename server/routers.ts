@@ -997,7 +997,9 @@ export const appRouter = router({
               message: `Görevi göndermek için en az ${requiredWatchSeconds} saniyelik görev süresini tamamlamanız gerekiyor.`,
             });
           }
-          const requiresYoutubeProof = task.platform === "youtube" && (task.requiresYoutubeSubscription || task.requiresYoutubeLike);
+          // YouTube abonelik/beğeni kontrolü görev gönderimini bloke etmez.
+          // Görev, izleme süresi ve doğrulama yöntemi üzerinden değerlendirilir.
+          const requiresYoutubeProof = false;
           let youtubeProof: ReturnType<typeof verifyYoutubeProof> = null;
           if (requiresYoutubeProof) {
             const expectedVideoId = extractYoutubeVideoId(task.targetUrl);
