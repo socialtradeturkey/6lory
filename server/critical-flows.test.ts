@@ -23,14 +23,15 @@ function query(result: unknown) {
   };
 }
 
-function createTransaction(selectResults: unknown[][], insertResults: unknown[] = []) {
+function createTransaction(selectResults: unknown[][], insertResults: unknown[] = [], insertErrorAt?: number) {
   let selectIndex = 0;
+  let insertIndex = 0;
   const updates: unknown[] = [];
   const inserts: unknown[] = [];
   const tx = {
     select: () => ({ from: () => ({ where: () => query(selectResults[selectIndex++] ?? []) }) }),
     update: () => ({ set: (values: unknown) => { updates.push(values); return { where: async () => [{ affectedRows: 1 }] }; } }),
-    insert: () => ({ values: (values: unknown) => { inserts.push(values); return insertResults.shift() ?? [{ insertId: 1 }]; } }),
+    insert: () => ({ values: (values: unknown) => { insertIndex += 1; if (insertIndex === insertErrorAt) throw new Error("verification_signals insert failed"); inserts.push(values); return insertResults.shift() ?? [{ insertId: 1 }]; } }),
   };
   return { tx, updates, inserts };
 }
@@ -203,6 +204,20 @@ describe("kritik görev prosedürleri", () => {
     expect(replay).toEqual({ verification, idempotent: true });
     expect(updates).toContainEqual({ pendingPoints: 100 });
     expect(inserts.filter(value => typeof value === "object" && value && "idempotencyKey" in value && (value as { idempotencyKey: string }).idempotencyKey === "task:70")).toHaveLength(0);
+  });
+
+  it("verification_signals insert hatası görev doğrulama ve admin onayını engellemez", async () => {
+    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("123456"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
+    const task = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60, rewardPoints: 100 };
+    const balance = { availablePoints: 50, lifetimeEarned: 0 };
+    const verification = { id: 70, status: "manual_review" };
+    const { tx, inserts } = createTransaction([[], [session], [task], [], [balance], [verification]], [[{ insertId: 70 }], [], []], 2);
+    getDbMock.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => unknown) => callback(tx) });
+
+    const result = await appRouter.createCaller(createContext()).tasks.verify({ sessionPublicId: "signal-error-session-0001", idempotencyKey: "signal-error-verify-0001", secretCode: "123456", signals: { sessionValid: true, activeSeconds: 60, visibilityScore: 100, interactionCount: 2 } });
+
+    expect(result.idempotent).toBe(false);
+    expect(inserts.some(value => typeof value === "object" && value && "verificationAttemptId" in value)).toBe(true);
   });
 
   it("tasks.verify geçersiz Secret Code ile puan veya ledger kaydı oluşturmaz", async () => {
