@@ -507,16 +507,6 @@ export default function TaskDetail() {
                     İşlemler görev oturumu açıldıktan sonra bağlı YouTube hesabınızla resmi API üzerinden başlatılır. Başarılı işlemler hemen işaretlenir; görev gönderiminde sunucu son kontrolü yapar.
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {task.requiresYoutubeSubscription ? (
-                      <Button
-                        type="button"
-                        disabled={!youtubeActionReady || !task.youtubeChannelId || youtubeSubscribe.isPending || youtubeActionState.subscribed}
-                        onClick={() => sessionId && youtubeSubscribe.mutate({ sessionPublicId: sessionId })}
-                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
-                      >
-                        <Youtube className="size-4" /> {youtubeActionState.subscribed ? "Abonelik tamamlandı" : youtubeSubscribe.isPending ? "Abonelik işleniyor..." : "Abone ol"}
-                      </Button>
-                    ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Abonelik gerekmiyor</span>}
                     {task.requiresYoutubeLike ? (
                       <Button
                         type="button"
@@ -528,6 +518,16 @@ export default function TaskDetail() {
                         <ThumbsUp className="size-4" /> {youtubeActionState.liked ? "Beğeni tamamlandı" : youtubeLike.isPending ? "Beğeni işleniyor..." : "Videoyu beğen"}
                       </Button>
                     ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Beğeni gerekmiyor</span>}
+                    {task.requiresYoutubeSubscription ? (
+                      <Button
+                        type="button"
+                        disabled={!youtubeActionReady || !task.youtubeChannelId || youtubeSubscribe.isPending || youtubeActionState.subscribed || (task.requiresYoutubeLike && !youtubeActionState.liked)}
+                        onClick={() => sessionId && youtubeSubscribe.mutate({ sessionPublicId: sessionId })}
+                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                      >
+                        <Youtube className="size-4" /> {youtubeActionState.subscribed ? "Abonelik tamamlandı" : youtubeSubscribe.isPending ? "Abonelik işleniyor..." : "Abone ol"}
+                      </Button>
+                    ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Abonelik gerekmiyor</span>}
                   </div>
                 </div>
               )}
