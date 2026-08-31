@@ -1072,16 +1072,22 @@ export const appRouter = router({
                 }
               : {}),
           };
-          await tx.insert(verificationSignals).values(
-            Object.entries(persistedSignals)
-              .filter(([, value]) => value !== undefined)
-              .map(([key, value]) => ({
-                verificationAttemptId,
-                key,
-                value,
-                score: typeof value === "number" ? Math.round(value) : null,
-              }))
-          );
+          try {
+            await tx.insert(verificationSignals).values(
+              Object.entries(persistedSignals)
+                .filter(([, value]) => value !== undefined)
+                .map(([key, value]) => ({
+                  verificationAttemptId,
+                  key,
+                  value,
+                  score: typeof value === "number" ? Math.round(value) : null,
+                }))
+            );
+          } catch (signalError) {
+            // Signal persistence is audit-only. A schema/serialization issue
+            // must never roll back a valid task verification or admin review.
+            console.error("verification_signals persistence failed", signalError);
+          }
           if (verificationStatus === "manual_review") {
             await tx.insert(manualReviews).values({ verificationAttemptId });
             let [balance] = await tx
