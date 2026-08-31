@@ -1158,6 +1158,14 @@ export const appRouter = router({
                     : session.secretCodeUsedAt,
               })
               .where(eq(taskSessions.id, session.id));
+            if (verificationStatus === "manual_review") {
+              // Submission consumes the user's one attempt immediately;
+              // admin approval controls the reward, not repeat eligibility.
+              await tx
+                .update(taskAssignments)
+                .set({ status: "completed", completedAt: new Date() })
+                .where(eq(taskAssignments.id, session.assignmentId));
+            }
           }
           const [verification] = await tx
             .select()
