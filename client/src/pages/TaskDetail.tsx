@@ -15,7 +15,6 @@ import {
   Clock3,
   KeyRound,
   ShieldAlert,
-  ShieldCheck,
   TimerReset,
   MousePointerClick,
   PlaySquare,
@@ -210,16 +209,6 @@ export default function TaskDetail() {
     secretAutoRequestedRef.current = true;
     issueSecretCode.mutate({ sessionPublicId: sessionId, signals });
   }, [activeSeconds, isPageVisible, isPlayerPlaying, issuedSecretCode, issueSecretCode, sessionId, signals, task]);
-
-  const youtubeVerify = trpc.youtube.verify.useMutation({
-    onSuccess: result => {
-      setYoutubeEvidence(result);
-      setYoutubeActionState({ subscribed: result.subscribed, liked: result.liked });
-      if (result.subscribed && result.liked) toast.success("YouTube abonelik ve beğeni doğrulandı.");
-      else toast.warning(`Eksik koşullar: ${!result.subscribed ? "kanal aboneliği" : ""}${!result.subscribed && !result.liked ? " ve " : ""}${!result.liked ? "video beğenisi" : ""}.`);
-    },
-    onError: error => toast.error(error.message),
-  });
 
   const verify = trpc.tasks.verify.useMutation({
     onSuccess: async result => {
@@ -427,8 +416,11 @@ export default function TaskDetail() {
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
   const isReadyForSecretCode = effectiveActiveSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
-  // YouTube işlemleri izleme kodundan bağımsızdır; görev oturumu başladıktan sonra aktif olur.
-  const youtubeActionReady = Boolean(sessionId);
+  // YouTube işlemleri ve doğrulama, belirlenen izleme süresi tamamlanmadan aktifleşmez.
+  // Sunucu da aynı eşiği kontrol eder; bu yalnızca erken tıklamayı önleyen UX katmanıdır.
+  const requiredWatchSeconds = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+  const youtubeActionReady = Boolean(sessionId) && effectiveActiveSeconds >= requiredWatchSeconds;
+  const verificationReady = Boolean(sessionId) && effectiveActiveSeconds >= requiredWatchSeconds;
   const youtubeSubscriptionDone = youtubeActionState.subscribed || Boolean(youtubeEvidence?.subscribed);
   const youtubeLikeDone = youtubeActionState.liked || Boolean(youtubeEvidence?.liked);
   const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || ((!task.requiresYoutubeSubscription || youtubeSubscriptionDone) && (!task.requiresYoutubeLike || youtubeLikeDone));
@@ -523,16 +515,6 @@ export default function TaskDetail() {
                     İşlemler görev oturumu açıldıktan sonra bağlı YouTube hesabınızla resmi API üzerinden başlatılır. Başarılı işlemler hemen işaretlenir; görev gönderiminde sunucu son kontrolü yapar.
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {task.requiresYoutubeSubscription ? (
-                      <Button
-                        type="button"
-                        disabled={!youtubeActionReady || !task.youtubeChannelId || youtubeSubscribe.isPending || youtubeActionState.subscribed}
-                        onClick={() => sessionId && youtubeSubscribe.mutate({ sessionPublicId: sessionId })}
-                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
-                      >
-                        <Youtube className="size-4" /> {youtubeActionState.subscribed ? "Abonelik tamamlandı" : youtubeSubscribe.isPending ? "Abonelik işleniyor..." : "Abone ol"}
-                      </Button>
-                    ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Abonelik gerekmiyor</span>}
                     {task.requiresYoutubeLike ? (
                       <Button
                         type="button"
@@ -544,23 +526,17 @@ export default function TaskDetail() {
                         <ThumbsUp className="size-4" /> {youtubeActionState.liked ? "Beğeni tamamlandı" : youtubeLike.isPending ? "Beğeni işleniyor..." : "Videoyu beğen"}
                       </Button>
                     ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Beğeni gerekmiyor</span>}
+                    {task.requiresYoutubeSubscription ? (
+                      <Button
+                        type="button"
+                        disabled={!youtubeActionReady || !task.youtubeChannelId || youtubeSubscribe.isPending || youtubeActionState.subscribed || (task.requiresYoutubeLike && !youtubeActionState.liked)}
+                        onClick={() => sessionId && youtubeSubscribe.mutate({ sessionPublicId: sessionId })}
+                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                      >
+                        <Youtube className="size-4" /> {youtubeActionState.subscribed ? "Abonelik tamamlandı" : youtubeSubscribe.isPending ? "Abonelik işleniyor..." : "Abone ol"}
+                      </Button>
+                    ) : <span className="rounded-xl bg-muted/70 px-3 py-2 text-center text-xs text-muted-foreground">Abonelik gerekmiyor</span>}
                   </div>
-                  <Button
-                    variant="outline"
-                    disabled={youtubeVerify.isPending || youtubeSubscribe.isPending || youtubeLike.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
-                    onClick={() => {
-                      if (sessionId && youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ sessionPublicId: sessionId, videoId: youtubeVideoId, channelId: task.youtubeChannelId });
-                    }}
-                    className="mt-3 w-full rounded-xl text-xs"
-                  >
-                    <ShieldCheck className="mr-2 size-4" /> {youtubeVerify.isPending ? "YouTube kontrol ediliyor..." : "YouTube koşullarını kontrol et"}
-                  </Button>
-                  {youtubeEvidence && (
-                    <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2" aria-live="polite">
-                      {task.requiresYoutubeSubscription && <span className={`rounded-xl px-3 py-2 font-semibold ${youtubeEvidence.subscribed ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`}>{youtubeEvidence.subscribed ? "✓ Kanal aboneliği doğrulandı" : "! Kanal aboneliği eksik"}</span>}
-                      {task.requiresYoutubeLike && <span className={`rounded-xl px-3 py-2 font-semibold ${youtubeEvidence.liked ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`}>{youtubeEvidence.liked ? "✓ Video beğenisi doğrulandı" : "! Video beğenisi eksik"}</span>}
-                    </div>
-                  )}
                 </div>
               )}
               </>
@@ -708,7 +684,7 @@ export default function TaskDetail() {
                     Bu görevde sonuç, yönetici incelemesiyle verilir. Talep göndermek puan kazandığınız anlamına gelmez.
                   </p>
                   <Button
-                    disabled={verify.isPending || isSessionExpired}
+                    disabled={verify.isPending || isSessionExpired || !verificationReady}
                     onClick={() =>
                       verify.mutate({
                         sessionPublicId: sessionId,
@@ -720,7 +696,7 @@ export default function TaskDetail() {
                     variant="outline"
                     className="mt-4 w-full rounded-xl"
                   >
-                    {isSessionExpired ? "Oturum süresi doldu" : "İnceleme talebi oluştur"}
+                    {isSessionExpired ? "Oturum süresi doldu" : !verificationReady ? `İzleme süresi tamamlanmadı (${requiredWatchSeconds} sn gerekli)` : "İnceleme talebi oluştur"}
                   </Button>
                 </>
               ) : (

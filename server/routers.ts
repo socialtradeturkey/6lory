@@ -36,8 +36,6 @@ import {
   extractYoutubeVideoId,
   refreshYoutubeAccessToken,
   revokeYoutubeToken,
-  verifyYoutubeProof,
-  youtubeRequirementsSatisfied,
   youtubeVerification,
   youtubeSubscribe,
   youtubeLike,
@@ -179,6 +177,13 @@ async function getYoutubeTaskActionContext(db: Database, sessionPublicId: string
   if (!session || !access?.allowed) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz veya süresi dolmuş." });
   const [task] = await db.select().from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
   if (!task || task.platform !== "youtube" || (action === "subscription" ? !task.requiresYoutubeSubscription : !task.requiresYoutubeLike)) throw new TRPCError({ code: "BAD_REQUEST", message: "Bu YouTube görevi istenen eylemi kullanmıyor." });
+  const requiredWatchSeconds = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+  if (getServerElapsedSeconds(session.startedAt) < requiredWatchSeconds) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: `Bu işlem için önce videoyu en az ${requiredWatchSeconds} saniye izlemeniz gerekiyor.`,
+    });
+  }
   return { session, task };
 }
 
@@ -1012,31 +1017,12 @@ export const appRouter = router({
               code: "NOT_FOUND",
               message: "Görev bulunamadı.",
             });
-          const requiresYoutubeProof = task.platform === "youtube" && (task.requiresYoutubeSubscription || task.requiresYoutubeLike);
-          let youtubeProof: ReturnType<typeof verifyYoutubeProof> = null;
-          if (requiresYoutubeProof) {
-            const expectedVideoId = extractYoutubeVideoId(task.targetUrl);
-            if (!expectedVideoId || !task.youtubeChannelId)
-              throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu YouTube görevinin kanal veya video doğrulaması yapılandırılmamış." });
-            try {
-              const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
-              const current = await youtubeVerification(accessToken, expectedVideoId, task.youtubeChannelId);
-              const actionProgress = (session.progress ?? {}) as Record<string, unknown>;
-              youtubeProof = {
-                userId: ctx.user.id,
-                videoId: expectedVideoId,
-                channelId: task.youtubeChannelId,
-                subscribed: current.subscribed,
-                liked: current.liked,
-                checkedAt: Date.now(),
-              };
-            } catch (error) {
-              throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "YouTube koşulları doğrulanamadı." });
-            }
-            const missingSubscription = task.requiresYoutubeSubscription && !youtubeProof?.subscribed;
-            const missingLike = task.requiresYoutubeLike && !youtubeProof?.liked;
-            if (!youtubeRequirementsSatisfied({ requiresSubscription: task.requiresYoutubeSubscription, requiresLike: task.requiresYoutubeLike }, youtubeProof))
-              throw new TRPCError({ code: "PRECONDITION_FAILED", message: `YouTube koşulları tamamlanmadan görev gönderilemez.${missingSubscription ? " Kanal aboneliği eksik." : ""}${missingLike ? " Video beğenisi eksik." : ""}` });
+          const requiredWatchSeconds = task.requiredWatchSeconds ?? task.estimatedDurationSeconds;
+          if (getServerElapsedSeconds(session.startedAt) < requiredWatchSeconds) {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: `Görevi göndermek için en az ${requiredWatchSeconds} saniyelik görev süresini tamamlamanız gerekiyor.`,
+            });
           }
           const secretCodeValid = Boolean(
             input.secretCode &&
@@ -1059,9 +1045,7 @@ export const appRouter = router({
           // Puan, yönetici kararı verilene kadar hiçbir koşulda ledger'a yazılmaz.
           const verificationStatus = secretCodeValid ? "manual_review" : decision.status;
           const verificationReason = secretCodeValid
-            ? requiresYoutubeProof
-              ? "Secret Code ve YouTube koşulları doğru; yönetici onayı bekleniyor."
-              : "Secret Code doğru; yönetici onayı bekleniyor."
+            ? "Secret Code doğru; yönetici onayı bekleniyor."
             : decision.reason;
           const inserted = await tx.insert(verificationAttempts).values({
             idempotencyKey: input.idempotencyKey,
@@ -1075,24 +1059,23 @@ export const appRouter = router({
             completedAt: new Date(),
           });
           const verificationAttemptId = Number(inserted[0].insertId);
-          const persistedSignals = {
-            ...decision.signals,
-            ...(youtubeProof
-              ? {
-                  youtubeSubscribed: youtubeProof.subscribed,
-                  youtubeLiked: youtubeProof.liked,
-                  youtubeCheckedAt: youtubeProof.checkedAt,
-                }
-              : {}),
-          };
-          await tx.insert(verificationSignals).values(
-            Object.entries(persistedSignals).map(([key, value]) => ({
-              verificationAttemptId,
-              key,
-              value,
-              score: typeof value === "number" ? Math.round(value) : null,
-            }))
-          );
+          const persistedSignals = { ...decision.signals };
+          try {
+            await tx.insert(verificationSignals).values(
+              Object.entries(persistedSignals)
+                .filter(([, value]) => value !== undefined)
+                .map(([key, value]) => ({
+                  verificationAttemptId,
+                  key,
+                  value,
+                  score: typeof value === "number" ? Math.round(value) : null,
+                }))
+            );
+          } catch (signalError) {
+            // Signal persistence is audit-only. A schema/serialization issue
+            // must never roll back a valid task verification or admin review.
+            console.error("verification_signals persistence failed", signalError);
+          }
           if (verificationStatus === "manual_review") {
             await tx.insert(manualReviews).values({ verificationAttemptId });
             let [balance] = await tx
@@ -1163,6 +1146,14 @@ export const appRouter = router({
                     : session.secretCodeUsedAt,
               })
               .where(eq(taskSessions.id, session.id));
+            if (verificationStatus === "manual_review") {
+              // Submission consumes the user's one attempt immediately;
+              // admin approval controls the reward, not repeat eligibility.
+              await tx
+                .update(taskAssignments)
+                .set({ status: "completed", completedAt: new Date() })
+                .where(eq(taskAssignments.id, session.assignmentId));
+            }
           }
           const [verification] = await tx
             .select()
