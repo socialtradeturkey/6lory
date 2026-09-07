@@ -259,6 +259,7 @@ export const taskSessions = mysqlTable(
     lastHeartbeatAt: utcTimestamp(),
     progress: json("progress").$type<Record<string, unknown>>(),
     secretCodeHash: varchar("secret_code_hash", { length: 255 }),
+    secretCodeCiphertext: text("secret_code_ciphertext"),
     secretCodeExpiresAt: utcTimestamp(),
     secretCodeUsedAt: utcTimestamp(),
     createdAt: utcTimestamp().defaultNow().notNull(),

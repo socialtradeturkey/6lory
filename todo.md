@@ -304,6 +304,28 @@
 - [x] Kullanıcı YouTube görevinde videoyu **beğenme** ve kanala **abone olma** adımlarını dashboard içinde tamamlayabilir; Secret Code sonrasında resmi YouTube API mutation’larıyla beğeni/abonelik kanıtı doğrulanır, sonuç admin onay kuyruğunda gösterilir ve tüm koşullar sağlanmadan puan kesinleşmez. Bu görev daha önce tamamlanmış olan 189–193 kapsamının açık ve görünür kaydı olarak geri eklendi.
 - [x] Bu özelliğin gerçek production hesabı ve temiz oturumla uçtan uca QA’sını yeniden çalıştır; iframe/player engeli veya OAuth doğrulama durumu nedeniyle sahte başarı üretme; iframe engeli puan üretmeden güvenli biçimde durduruldu.
 
-- [ ] Production’da abonelik/beğeni butonları tamamlandı görünürken görev gönderme hatasının server proof/state senkronizasyonu nedenini düzelt.
-- [ ] Mutation sonrası YouTube koşullarını server üzerinden yeniden sorgula ve görev gönderme öncesi UI durumunu bu sonuçla eşitle.
-- [ ] Düzeltme için regression, build ve gerçek görev gönderme testlerini çalıştırıp GitHub main’e commit et.
+- [x] Production’da abonelik/beğeni butonları tamamlandı görünürken görev gönderme hatasının server proof/state senkronizasyonu nedenini düzelt.
+- [x] Mutation sonrası YouTube koşullarını server üzerinden yeniden sorgula ve görev gönderme öncesi UI durumunu bu sonuçla eşitle.
+- [x] Düzeltme için regression, build ve gerçek görev gönderme testlerini çalıştırıp GitHub main’e commit et.
+## 2026-08-30 — YouTube doğrulama son kontrolü
+- [x] YouTube API’nin güncel abonelik/beğeni okuma sonucunu local session progress bayraklarından üstün tut; eksik API sonucunu sahte başarıya çevirmeyi engelle.
+- [x] `youtube.verify` çağrısında video ve kanal hedeflerini görev oturumunun gerçek hedefleriyle eşleştir.
+- [x] API’nin eksik sonucunda local progress fallback’inin çalışmadığını doğrulayan regresyon testi ekle.
+- [x] YouTube Data API resmi `subscriptions.list`, `subscriptions.insert`, `videos.getRating` ve `videos.rate` belgelerini kontrol et; `videos.rate` işleminin herkese açık like sayacını değiştirmediğini dokümante et.
+- [x] Tip kontrolü, YouTube/kritik testler ve production build doğrulamasını tamamla; tam test paketindeki DATABASE_URL bağımlı admin guard testlerini raporla.
+
+## 2026-08-30 — Yeni kullanıcı görev görünürlüğü
+- [x] Yeni kayıt olan kullanıcıların assignment kaydı olmasa bile aktif ve başlangıç zamanı gelmiş görevleri görebilmesini sağla.
+- [x] Bitiş zamanı geçmemiş görevleri görünür tut; arşivlenmiş, pasif, başlamamış veya süresi dolmuş görevleri listeleme dışında bırak.
+- [x] Görev detayına erişimi eski assignment filtresine bağlamadan status ve zaman penceresiyle sınırla.
+- [x] Yeni kullanıcı görünürlüğünü doğrulayan regresyon testi ekle.
+
+## 2026-08-30 — Gerçek görev yapma kanıtını güçlendirme
+- [x] Secret Code üretimi ve görev doğrulamasında istemcinin gönderdiği `activeSeconds` değerini kullanma; session’ın sunucu başlangıç zamanından geçen süreyi esas al.
+- [x] İstemcinin sahte yüksek süre ve etkileşim sayısıyla erken Secret Code almasını engelle.
+- [x] Sunucu süre doğrulaması için anti-spoofing regresyon testi ekle.
+- [x] Tarayıcı görünürlük/oynatma sinyallerinin tek başına kesin kanıt olmadığını koru; kesin başarıyı Secret Code, resmi platform API’si veya manuel inceleme ile sınırla.
+
+- [ ] Merge sonrası youtube.subscribe regression testindeki fetch mock sırasını yeni server proof doğrulamasına göre düzelt.
+- [ ] Merge çözümünden sonra 82+ test, TypeScript, build ve diff kontrolünü yeniden çalıştır.
+- [ ] Başarılı kalite kontrolünden sonra birleşik commit’i GitHub main’e pushla ve Vercel deployment durumunu doğrula.

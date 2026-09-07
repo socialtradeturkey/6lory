@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { promisify } from "node:util";
 import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
@@ -47,6 +47,7 @@ import {
   assertRedemptionEligibility,
   createSecretCode,
   evaluateWebSignals,
+  getServerElapsedSeconds,
   getTaskSessionAccess,
   getTaskStartEligibility,
   hashSecretCode,
@@ -149,6 +150,11 @@ async function databaseOrThrow() {
   return db;
 }
 
+function publicTaskSession<T extends { secretCodeCiphertext?: unknown }>(session: T) {
+  const { secretCodeCiphertext: _secretCodeCiphertext, ...publicSession } = session;
+  return publicSession;
+}
+
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
 async function getYoutubeAccessToken(db: Database, userId: number) {
@@ -179,12 +185,20 @@ async function getYoutubeTaskActionContext(db: Database, sessionPublicId: string
 async function buildYoutubeActionProof(
   accessToken: string,
   userId: number,
-  task: { targetUrl: string | null; youtubeChannelId: string | null },
+  task: {
+    targetUrl: string | null;
+    youtubeChannelId: string | null;
+    requiresYoutubeSubscription: boolean;
+    requiresYoutubeLike: boolean;
+  },
   override: { subscribed?: boolean; liked?: boolean },
 ) {
   const videoId = extractYoutubeVideoId(task.targetUrl);
   if (!videoId || !task.youtubeChannelId) return null;
-  const current = await youtubeVerification(accessToken, videoId, task.youtubeChannelId);
+  const current = await youtubeVerification(accessToken, videoId, task.youtubeChannelId, {
+    requiresSubscription: task.requiresYoutubeSubscription,
+    requiresLike: task.requiresYoutubeLike,
+  });
   const result = { subscribed: override.subscribed ?? current.subscribed, liked: override.liked ?? current.liked };
   return {
     ...result,
@@ -584,11 +598,12 @@ export const appRouter = router({
     }),
     subscribe: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12) })).mutation(async ({ ctx, input }) => {
       const db = await databaseOrThrow();
-      const { task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "subscription");
+      const { session, task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "subscription");
       if (!task.youtubeChannelId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube kanal hedefi yapılandırılmamış." });
       const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
       try {
         const actionResult = await youtubeSubscribe(accessToken, task.youtubeChannelId);
+        await db.update(taskSessions).set({ progress: { ...(session.progress ?? {}), youtubeSubscribed: true } }).where(eq(taskSessions.id, session.id));
         const proof = await buildYoutubeActionProof(accessToken, ctx.user.id, task, { subscribed: true });
         return { ...actionResult, ...(proof ?? {}) };
       } catch (error) {
@@ -597,12 +612,13 @@ export const appRouter = router({
     }),
     like: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12) })).mutation(async ({ ctx, input }) => {
       const db = await databaseOrThrow();
-      const { task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "like");
+      const { session, task } = await getYoutubeTaskActionContext(db, input.sessionPublicId, ctx.user.id, "like");
       const videoId = extractYoutubeVideoId(task.targetUrl);
       if (!videoId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu görevin YouTube video hedefi yapılandırılmamış." });
       const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
       try {
         const actionResult = await youtubeLike(accessToken, videoId);
+        await db.update(taskSessions).set({ progress: { ...(session.progress ?? {}), youtubeLiked: true } }).where(eq(taskSessions.id, session.id));
         const proof = await buildYoutubeActionProof(accessToken, ctx.user.id, task, { liked: true });
         return { ...actionResult, ...(proof ?? {}) };
       } catch (error) {
@@ -622,7 +638,7 @@ export const appRouter = router({
       await db.delete(youtubeConnections).where(eq(youtubeConnections.id, connection.id));
       return { success: true, disconnected: true };
     }),
-    verify: protectedProcedure.input(z.object({ videoId: z.string().regex(/^[a-zA-Z0-9_-]{6,}$/), channelId: z.string().regex(/^UC[a-zA-Z0-9_-]{10,}$/) })).mutation(async ({ ctx, input }) => {
+    verify: protectedProcedure.input(z.object({ sessionPublicId: z.string().min(12), videoId: z.string().regex(/^[a-zA-Z0-9_-]{6,}$/), channelId: z.string().regex(/^UC[a-zA-Z0-9_-]{10,}$/) })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Veritabanı kullanılamıyor." });
       const [connection] = await db.select().from(youtubeConnections).where(eq(youtubeConnections.userId, ctx.user.id)).limit(1);
@@ -637,11 +653,22 @@ export const appRouter = router({
           throw new TRPCError({ code: "PRECONDITION_FAILED", message: "YouTube yetkisi süresi dolmuş. Profil sayfasından hesabınızı yeniden bağlayın." });
         }
       }
-      const result = await youtubeVerification(accessToken, input.videoId, input.channelId);
+      const [session] = await db.select({ userId: taskSessions.userId, taskId: taskSessions.taskId }).from(taskSessions).where(eq(taskSessions.publicId, input.sessionPublicId)).limit(1);
+      if (!session || session.userId !== ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Görev oturumu geçersiz." });
+      const [task] = await db.select({ platform: tasks.platform, targetUrl: tasks.targetUrl, youtubeChannelId: tasks.youtubeChannelId, requiresYoutubeSubscription: tasks.requiresYoutubeSubscription, requiresYoutubeLike: tasks.requiresYoutubeLike }).from(tasks).where(eq(tasks.id, session.taskId)).limit(1);
+      const expectedVideoId = task ? extractYoutubeVideoId(task.targetUrl) : null;
+      if (!task || task.platform !== "youtube" || expectedVideoId !== input.videoId || task.youtubeChannelId !== input.channelId || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "YouTube doğrulama hedefi görev oturumuyla eşleşmiyor." });
+      }
+      const result = await youtubeVerification(accessToken, input.videoId, input.channelId, {
+        requiresSubscription: task.requiresYoutubeSubscription,
+        requiresLike: task.requiresYoutubeLike,
+      });
+      const effectiveResult = result;
       await db.update(youtubeConnections).set({ lastCheckedAt: new Date() }).where(eq(youtubeConnections.id, connection.id));
       return {
-        ...result,
-        proofToken: createYoutubeProof({ userId: ctx.user.id, videoId: input.videoId, channelId: input.channelId, ...result, checkedAt: Date.now() }),
+        ...effectiveResult,
+        proofToken: createYoutubeProof({ userId: ctx.user.id, videoId: input.videoId, channelId: input.channelId, ...effectiveResult, checkedAt: Date.now() }),
       };
     }),
   }),
@@ -701,20 +728,15 @@ export const appRouter = router({
           and(
             eq(tasks.status, "active"),
             or(isNull(tasks.startsAt), lte(tasks.startsAt, now)),
-            or(isNull(tasks.endsAt), gte(tasks.endsAt, now))
+            or(isNull(tasks.endsAt), gt(tasks.endsAt, now))
           )
         )
         .orderBy(desc(tasks.priority), desc(tasks.createdAt));
-      const assignedRows = await db
-        .select({ taskId: taskAssignments.taskId, status: taskAssignments.status })
-        .from(taskAssignments)
-        .where(eq(taskAssignments.userId, ctx.user.id));
-      const assignedTaskIds = new Set(
-        assignedRows
-          .filter(row => row.status === "assigned" || row.status === "started")
-          .map(row => row.taskId),
-      );
-      return visibleTasks.filter(task => task.audienceMode === "open" || assignedTaskIds.has(task.id));
+      // Görev görünürlüğü kullanıcı hesabının oluşturulma zamanına veya
+      // önceki assignment kayıtlarına bağlanmaz. Admin tarafından silinmemiş
+      // (archived olmayan), aktif ve zaman penceresi içindeki görevler yeni
+      // kullanıcılar dahil tüm aktif kullanıcılar için keşfedilebilir olmalıdır.
+      return visibleTasks;
     }),
     detail: protectedProcedure
       .input(z.object({ taskId: z.number().int().positive() }))
@@ -729,7 +751,7 @@ export const appRouter = router({
               eq(tasks.id, input.taskId),
               eq(tasks.status, "active"),
               or(isNull(tasks.startsAt), lte(tasks.startsAt, now)),
-              or(isNull(tasks.endsAt), gte(tasks.endsAt, now)),
+              or(isNull(tasks.endsAt), gt(tasks.endsAt, now)),
             ),
           )
           .limit(1);
@@ -738,21 +760,9 @@ export const appRouter = router({
             code: "NOT_FOUND",
             message: "Görev bulunamadı veya artık kullanılamıyor.",
           });
-        if (task.audienceMode === "assigned") {
-          const [assignment] = await db
-            .select({ id: taskAssignments.id })
-            .from(taskAssignments)
-            .where(
-              and(
-                eq(taskAssignments.taskId, task.id),
-                eq(taskAssignments.userId, ctx.user.id),
-                or(eq(taskAssignments.status, "assigned"), eq(taskAssignments.status, "started")),
-              ),
-            )
-            .limit(1);
-          if (!assignment)
-            throw new TRPCError({ code: "NOT_FOUND", message: "Bu görev size atanmamış veya artık kullanılamıyor." });
-        }
+        // `audienceMode` assignment/notification operasyonlarında kullanılabilir;
+        // görev detayına erişim ise yeni kullanıcıların da aktif görevleri
+        // başlatabilmesi için yalnızca status ve zaman penceresiyle sınırlıdır.
         return task;
       }),
     start: protectedProcedure
@@ -770,7 +780,7 @@ export const appRouter = router({
               )
             )
             .limit(1);
-          if (reused) return { session: reused, reused: true };
+          if (reused) return { session: publicTaskSession(reused), reused: true };
 
           const [task] = await tx
             .select()
@@ -796,7 +806,7 @@ export const appRouter = router({
             )
             .limit(1);
           if (activeSession && task.status === "active" && (!task.startsAt || task.startsAt <= new Date()) && (!task.endsAt || task.endsAt > new Date())) {
-            return { session: activeSession, reused: true };
+            return { session: publicTaskSession(activeSession), reused: true };
           }
           let [assignment] = await tx
             .select()
@@ -871,7 +881,7 @@ export const appRouter = router({
             .from(taskSessions)
             .where(eq(taskSessions.publicId, publicId))
             .limit(1);
-          return { session: stored, reused: false };
+          return { session: stored ? publicTaskSession(stored) : stored, reused: false };
         });
       }),
     issueSecretCode: protectedProcedure
@@ -913,6 +923,8 @@ export const appRouter = router({
           });
         const decision = evaluateWebSignals({
           ...input.signals,
+          sessionValid: true,
+          activeSeconds: getServerElapsedSeconds(session.startedAt),
           requiredSeconds: task.requiredWatchSeconds ?? task.estimatedDurationSeconds,
         });
         if (decision.status !== "pass")
@@ -920,6 +932,20 @@ export const appRouter = router({
             code: "BAD_REQUEST",
             message: decision.reason,
           });
+        if (session.secretCodeUsedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev oturumunun Secret Code’u daha önce kullanıldı." });
+        }
+
+        if (session.secretCodeHash) {
+          if (!session.secretCodeCiphertext || !session.secretCodeExpiresAt) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Bu oturumun Secret Code’u zaten oluşturuldu; yeni kod üretilemez. Lütfen yeni görev oturumu başlatın." });
+          }
+          if (session.secretCodeExpiresAt < new Date()) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Bu görev oturumunun Secret Code süresi doldu." });
+          }
+          return { code: decryptYoutubeToken(session.secretCodeCiphertext), expiresAt: session.secretCodeExpiresAt };
+        }
+
         const code = createSecretCode();
         const expiresAt = new Date(
           Math.min(
@@ -931,6 +957,7 @@ export const appRouter = router({
           .update(taskSessions)
           .set({
             secretCodeHash: hashSecretCode(code),
+            secretCodeCiphertext: encryptYoutubeToken(code),
             secretCodeExpiresAt: expiresAt,
           })
           .where(eq(taskSessions.id, session.id));
@@ -991,7 +1018,21 @@ export const appRouter = router({
             const expectedVideoId = extractYoutubeVideoId(task.targetUrl);
             if (!expectedVideoId || !task.youtubeChannelId)
               throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Bu YouTube görevinin kanal veya video doğrulaması yapılandırılmamış." });
-            youtubeProof = input.youtubeProof ? verifyYoutubeProof(input.youtubeProof, { userId: ctx.user.id, videoId: expectedVideoId, channelId: task.youtubeChannelId }) : null;
+            try {
+              const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+              const current = await youtubeVerification(accessToken, expectedVideoId, task.youtubeChannelId);
+              const actionProgress = (session.progress ?? {}) as Record<string, unknown>;
+              youtubeProof = {
+                userId: ctx.user.id,
+                videoId: expectedVideoId,
+                channelId: task.youtubeChannelId,
+                subscribed: current.subscribed,
+                liked: current.liked,
+                checkedAt: Date.now(),
+              };
+            } catch (error) {
+              throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "YouTube koşulları doğrulanamadı." });
+            }
             const missingSubscription = task.requiresYoutubeSubscription && !youtubeProof?.subscribed;
             const missingLike = task.requiresYoutubeLike && !youtubeProof?.liked;
             if (!youtubeRequirementsSatisfied({ requiresSubscription: task.requiresYoutubeSubscription, requiresLike: task.requiresYoutubeLike }, youtubeProof))
@@ -1008,6 +1049,8 @@ export const appRouter = router({
             method: task.verificationMethod,
             webSignals: {
               ...input.signals,
+              sessionValid: true,
+              activeSeconds: getServerElapsedSeconds(session.startedAt),
               requiredSeconds: task.requiredWatchSeconds ?? task.estimatedDurationSeconds,
             },
             secretCodeValid,
@@ -2088,25 +2131,11 @@ export const appRouter = router({
             .values({ ...input, youtubeChannelId, status, createdBy: ctx.user.id });
           const taskId = Number(created[0].insertId);
           const [createdTask] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
-          const activeUsers = await tx
-            .select({ id: users.id })
-            .from(users)
-            .where(and(eq(users.accountStatus, "active"), eq(users.role, "user")));
-          if (activeUsers.length) {
-            await tx.insert(taskAssignments).values(
-              activeUsers.map(user => ({ taskId, userId: user.id, expiresAt: input.endsAt })),
-            );
-            await tx.insert(notifications).values(
-              activeUsers.map(user => ({
-                userId: user.id,
-                type: "task_assigned",
-                title: "Yeni görev yayınlandı",
-                body: `Size yeni bir görev atandı: ${input.title}`,
-                destination: `/tasks/${taskId}`,
-              })),
-            );
-            await tx.update(tasks).set({ audienceMode: "assigned", assignmentTargetCount: activeUsers.length }).where(eq(tasks.id, taskId));
-          }
+          // Yeni görevler varsayılan olarak `open` kalır. Böylece görev
+          // oluşturulduktan sonra kayıt olan kullanıcılar da görev penceresi
+          // açık olduğu sürece görevi görebilir ve başlatabilir. Hedefli
+          // assignment gerekiyorsa admin bunu ayrıca başlatabilir.
+          const assignedCount = 0;
           await tx.insert(auditLogs).values({
             actorUserId: ctx.user.id,
             action: "task.created",
@@ -2115,10 +2144,10 @@ export const appRouter = router({
             afterState: {
               title: input.title,
               verificationMethod: input.verificationMethod,
-              autoAssignedUserCount: activeUsers.length,
+              autoAssignedUserCount: assignedCount,
             },
           });
-          return { id: createdTask?.id ?? taskId, status, assignedCount: activeUsers.length };
+          return { id: createdTask?.id ?? taskId, status, assignedCount };
         });
       }),
     createReward: adminProcedure

@@ -74,13 +74,16 @@ export default function TaskDetail() {
   const [youtubeActionState, setYoutubeActionState] = useState({ subscribed: false, liked: false });
   const [interactionCount, setInteractionCount] = useState(0);
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [playerUnavailable, setPlayerUnavailable] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => document.visibilityState === "visible");
   const [seekPenaltySeconds, setSeekPenaltySeconds] = useState(0);
   const playerRef = useRef<any>(null);
+  const playerReadyRef = useRef(false);
   const lastPlayerTimeRef = useRef<number | null>(null);
   const secretAutoRequestedRef = useRef(false);
   const lastYoutubeCheckKeyRef = useRef<string | null>(null);
+  const secretCodeIssuedRef = useRef(false);
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
@@ -92,9 +95,11 @@ export default function TaskDetail() {
       setSecretCodeExpiresAt(null);
       setSecretCodeInput("");
       setSeekPenaltySeconds(0);
+      setIsPlayerReady(false);
       setPlayerUnavailable(false);
       lastPlayerTimeRef.current = null;
       secretAutoRequestedRef.current = false;
+      secretCodeIssuedRef.current = false;
       setVerificationStatus(null);
       setYoutubeEvidence(null);
       setYoutubeActionState({ subscribed: false, liked: false });
@@ -178,6 +183,7 @@ export default function TaskDetail() {
 
   const issueSecretCode = trpc.tasks.issueSecretCode.useMutation({
     onSuccess: result => {
+      secretCodeIssuedRef.current = true;
       setIssuedSecretCode(result.code);
       setSecretCodeExpiresAt(result.expiresAt ? new Date(result.expiresAt).getTime() : null);
       toast.success("Tek kullanımlık doğrulama kodu video üzerinde gösterildi.");
@@ -198,7 +204,8 @@ export default function TaskDetail() {
       !isPageVisible ||
       signals.activeSeconds < secretTriggerSeconds ||
       secretAutoRequestedRef.current ||
-      issuedSecretCode
+      issuedSecretCode ||
+      secretCodeIssuedRef.current
     ) return;
     secretAutoRequestedRef.current = true;
     issueSecretCode.mutate({ sessionPublicId: sessionId, signals });
@@ -304,11 +311,18 @@ export default function TaskDetail() {
         events: {
           onReady: (event: any) => {
             playerReady = true;
+            playerReadyRef.current = true;
+            setIsPlayerReady(true);
             setPlayerUnavailable(false);
             event.target.mute();
-            event.target.playVideo();
+            const playResult = event.target.playVideo();
+            if (playResult?.catch) playResult.catch(() => setIsPlayerPlaying(false));
           },
-          onError: () => setPlayerUnavailable(true),
+          onError: () => {
+            // YouTube bazı tarayıcılarda autoplay/oturum uyarısını error callback’iyle bildirir.
+            // Player hazırsa bunu yükleme hatası sayma; kullanıcı oynatmayı elle başlatabilir.
+            if (!playerReady) setPlayerUnavailable(true);
+          },
           onStateChange: onPlayerStateChange,
         },
       });
@@ -328,6 +342,8 @@ export default function TaskDetail() {
     return () => {
       window.clearTimeout(playerTimeout);
       setIsPlayerPlaying(false);
+      playerReadyRef.current = false;
+      setIsPlayerReady(false);
       secretAutoRequestedRef.current = false;
       if (player?.destroy) player.destroy();
     }
@@ -355,7 +371,7 @@ export default function TaskDetail() {
     const timeout = window.setTimeout(() => {
       setIssuedSecretCode(null);
       setSecretCodeExpiresAt(null);
-      secretAutoRequestedRef.current = false;
+      // Kod yalnızca ekrandan gizlenir; aynı oturumda kesinlikle yeniden üretilmez.
     }, Math.max(0, secretCodeExpiresAt - Date.now()));
     return () => window.clearTimeout(timeout);
   }, [secretCodeExpiresAt]);
@@ -411,8 +427,11 @@ export default function TaskDetail() {
           .padStart(2, "0")}`;
   const isSessionExpired = remainingSeconds === 0;
   const isReadyForSecretCode = effectiveActiveSeconds >= (task.requiredWatchSeconds ?? task.estimatedDurationSeconds);
-  const youtubeActionReady = !supportsSecretCode || Boolean(issuedSecretCode);
-  const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || Boolean(youtubeEvidence && (!task.requiresYoutubeSubscription || youtubeEvidence.subscribed) && (!task.requiresYoutubeLike || youtubeEvidence.liked));
+  // YouTube işlemleri izleme kodundan bağımsızdır; görev oturumu başladıktan sonra aktif olur.
+  const youtubeActionReady = Boolean(sessionId);
+  const youtubeSubscriptionDone = youtubeActionState.subscribed || Boolean(youtubeEvidence?.subscribed);
+  const youtubeLikeDone = youtubeActionState.liked || Boolean(youtubeEvidence?.liked);
+  const youtubeRequirementsMet = task.platform !== "youtube" || (!task.requiresYoutubeSubscription && !task.requiresYoutubeLike) || ((!task.requiresYoutubeSubscription || youtubeSubscriptionDone) && (!task.requiresYoutubeLike || youtubeLikeDone));
 
   return (
     <AppShell title="Görev ayrıntısı" eyebrow="Doğrulanmış akış">
@@ -470,6 +489,9 @@ export default function TaskDetail() {
                 {task.platform === "youtube" && sessionId ? (
                   <div className="relative aspect-video w-full">
                     <div id="youtube-player" className="h-full w-full" />
+                    {!isPlayerPlaying && !playerUnavailable && isPlayerReady && (
+                      <button type="button" onClick={() => playerRef.current?.playVideo?.()} className="absolute inset-x-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white/95 px-4 py-2 text-xs font-bold text-slate-900 shadow-lg">Videoyu oynat</button>
+                    )}
                     {issuedSecretCode && !playerUnavailable && (
                       <div className="pointer-events-none absolute inset-0 grid place-items-center bg-slate-950/30 p-4">
                         <div className="rounded-2xl border border-white/35 bg-slate-950/90 px-5 py-3 text-center text-white shadow-2xl backdrop-blur-sm">
@@ -498,9 +520,7 @@ export default function TaskDetail() {
                 <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
                   <p className="text-sm font-semibold">YouTube görev adımları</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    {supportsSecretCode && !issuedSecretCode
-                      ? "Önce videoyu gerçek oynatma ile izleyin ve Secret Code’u girin. Ardından zorunlu YouTube işlemlerini bu panelden başlatın."
-                      : "İşlemler bağlı YouTube hesabınızla resmi API üzerinden başlatılır; görev gönderilmeden önce sunucu kanıtı alınır."}
+                    İşlemler görev oturumu açıldıktan sonra bağlı YouTube hesabınızla resmi API üzerinden başlatılır. Başarılı işlemler hemen işaretlenir; görev gönderiminde sunucu son kontrolü yapar.
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {task.requiresYoutubeSubscription ? (
@@ -529,7 +549,7 @@ export default function TaskDetail() {
                     variant="outline"
                     disabled={youtubeVerify.isPending || youtubeSubscribe.isPending || youtubeLike.isPending || !youtubeActionReady || !youtubeVideoId || !task.youtubeChannelId}
                     onClick={() => {
-                      if (youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ videoId: youtubeVideoId, channelId: task.youtubeChannelId });
+                      if (sessionId && youtubeVideoId && task.youtubeChannelId) youtubeVerify.mutate({ sessionPublicId: sessionId, videoId: youtubeVideoId, channelId: task.youtubeChannelId });
                     }}
                     className="mt-3 w-full rounded-xl text-xs"
                   >
@@ -618,7 +638,11 @@ export default function TaskDetail() {
                   )}
                   <Button
                     disabled={
-                      issueSecretCode.isPending || isSessionExpired || !isReadyForSecretCode
+                      issueSecretCode.isPending ||
+                      secretCodeIssuedRef.current ||
+                      Boolean(issuedSecretCode) ||
+                      isSessionExpired ||
+                      !isReadyForSecretCode
                     }
                     onClick={() =>
                       issueSecretCode.mutate({ sessionPublicId: sessionId, signals })
@@ -627,7 +651,7 @@ export default function TaskDetail() {
                     className="w-full rounded-xl"
                   >
                     <KeyRound className="mr-2 size-4" />
-                    {issuedSecretCode ? "Kodu yeniden göster" : "Kodu göster"}
+                    {issuedSecretCode ? "Kod ekranda" : secretCodeIssuedRef.current ? "Kod süresi doldu" : "Kodu göster"}
                   </Button>
 
                   {issuedSecretCode && (

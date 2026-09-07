@@ -38,6 +38,18 @@ function createTransaction(selectResults: unknown[][], insertResults: unknown[] 
 beforeEach(() => getDbMock.mockReset());
 
 describe("kritik görev prosedürleri", () => {
+  it("yeni kullanıcı assignment kaydı olmadan aktif görevleri görebilir", async () => {
+    const visibleTasks = [
+      { id: 1, status: "active", audienceMode: "open", startsAt: null, endsAt: new Date(Date.now() + 60_000) },
+      { id: 2, status: "active", audienceMode: "assigned", startsAt: new Date(Date.now() - 60_000), endsAt: null },
+    ];
+    getDbMock.mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => ({ orderBy: async () => visibleTasks }) }) }),
+    });
+
+    await expect(appRouter.createCaller(createContext(99)).tasks.list()).resolves.toEqual(visibleTasks);
+  });
+
   it("tasks.start geçerli görevde kotayı bir kez tahsis eder ve imzalı oturum döndürür", async () => {
     const task = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 0, totalQuota: 2, sessionDurationSeconds: 900 };
     const assignment = { id: 17, status: "claimed" };
@@ -54,7 +66,7 @@ describe("kritik görev prosedürleri", () => {
 
   it("tasks.start mevcut active session’ı yeniden kullanır ve ikinci oturum üretmez", async () => {
     const task = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 2, totalQuota: 2, sessionDurationSeconds: 900 };
-    const activeSession = { id: 21, publicId: "active-session", taskId: 5, userId: 1, status: "active", expiresAt: new Date(Date.now() + 60_000) };
+    const activeSession = { id: 21, publicId: "active-session", taskId: 5, userId: 1, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000) };
     const { tx, updates, inserts } = createTransaction([[], [task], [activeSession]]);
     getDbMock.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => unknown) => callback(tx) });
 
@@ -67,14 +79,14 @@ describe("kritik görev prosedürleri", () => {
 
   it("youtube.subscribe yalnızca geçerli YouTube görev session’ı üzerinden resmi API çağrısı yapar", async () => {
     process.env.JWT_SECRET = "critical-youtube-secret";
-    const session = { id: 21, publicId: "youtube-session-0001", taskId: 5, userId: 1, status: "active", expiresAt: new Date(Date.now() + 60_000) };
+    const session = { id: 21, publicId: "youtube-session-0001", taskId: 5, userId: 1, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000) };
     const task = { id: 5, platform: "youtube", requiresYoutubeSubscription: true, requiresYoutubeLike: false, youtubeChannelId: "UC12345678901234567890", targetUrl: "https://www.youtube.com/watch?v=abc123_XY" };
     const connection = { id: 31, userId: 1, accessTokenCiphertext: encryptYoutubeToken("access-token"), refreshTokenCiphertext: null, expiresAt: new Date(Date.now() + 3_600_000), scopes: ["https://www.googleapis.com/auth/youtube.force-ssl"] };
     let selectIndex = 0;
     const fetchMock = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "subscription-proof" }] }), { status: 200, headers: { "content-type": "application/json" } }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "none" }] }), { status: 200, headers: { "content-type": "application/json" } }));
     getDbMock.mockResolvedValue({
       select: () => ({ from: () => ({ where: () => query([[session], [task], [connection]][selectIndex++]) }) }),
@@ -84,6 +96,30 @@ describe("kritik görev prosedürleri", () => {
     try {
       await expect(appRouter.createCaller(createContext()).youtube.subscribe({ sessionPublicId: session.publicId })).resolves.toMatchObject({ subscribed: true, alreadySubscribed: false, liked: false, proofToken: expect.any(String) });
       expect(fetchMock).toHaveBeenCalledTimes(4);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("youtube.verify API eksik sonucunu local ilerleme bayraklarıyla başarıya yükseltmez", async () => {
+    process.env.JWT_SECRET = "critical-youtube-secret";
+    const connection = { id: 31, userId: 1, accessTokenCiphertext: encryptYoutubeToken("access-token"), refreshTokenCiphertext: null, expiresAt: new Date(Date.now() + 3_600_000), scopes: ["https://www.googleapis.com/auth/youtube.force-ssl"] };
+    const session = { id: 21, publicId: "youtube-session-0001", taskId: 5, userId: 1, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000), progress: { youtubeSubscribed: true, youtubeLiked: true } };
+    const task = { id: 5, platform: "youtube", targetUrl: "https://www.youtube.com/watch?v=abc123_XY", youtubeChannelId: "UC12345678901234567890", requiresYoutubeSubscription: true, requiresYoutubeLike: true };
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ rating: "none" }] }), { status: 200 }));
+    }
+    let selectIndex = 0;
+    getDbMock.mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => query([[connection], [session], [task]][selectIndex++]) }) }),
+      update: () => ({ set: () => ({ where: async () => [{ affectedRows: 1 }] }) }),
+    });
+
+    try {
+      const result = await appRouter.createCaller(createContext()).youtube.verify({ sessionPublicId: session.publicId, videoId: "abc123_XY", channelId: task.youtubeChannelId });
+      expect(result).toMatchObject({ subscribed: false, liked: false });
     } finally {
       fetchMock.mockRestore();
     }
@@ -112,7 +148,7 @@ describe("kritik görev prosedürleri", () => {
   });
 
   it("tasks.issueSecretCode başka kullanıcıya ait oturum için kayıt döndürmez", async () => {
-    const foreignSession = { id: 2, userId: 99, taskId: 5, status: "active", expiresAt: new Date(Date.now() + 60_000) };
+    const foreignSession = { id: 2, userId: 99, taskId: 5, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000) };
     let selected = false;
     getDbMock.mockResolvedValue({ select: () => ({ from: () => ({ where: () => query(selected ? [] : (selected = true, [foreignSession])) }) }) });
 
@@ -120,14 +156,14 @@ describe("kritik görev prosedürleri", () => {
   });
 
   it("tasks.issueSecretCode süresi geçmiş oturum için kod üretmez", async () => {
-    const expiredSession = { id: 2, userId: 1, taskId: 5, status: "active", expiresAt: new Date(Date.now() - 1_000) };
+    const expiredSession = { id: 2, userId: 1, taskId: 5, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() - 1_000) };
     getDbMock.mockResolvedValue({ select: () => ({ from: () => ({ where: () => query([expiredSession]) }) }) });
 
     await expect(appRouter.createCaller(createContext()).tasks.issueSecretCode({ sessionPublicId: "expired-session-0001", signals: { sessionValid: true, activeSeconds: 60, visibilityScore: 100, interactionCount: 2 } })).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("tasks.issueSecretCode geçerli oturumda tek kullanımlık kod üretir", async () => {
-    const session = { id: 2, userId: 1, taskId: 5, status: "active", expiresAt: new Date(Date.now() + 60_000) };
+    const session = { id: 2, userId: 1, taskId: 5, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000) };
     const task = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60 };
     const updates: unknown[] = [];
     let selectCount = 0;
@@ -142,8 +178,19 @@ describe("kritik görev prosedürleri", () => {
     expect(updates).toHaveLength(1);
   });
 
+  it("issueSecretCode istemcinin sahte yüksek aktif süresini kabul etmez", async () => {
+    const session = { id: 2, userId: 1, taskId: 5, status: "active", startedAt: new Date(Date.now() - 5_000), expiresAt: new Date(Date.now() + 60_000) };
+    const task = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60 };
+    let selectCount = 0;
+    getDbMock.mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => query(selectCount++ === 0 ? [session] : [task]) }) }),
+    });
+
+    await expect(appRouter.createCaller(createContext()).tasks.issueSecretCode({ sessionPublicId: "spoofed-time-0001", signals: { sessionValid: true, activeSeconds: 999_999, visibilityScore: 100, interactionCount: 999 } })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("tasks.verify geçerli Secret Code ile admin onayı bekleyen görev ve pending puan kaydı üretir", async () => {
-    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("123456"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
+    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("123456"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
     const task = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60, rewardPoints: 100 };
     const balance = { availablePoints: 50, lifetimeEarned: 0 };
     const verification = { id: 70, status: "pass" };
@@ -161,7 +208,7 @@ describe("kritik görev prosedürleri", () => {
   });
 
   it("tasks.verify geçersiz Secret Code ile puan veya ledger kaydı oluşturmaz", async () => {
-    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("123456"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
+    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("123456"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
     const task = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60, rewardPoints: 100 };
     const verification = { id: 71, status: "fail" };
     const { tx, updates, inserts } = createTransaction([[], [session], [task], [verification]], [[{ insertId: 71 }], [], []]);
@@ -178,7 +225,7 @@ describe("kritik görev prosedürleri", () => {
     ["foreign", { userId: 99, expiresAt: new Date(Date.now() + 60_000) }],
     ["expired", { userId: 1, expiresAt: new Date(Date.now() - 1_000) }],
   ])("tasks.verify %s oturumunu reddeder", async (_label, patch) => {
-    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", expiresAt: new Date(Date.now() + 60_000), secretCodeHash: null, secretCodeExpiresAt: null, secretCodeUsedAt: null, ...patch };
+    const session = { id: 2, userId: 1, taskId: 5, assignmentId: 17, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000), secretCodeHash: null, secretCodeExpiresAt: null, secretCodeUsedAt: null, ...patch };
     const { tx, updates, inserts } = createTransaction([[], [session]]);
     getDbMock.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => unknown) => callback(tx) });
 
@@ -240,10 +287,10 @@ describe("kullanıcı kazanım yolculuğu", () => {
   it("görev başlatma, Secret Code doğrulaması ve ödül talebini tek kullanıcı sözleşmesinde tamamlar", async () => {
     const startTask = { id: 5, status: "active", startsAt: null, endsAt: null, claimedQuota: 0, totalQuota: 2, sessionDurationSeconds: 900 };
     const assignment = { id: 17, status: "claimed" };
-    const startedSession = { id: 21, publicId: "journey-session-0001", status: "active" };
+    const startedSession = { id: 21, publicId: "journey-session-0001", status: "active", startedAt: new Date(Date.now() - 120_000) };
     const start = createTransaction([[], [startTask], [], [assignment], [startedSession]], [[{ insertId: 17 }], [{ insertId: 21 }]]);
 
-    const activeSession = { id: 21, userId: 1, taskId: 5, assignmentId: 17, status: "active", expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("112233"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
+    const activeSession = { id: 21, userId: 1, taskId: 5, assignmentId: 17, status: "active", startedAt: new Date(Date.now() - 120_000), expiresAt: new Date(Date.now() + 60_000), secretCodeHash: hashSecretCode("112233"), secretCodeExpiresAt: new Date(Date.now() + 60_000), secretCodeUsedAt: null };
     const verifiedTask = { id: 5, verificationMethod: "secret_code", estimatedDurationSeconds: 60, rewardPoints: 100 };
     const balanceBeforeReward = { availablePoints: 100, lifetimeEarned: 0 };
     const verifiedAttempt = { id: 70, status: "pass" };

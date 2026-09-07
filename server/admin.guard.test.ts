@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
+const databaseAvailable = Boolean(process.env.DATABASE_URL);
+
 function createNonAdminContext(): TrpcContext {
   return {
     user: {
@@ -105,7 +107,7 @@ describe("admin erişim koruması", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("yapılandırılmış yönetici izni olan kullanıcının operasyon özetini okuyabildiğini doğrular", { timeout: 15_000 }, async () => {
+  it.skipIf(!databaseAvailable)("yapılandırılmış yönetici izni olan kullanıcının operasyon özetini okuyabildiğini doğrular", { timeout: 15_000 }, async () => {
     const caller = appRouter.createCaller(createAdminContext());
     await expect(caller.admin.overview()).resolves.toMatchObject({
       activeTasks: expect.any(Number),
@@ -116,7 +118,7 @@ describe("admin erişim koruması", () => {
     );
   });
 
-  it("doğrulama inceleyicisinin yalnızca kendi izin kapsamındaki kuyruğa eriştiğini doğrular", async () => {
+  it.skipIf(!databaseAvailable)("doğrulama inceleyicisinin yalnızca kendi izin kapsamındaki kuyruğa eriştiğini doğrular", async () => {
     const caller = appRouter.createCaller(createVerificationReviewerContext());
     await expect(caller.admin.verificationQueue()).resolves.toEqual(
       expect.any(Array)
@@ -132,7 +134,7 @@ describe("admin erişim koruması", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("arayüzün sekmeleri filtreleyebilmesi için kullanıcının salt-okunur erişim özetini döndürür", async () => {
+  it.skipIf(!databaseAvailable)("arayüzün sekmeleri filtreleyebilmesi için kullanıcının salt-okunur erişim özetini döndürür", async () => {
     const caller = appRouter.createCaller(createVerificationReviewerContext());
     await expect(caller.admin.access()).resolves.toMatchObject({
       role: "verification_reviewer",
@@ -144,7 +146,7 @@ describe("admin erişim koruması", () => {
     });
   });
 
-  it("moderatörün risk merkezini okuyabildiğini ancak ödül yazamadığını doğrular", async () => {
+  it.skipIf(!databaseAvailable)("moderatörün risk merkezini okuyabildiğini ancak ödül yazamadığını doğrular", async () => {
     const caller = appRouter.createCaller(createModeratorContext());
     await expect(caller.admin.riskCenter()).resolves.toEqual(expect.any(Array));
     await expect(
@@ -158,7 +160,7 @@ describe("admin erişim koruması", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("ödül yöneticisinin kataloğu okuyabildiğini ancak doğrulama kuyruğunu açamadığını doğrular", async () => {
+  it.skipIf(!databaseAvailable)("ödül yöneticisinin kataloğu okuyabildiğini ancak doğrulama kuyruğunu açamadığını doğrular", async () => {
     const caller = appRouter.createCaller(createRewardManagerContext());
     await expect(caller.admin.listRewards()).resolves.toEqual(
       expect.any(Array)
