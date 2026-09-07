@@ -40,6 +40,8 @@ import {
   youtubeSubscribe,
   youtubeLike,
   resolveYoutubeChannel,
+  verifyYoutubeProof,
+  youtubeRequirementsSatisfied,
 } from "./youtube.js";
 import {
   assertRedemptionEligibility,
@@ -1023,6 +1025,49 @@ export const appRouter = router({
               code: "PRECONDITION_FAILED",
               message: `Görevi göndermek için en az ${requiredWatchSeconds} saniyelik görev süresini tamamlamanız gerekiyor.`,
             });
+          }
+          if (task.platform === "youtube" && (task.requiresYoutubeSubscription || task.requiresYoutubeLike)) {
+            const videoId = extractYoutubeVideoId(task.targetUrl);
+            const requirements = {
+              requiresSubscription: task.requiresYoutubeSubscription,
+              requiresLike: task.requiresYoutubeLike,
+            };
+            let youtubeState: { subscribed: boolean; liked: boolean } | null = input.youtubeProof && videoId && task.youtubeChannelId
+              ? verifyYoutubeProof(input.youtubeProof, {
+                  userId: ctx.user.id,
+                  videoId,
+                  channelId: task.youtubeChannelId,
+                })
+              : null;
+
+            // After a refresh the client may no longer have its short-lived
+            // proof token. Re-check YouTube instead of trusting local flags.
+            if (!youtubeRequirementsSatisfied(requirements, youtubeState)) {
+              if (!videoId || !task.youtubeChannelId) {
+                throw new TRPCError({
+                  code: "PRECONDITION_FAILED",
+                  message: "YouTube görevinin video veya kanal hedefi yapılandırılmamış.",
+                });
+              }
+              try {
+                const { accessToken } = await getYoutubeAccessToken(db, ctx.user.id);
+                youtubeState = await youtubeVerification(accessToken, videoId, task.youtubeChannelId, requirements);
+              } catch (error) {
+                throw new TRPCError({
+                  code: "PRECONDITION_FAILED",
+                  message: error instanceof Error ? error.message : "YouTube koşulları doğrulanamadı.",
+                });
+              }
+            }
+            if (!youtubeRequirementsSatisfied(requirements, youtubeState)) {
+              const missing: string[] = [];
+              if (task.requiresYoutubeSubscription && !youtubeState?.subscribed) missing.push("kanal aboneliği");
+              if (task.requiresYoutubeLike && !youtubeState?.liked) missing.push("video beğenisi");
+              throw new TRPCError({
+                code: "PRECONDITION_FAILED",
+                message: `YouTube koşulları tamamlanmadan görev gönderilemez. Eksik: ${missing.join(" ve ")}.`,
+              });
+            }
           }
           const secretCodeValid = Boolean(
             input.secretCode &&
