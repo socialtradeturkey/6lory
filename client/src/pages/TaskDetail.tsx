@@ -86,6 +86,11 @@ export default function TaskDetail() {
 
   const start = trpc.tasks.start.useMutation({
     onSuccess: result => {
+      const progress = result.session?.progress;
+      const restoredYoutubeState = {
+        subscribed: Boolean(progress && typeof progress === "object" && "youtubeSubscribed" in progress && progress.youtubeSubscribed),
+        liked: Boolean(progress && typeof progress === "object" && "youtubeLiked" in progress && progress.youtubeLiked),
+      };
       setSessionId(result.session?.publicId ?? null);
       setSessionExpiresAt(
         result.session?.expiresAt ? new Date(result.session.expiresAt).getTime() : null,
@@ -101,7 +106,7 @@ export default function TaskDetail() {
       secretCodeIssuedRef.current = false;
       setVerificationStatus(null);
       setYoutubeEvidence(null);
-      setYoutubeActionState({ subscribed: false, liked: false });
+      setYoutubeActionState(restoredYoutubeState);
       lastYoutubeCheckKeyRef.current = null;
       toast.success(
         result.reused
@@ -114,9 +119,14 @@ export default function TaskDetail() {
 
   const youtubeSubscribe = trpc.youtube.subscribe.useMutation({
     onSuccess: result => {
-      setYoutubeActionState(state => ({ ...state, subscribed: true }));
+      setYoutubeActionState(state => ({ ...state, subscribed: Boolean(result.subscribed || result.alreadySubscribed) }));
       if (result.proofToken) {
-        setYoutubeEvidence({ subscribed: Boolean(result.subscribed), liked: Boolean(result.liked), proofToken: result.proofToken });
+        const proofToken = result.proofToken;
+        setYoutubeEvidence(state => ({
+          subscribed: Boolean(result.subscribed || result.alreadySubscribed || state?.subscribed),
+          liked: Boolean(result.liked || state?.liked),
+          proofToken,
+        }));
       }
       toast.success(result.alreadySubscribed ? "YouTube kanalına zaten abonesiniz." : "YouTube kanal aboneliği tamamlandı.");
     },
@@ -136,9 +146,14 @@ export default function TaskDetail() {
 
   const youtubeLike = trpc.youtube.like.useMutation({
     onSuccess: result => {
-      setYoutubeActionState(state => ({ ...state, liked: true }));
+      setYoutubeActionState(state => ({ ...state, liked: Boolean(result.liked || result.alreadyLiked) }));
       if (result.proofToken) {
-        setYoutubeEvidence({ subscribed: Boolean(result.subscribed), liked: Boolean(result.liked), proofToken: result.proofToken });
+        const proofToken = result.proofToken;
+        setYoutubeEvidence(state => ({
+          subscribed: Boolean(result.subscribed || state?.subscribed),
+          liked: Boolean(result.liked || result.alreadyLiked || state?.liked),
+          proofToken,
+        }));
       }
       toast.success(result.alreadyLiked ? "Video zaten beğenilmiş." : "YouTube video beğenisi tamamlandı.");
     },
